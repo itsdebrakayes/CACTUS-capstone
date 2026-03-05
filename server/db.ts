@@ -432,7 +432,8 @@ export async function createPathReport(
   geohash: string,
   geohash6: string,
   createdBy: number,
-  ttlMinutes: number
+  ttlMinutes: number,
+  description?: string
 ) {
   const db = await getDb();
   if (!db) return null;
@@ -446,6 +447,7 @@ export async function createPathReport(
     geohash6,
     createdBy,
     ttlMinutes,
+    description: description || null,
   });
 
   // Return the created report by querying it back

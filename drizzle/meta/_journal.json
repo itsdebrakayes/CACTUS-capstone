@@ -15,6 +15,13 @@
       "when": 1772677152627,
       "tag": "0001_shocking_shatterstar",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1772679845174,
+      "tag": "0002_tranquil_valkyrie",
+      "breakpoints": true
     }
   ]
 }

@@ -472,6 +472,7 @@ const reportsRouter = router({
         severity: z.number().min(1).max(5),
         lat: z.number(),
         lng: z.number(),
+        description: z.string().max(300).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -489,7 +490,8 @@ const reportsRouter = router({
         geohash,
         geohash6,
         ctx.user.id,
-        ttlMinutes
+        ttlMinutes,
+        input.description
       );
 
       if (!report) {

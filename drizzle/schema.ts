@@ -247,6 +247,7 @@ export const pathReports = mysqlTable(
     geohash: varchar("geohash", { length: 12 }).notNull(), // precision 7
     geohash6: varchar("geohash6", { length: 6 }).notNull(), // prefix for indexing
     createdBy: int("createdBy").notNull(),
+    description: text("description"),
     ttlMinutes: int("ttlMinutes").notNull(),
     status: mysqlEnum("status", ["active", "verified", "expired", "resolved"]).default("active").notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
