@@ -8,6 +8,8 @@ import { registerChatRoutes } from "./chat";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { sseRouter } from "../sse-router";
+import { initializeJobs } from "../jobs";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -38,6 +40,8 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Chat API with streaming and tool calling
   registerChatRoutes(app);
+  // SSE realtime events
+  app.use("/api/realtime", sseRouter);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -46,6 +50,8 @@ async function startServer() {
       createContext,
     })
   );
+  // Initialize background jobs
+  initializeJobs();
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
@@ -62,6 +68,7 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    console.log(`SSE events available at http://localhost:${port}/api/realtime/events`);
   });
 }
 

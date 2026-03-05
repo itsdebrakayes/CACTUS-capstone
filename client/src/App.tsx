@@ -4,13 +4,21 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { useAuth } from "@/_core/hooks/useAuth";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
 
 function Router() {
-  // make sure to consider if you need authentication for certain routes
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="w-full h-screen flex items-center justify-center">Loading...</div>;
+  }
+
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      {isAuthenticated && <Route path={"/dashboard"} component={Dashboard} />}
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
