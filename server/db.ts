@@ -112,6 +112,44 @@ export async function getUserById(userId: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserByStudentId(studentId: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.studentId, studentId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function createLocalUser(data: {
+  name: string;
+  email: string;
+  studentId: string;
+  passwordHash: string;
+  role?: "student" | "class_rep" | "year_rep" | "guild_admin" | "lecturer";
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const openId = `local:${data.email}`;
+  await db.insert(users).values({
+    openId,
+    name: data.name,
+    email: data.email,
+    studentId: data.studentId,
+    passwordHash: data.passwordHash,
+    loginMethod: "local",
+    role: data.role ?? "student",
+    lastSignedIn: new Date(),
+  });
+  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 // ============================================================================
 // WALKING BODY QUERIES
 // ============================================================================

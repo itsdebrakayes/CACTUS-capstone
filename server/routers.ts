@@ -1,8 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "@shared/const";
+import bcrypt from "bcryptjs";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
+import { sdk } from "./_core/sdk";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import * as algo from "./algorithms";
@@ -709,6 +711,75 @@ const footpathRouter = router({
 // MAIN ROUTER
 // ============================================================================
 
+// ============================================================================
+// CUSTOM AUTH ROUTER (local email/password)
+// ============================================================================
+
+const localAuthRouter = router({
+  signup: publicProcedure
+    .input(
+      z.object({
+        name: z.string().min(2).max(100),
+        email: z.string().email(),
+        studentId: z.string().min(3).max(32),
+        password: z.string().min(8),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Check for existing email
+      const existingEmail = await db.getUserByEmail(input.email);
+      if (existingEmail) {
+        throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
+      }
+      // Check for existing student ID
+      const existingStudentId = await db.getUserByStudentId(input.studentId);
+      if (existingStudentId) {
+        throw new TRPCError({ code: "CONFLICT", message: "Student ID already registered" });
+      }
+      const passwordHash = await bcrypt.hash(input.password, 12);
+      const user = await db.createLocalUser({
+        name: input.name,
+        email: input.email,
+        studentId: input.studentId,
+        passwordHash,
+      });
+      if (!user) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
+      }
+      // Create session cookie using the same JWT mechanism
+      const openId = `local:${input.email}`;
+      const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+    }),
+
+  login: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const user = await db.getUserByEmail(input.email);
+      if (!user || !user.passwordHash) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
+      const valid = await bcrypt.compare(input.password, user.passwordHash);
+      if (!valid) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+      }
+      // Update last signed in
+      await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
+      // Create session cookie
+      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+    }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -720,6 +791,8 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    signup: localAuthRouter.signup,
+    login: localAuthRouter.login,
   }),
   walking: walkingRouter,
   classes: classRouter,
