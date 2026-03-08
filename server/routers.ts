@@ -10,6 +10,7 @@ import * as db from "./db";
 import * as algo from "./algorithms";
 import * as pf from "./pathfinding";
 import { eventEmitter } from "./realtime";
+import { generateVerificationCode, codeExpiry, sendVerificationEmail } from "./emailVerification";
 
 // ============================================================================
 // WALKING BODY ROUTER
@@ -784,37 +785,68 @@ const localAuthRouter = router({
       z.object({
         name: z.string().min(2).max(100),
         email: z.string().email(),
-        studentId: z.string().min(3).max(32),
         password: z.string().min(8),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      // Check for existing email
+    .mutation(async ({ input }) => {
       const existingEmail = await db.getUserByEmail(input.email);
       if (existingEmail) {
         throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
       }
-      // Check for existing student ID
-      const existingStudentId = await db.getUserByStudentId(input.studentId);
-      if (existingStudentId) {
-        throw new TRPCError({ code: "CONFLICT", message: "Student ID already registered" });
-      }
       const passwordHash = await bcrypt.hash(input.password, 12);
+      const code = generateVerificationCode();
+      const expiry = codeExpiry();
       const user = await db.createLocalUser({
         name: input.name,
         email: input.email,
-        studentId: input.studentId,
         passwordHash,
+        verificationCode: code,
+        verificationExpiry: expiry,
       });
       if (!user) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
       }
-      // Create session cookie using the same JWT mechanism
-      const openId = `local:${input.email}`;
-      const sessionToken = await sdk.createSessionToken(openId, { name: input.name, expiresInMs: ONE_YEAR_MS });
-      const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      await sendVerificationEmail(input.email, input.name, code).catch((err) =>
+        console.error("[signup] email send failed:", err)
+      );
+      return { success: true, userId: user.id, email: input.email };
+    }),
+
+  sendVerificationCode: publicProcedure
+    .input(z.object({ email: z.string().email() }))
+    .mutation(async ({ input }) => {
+      const user = await db.getUserByEmail(input.email);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (user.emailVerified) return { success: true, alreadyVerified: true };
+      const code = generateVerificationCode();
+      const expiry = codeExpiry();
+      await db.setVerificationCode(user.id, code, expiry);
+      await sendVerificationEmail(input.email, user.name ?? "Student", code).catch((err) =>
+        console.error("[sendVerificationCode] email send failed:", err)
+      );
+      return { success: true, alreadyVerified: false };
+    }),
+
+  verifyEmail: publicProcedure
+    .input(z.object({ email: z.string().email(), code: z.string().length(6) }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await db.getUserByEmail(input.email);
+      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (user.emailVerified) {
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+        return { success: true };
+      }
+      if (!user.verificationCode || user.verificationCode !== input.code) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid verification code" });
+      }
+      if (!user.verificationExpiry || new Date() > user.verificationExpiry) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Verification code has expired. Request a new one." });
+      }
+      await db.verifyUserEmail(user.id);
+      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+      return { success: true };
     }),
 
   login: publicProcedure
@@ -1027,6 +1059,8 @@ export const appRouter = router({
     }),
     signup: localAuthRouter.signup,
     login: localAuthRouter.login,
+    sendVerificationCode: localAuthRouter.sendVerificationCode,
+    verifyEmail: localAuthRouter.verifyEmail,
   }),
   walking: walkingRouter,
   classes: classRouter,

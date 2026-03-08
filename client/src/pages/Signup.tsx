@@ -11,15 +11,14 @@ export default function Signup() {
   const [, navigate] = useLocation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [studentId, setStudentId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const signupMutation = trpc.auth.signup.useMutation({
-    onSuccess: () => {
-      toast.success("Account created! Welcome to CACTUS.");
-      window.location.href = "/dashboard";
+    onSuccess: (data) => {
+      // Navigate to email verification page with the email pre-filled
+      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
     },
     onError: (err) => {
       toast.error(err.message || "Signup failed");
@@ -28,7 +27,7 @@ export default function Signup() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !studentId || !password) {
+    if (!name || !email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -40,7 +39,7 @@ export default function Signup() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    signupMutation.mutate({ name, email, studentId, password });
+    signupMutation.mutate({ name, email, password });
   };
 
   return (
@@ -93,18 +92,6 @@ export default function Signup() {
               onChange={(e) => setEmail(e.target.value)}
               className="bg-[#0a1628] border-[#1e3050] text-white placeholder:text-[#445566] focus:border-[#00c853] h-10"
               autoComplete="email"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="studentId" className="text-[#aabbcc] text-sm">Student ID</Label>
-            <Input
-              id="studentId"
-              type="text"
-              placeholder="620123456"
-              value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
-              className="bg-[#0a1628] border-[#1e3050] text-white placeholder:text-[#445566] focus:border-[#00c853] h-10"
             />
           </div>
 

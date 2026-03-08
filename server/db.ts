@@ -121,18 +121,12 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getUserByStudentId(studentId: string) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.studentId, studentId)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
-}
-
 export async function createLocalUser(data: {
   name: string;
   email: string;
-  studentId: string;
   passwordHash: string;
+  verificationCode: string;
+  verificationExpiry: Date;
   role?: "student" | "class_rep" | "year_rep" | "guild_admin" | "lecturer";
 }) {
   const db = await getDb();
@@ -142,14 +136,28 @@ export async function createLocalUser(data: {
     openId,
     name: data.name,
     email: data.email,
-    studentId: data.studentId,
     passwordHash: data.passwordHash,
+    emailVerified: false,
+    verificationCode: data.verificationCode,
+    verificationExpiry: data.verificationExpiry,
     loginMethod: "local",
     role: data.role ?? "student",
     lastSignedIn: new Date(),
   });
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function setVerificationCode(userId: number, code: string, expiry: Date) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ verificationCode: code, verificationExpiry: expiry }).where(eq(users.id, userId));
+}
+
+export async function verifyUserEmail(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ emailVerified: true, isVerified: true, verificationCode: null, verificationExpiry: null }).where(eq(users.id, userId));
 }
 
 // ============================================================================

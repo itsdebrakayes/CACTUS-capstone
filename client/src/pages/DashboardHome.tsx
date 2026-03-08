@@ -288,7 +288,7 @@ function UpNextSection({ classes }: { classes: typeof MOCK_SCHEDULE }) {
               <p className="text-xs text-gray-500">{cls.room} · {cls.professor}</p>
             </div>
             <button
-              onClick={() => navigate("/schedule")}
+              onClick={() => navigate(`/courses/${cls.id}`)}
               className="w-8 h-8 rounded-full bg-[#e8faf0] flex items-center justify-center shrink-0 hover:bg-[#d0f5e0] transition-colors"
             >
               <ChevronRight className="w-4 h-4 text-[#00c853]" />
@@ -369,7 +369,7 @@ export default function DashboardHome() {
       {currentClass ? (
         <CurrentClassCard
           cls={currentClass}
-          onViewDetails={() => navigate("/schedule")}
+          onViewDetails={() => navigate(`/courses/${currentClass.id}`)}
         />
       ) : (
         <div className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">

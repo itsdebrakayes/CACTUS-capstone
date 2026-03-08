@@ -147,3 +147,16 @@
 - [x] App.tsx: 4 new routes wired (/courses, /courses/:id, /courses/:id/rep, /courses/:id/reporting)
 - [x] Class rep role gating: only class_rep membership can access Rep Dashboard and post official announcements
 - [x] 122 tests still passing after all changes
+
+## Phase 21: Auth Cleanup & Bug Fixes
+
+- [x] Remove studentId field from users table schema and all related code
+- [x] Remove studentId from signup form and backend signup procedure
+- [x] Add emailVerified boolean and verificationCode + verificationExpiry fields to users table
+- [x] Build sendVerificationEmail helper (6-digit code via nodemailer SMTP)
+- [x] Add tRPC procedures: sendVerificationCode, verifyEmail
+- [x] Update signup flow: after signup, redirect to /verify-email page
+- [x] Build VerifyEmailPage: enter 6-digit code, auto-submit, paste support, 60s resend cooldown
+- [x] Block login for unverified accounts (or show banner)
+- [x] Fix Dashboard "View Details" button — navigates to /courses/:id
+- [x] Verify all backend endpoints — 122 tests passing
