@@ -90,3 +90,35 @@
 - [ ] Configurable campus center (admin settings panel)
 - [ ] Real course/schedule data from backend (currently mock data)
 - [ ] End-to-end testing with two real devices
+
+## Phase 16-19: Map UI Rebuild, Algorithm Hardening, Demo Mode
+
+### Map UI (Waze-style)
+- [ ] Floating caution/report button overlaid on map (bottom-right, yellow triangle)
+- [ ] Hazard report bottom sheet with campus-specific categories (grid of icons)
+- [ ] Campus categories: Broken Light, Flooding, Broken Path, Suspicious Activity, Obstruction, Violent Incident, Slippery Surface, Construction
+- [ ] Severity-based pin colors on map (red=high, orange=medium, yellow=low)
+- [ ] TTL countdown ring on hazard pins
+- [ ] Still There / Not There vote buttons on pin popup
+- [ ] Active hazard count badge on caution button
+- [ ] Walking partner FAB (floating action button) on map
+- [ ] Check-in destination tap-to-set mode
+
+### Algorithm Hardening (per PDF spec)
+- [ ] Bayesian trust score: C·m + n·p / (C + n) with safety penalty λ·flags
+- [ ] Time-decay on walking ratings (stale ratings matter less)
+- [ ] Class claim threshold: ceil(α·N · role_multiplier · (1 - β·user_trust))
+- [ ] Claim trust update: T/(C+T+F) Bayesian formula
+- [ ] Strike system: 4-strike escalation for class reps (warning → bypass suspend → longer suspend → semester ban)
+- [ ] Strike forgiveness: 30-day clean streak decays strikes
+- [ ] Caution report TTL: still_there extends, not_there reduces, severity-weighted
+- [ ] Path-Report Reliability Score (separate from class trust and walking trust)
+- [ ] Reputation-weighted confirmations for caution reports
+- [ ] Re-validation prompts for stale reports (age > threshold)
+- [ ] Check-in: ETA + buffer monitoring, no-progress detection
+
+### Demo / Simulation Mode
+- [ ] Seed demo data: mock walkers, hazard pins, class claims on UWI Mona
+- [ ] Demo mode toggle that shows simulated nearby walkers on map
+- [ ] Simulated SSE events for demo (fake hazard reports, claim updates)
+- [ ] All panels testable without real GPS or other users

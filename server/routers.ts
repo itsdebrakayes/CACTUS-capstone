@@ -224,7 +224,7 @@ const walkingRouter = router({
       // Recalculate trust score
       const ratings = await db.getWalkingRatingsForUser(rateeId);
       const avgStars = ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length;
-      const trustScore = algo.calculateTrustScore(avgStars, ratings.length);
+      const trustScore = algo.calculateTrustScoreSimple(avgStars, ratings.length);
 
       eventEmitter.emit("event", {
         type: "trust.walking.updated",
@@ -247,7 +247,7 @@ const walkingRouter = router({
     }
 
     const avgStars = ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length;
-    const score = algo.calculateTrustScore(avgStars, ratings.length);
+    const score = algo.calculateTrustScoreSimple(avgStars, ratings.length);
 
     return {
       score,
