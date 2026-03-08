@@ -8,6 +8,7 @@ import { sdk } from "./_core/sdk";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import * as algo from "./algorithms";
+import * as pf from "./pathfinding";
 import { eventEmitter } from "./realtime";
 
 // ============================================================================
@@ -705,6 +706,68 @@ const footpathRouter = router({
   getFootpaths: publicProcedure.query(async () => {
     return db.getAllFootpaths();
   }),
+
+  // Get all graph nodes (for map display and destination picker)
+  getGraphNodes: publicProcedure.query(async () => {
+    const rows = await db.getAllPathNodes();
+    return rows.map(pf.toGraphNode);
+  }),
+
+  // Snap a lat/lng to the nearest graph node
+  snapToNode: publicProcedure
+    .input(z.object({ lat: z.number(), lng: z.number() }))
+    .query(async ({ input }) => {
+      const rows = await db.getAllPathNodes();
+      const nodes = new Map<number, pf.GraphNode>();
+      for (const row of rows) nodes.set(row.id, pf.toGraphNode(row));
+      return pf.nearestNode(input.lat, input.lng, nodes);
+    }),
+
+  // Plan a route between two nodes
+  planRoute: protectedProcedure
+    .input(
+      z.object({
+        fromNodeId: z.number().int().positive(),
+        toNodeId: z.number().int().positive(),
+        mode: z.enum(["shortest", "scenic", "accessible", "safe_night"]),
+        hourOfDay: z.number().int().min(0).max(23).optional(),
+        isRainy: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const hourOfDay = input.hourOfDay ?? new Date().getHours();
+      const isRainy = input.isRainy ?? false;
+      const cached = await db.getCachedRoutePlan(input.fromNodeId, input.toNodeId, input.mode, hourOfDay);
+      if (cached) return cached.result as pf.RouteResult;
+      const [nodeRows, edgeRows] = await Promise.all([db.getAllPathNodes(), db.getAllPathEdges()]);
+      const nodes = new Map<number, pf.GraphNode>();
+      for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
+      const edges = edgeRows.map(pf.toGraphEdge);
+      const result = pf.dijkstra({ fromNodeId: input.fromNodeId, toNodeId: input.toNodeId, mode: input.mode, hourOfDay, isRainy, nodes, edges });
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "No path found between the selected locations for this route profile." });
+      await db.cacheRoutePlan({ fromNodeId: input.fromNodeId, toNodeId: input.toNodeId, mode: input.mode, hourOfDay, result, distanceM: result.distanceM, walkTimeSec: result.walkTimeSec, safetyScore: result.safetyScore });
+      return result;
+    }),
+
+  // Plan all four route profiles at once
+  planAllRoutes: protectedProcedure
+    .input(
+      z.object({
+        fromNodeId: z.number().int().positive(),
+        toNodeId: z.number().int().positive(),
+        hourOfDay: z.number().int().min(0).max(23).optional(),
+        isRainy: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const hourOfDay = input.hourOfDay ?? new Date().getHours();
+      const isRainy = input.isRainy ?? false;
+      const [nodeRows, edgeRows] = await Promise.all([db.getAllPathNodes(), db.getAllPathEdges()]);
+      const nodes = new Map<number, pf.GraphNode>();
+      for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
+      const edges = edgeRows.map(pf.toGraphEdge);
+      return pf.planAllRoutes(input.fromNodeId, input.toNodeId, hourOfDay, isRainy, nodes, edges);
+    }),
 });
 
 // ============================================================================

@@ -373,3 +373,148 @@ export const footpaths = mysqlTable(
 
 export type Footpath = typeof footpaths.$inferSelect;
 export type InsertFootpath = typeof footpaths.$inferInsert;
+
+// ============================================================================
+// PATHFINDING GRAPH — NODES & EDGES
+// ============================================================================
+
+/**
+ * A node in the campus footpath graph.
+ * Represents a junction, landmark, or endpoint on the campus path network.
+ */
+export const pathNodes = mysqlTable(
+  "pathNodes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    /** Human-readable label (e.g. "Main Gate", "Library Junction") */
+    name: varchar("name", { length: 255 }),
+    lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
+    lng: decimal("lng", { precision: 10, scale: 7 }).notNull(),
+    /** Is this a named landmark worth visiting on a scenic route? */
+    isLandmark: boolean("isLandmark").default(false).notNull(),
+    /** Scenic desirability score 0-1 (higher = more scenic) */
+    scenicScore: float("scenicScore").default(0).notNull(),
+    /** Is this node fully accessible (no steps, ramps available)? */
+    isAccessible: boolean("isAccessible").default(true).notNull(),
+    /** Optional category for the landmark */
+    category: varchar("category", { length: 64 }), // e.g. 'library','gate','cafeteria','admin'
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    latLngIdx: index("idx_pathnode_latlng").on(table.lat, table.lng),
+  })
+);
+export type PathNode = typeof pathNodes.$inferSelect;
+export type InsertPathNode = typeof pathNodes.$inferInsert;
+
+/**
+ * A directed edge between two path nodes.
+ * Stores all metadata needed for multi-criteria cost calculation.
+ */
+export const pathEdges = mysqlTable(
+  "pathEdges",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    fromNodeId: int("fromNodeId").notNull(),
+    toNodeId: int("toNodeId").notNull(),
+    /** Euclidean/haversine distance in metres */
+    distanceM: float("distanceM").notNull(),
+    /** Estimated walk time in seconds (distanceM / 1.4 m/s baseline) */
+    walkTimeSec: int("walkTimeSec").notNull(),
+    /**
+     * Lighting quality 0-1.
+     * 0 = completely unlit, 1 = well-lit street lamps throughout.
+     * Used to penalise night-time traversal.
+     */
+    lighting: float("lighting").default(0.5).notNull(),
+    /**
+     * Weather coverage 0-1.
+     * 0 = fully exposed, 1 = fully covered (walkway/arcade).
+     * Used to penalise wet-weather traversal.
+     */
+    weatherCoverage: float("weatherCoverage").default(0.5).notNull(),
+    /**
+     * Isolation score 0-1.
+     * 0 = very isolated (no bystanders), 1 = busy/populated path.
+     * High isolation raises night-time cost.
+     */
+    isolation: float("isolation").default(0.5).notNull(),
+    /**
+     * Accessibility: true if the edge is step-free and wide enough for
+     * wheelchairs/mobility aids.
+     */
+    isAccessible: boolean("isAccessible").default(true).notNull(),
+    /**
+     * Surface quality 0-1.
+     * 0 = rough/unpaved, 1 = smooth paved.
+     * Affects accessibility cost.
+     */
+    surfaceQuality: float("surfaceQuality").default(0.8).notNull(),
+    /**
+     * Scenic value 0-1.
+     * Higher values reduce cost on the scenic profile.
+     */
+    scenicScore: float("scenicScore").default(0).notNull(),
+    /**
+     * Whether this edge has steps (immediately excludes from accessible route).
+     */
+    hasSteps: boolean("hasSteps").default(false).notNull(),
+    /**
+     * Slope grade percentage (positive = uphill from→to).
+     * > 8% is considered inaccessible per ADA guidelines.
+     */
+    slopeGrade: float("slopeGrade").default(0).notNull(),
+    /**
+     * Cached count of confirmed violence/high-hazard reports in last 24h.
+     * Updated by the background job every 5 minutes.
+     * Edges with confirmedViolenceCount >= 3 are blocked on all profiles.
+     */
+    confirmedViolenceCount: int("confirmedViolenceCount").default(0).notNull(),
+    /**
+     * Cached count of any confirmed hazard reports in last 24h.
+     */
+    confirmedHazardCount: int("confirmedHazardCount").default(0).notNull(),
+    /** Soft-delete: admin can disable an edge without removing it */
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    fromIdx: index("idx_edge_from").on(table.fromNodeId),
+    toIdx: index("idx_edge_to").on(table.toNodeId),
+    activeIdx: index("idx_edge_active").on(table.isActive),
+  })
+);
+export type PathEdge = typeof pathEdges.$inferSelect;
+export type InsertPathEdge = typeof pathEdges.$inferInsert;
+
+/**
+ * Cached route plans (avoids recomputing popular A→B pairs).
+ * Expires every 5 minutes since hazard counts change frequently.
+ */
+export const routePlans = mysqlTable(
+  "routePlans",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    fromNodeId: int("fromNodeId").notNull(),
+    toNodeId: int("toNodeId").notNull(),
+    mode: mysqlEnum("mode", ["shortest", "scenic", "accessible", "safe_night"]).notNull(),
+    /** Hour of day (0-23) used for time-sensitive cost calculation */
+    hourOfDay: int("hourOfDay").notNull(),
+    /** Serialised route result (node IDs + GeoJSON coordinates) */
+    result: json("result").notNull(),
+    distanceM: float("distanceM").notNull(),
+    walkTimeSec: int("walkTimeSec").notNull(),
+    safetyScore: float("safetyScore").notNull(),
+    /** Cache expires after 5 minutes */
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    modeIdx: index("idx_routeplan_mode").on(table.mode),
+    expiresIdx: index("idx_routeplan_expires").on(table.expiresAt),
+    fromToIdx: index("idx_routeplan_from_to").on(table.fromNodeId, table.toNodeId),
+  })
+);
+export type RoutePlan = typeof routePlans.$inferSelect;
+export type InsertRoutePlan = typeof routePlans.$inferInsert;

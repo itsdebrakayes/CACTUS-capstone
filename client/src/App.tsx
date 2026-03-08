@@ -15,6 +15,7 @@ import ProfilePage from "./pages/ProfilePage";
 import ClassChatPage from "./pages/ClassChatPage";
 // Legacy full-featured panels (walking body, reports, check-ins)
 import Dashboard from "./pages/Dashboard";
+import FindWayPage from "./pages/FindWayPage";
 
 function Router() {
   return (
@@ -29,6 +30,9 @@ function Router() {
       <Route path="/map" component={MapPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/class-chat" component={ClassChatPage} />
+
+      {/* Find Way - route planner */}
+      <Route path="/find-way" component={FindWayPage} />
 
       {/* Legacy full-featured panels (walking, reports, check-ins) */}
       <Route path="/walking" component={Dashboard} />

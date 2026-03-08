@@ -818,3 +818,136 @@ export async function getAllFootpaths() {
 
   return db.select().from(footpaths);
 }
+
+// ============================================================================
+// PATHFINDING GRAPH QUERIES
+// ============================================================================
+
+// Add missing imports at the top — these are appended here for the graph tables
+import {
+  pathNodes as _pathNodes,
+  pathEdges as _pathEdges,
+  routePlans as _routePlans,
+} from "../drizzle/schema";
+
+export async function getAllPathNodes() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(_pathNodes);
+}
+
+export async function getAllPathEdges() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(_pathEdges).where(eq(_pathEdges.isActive, true));
+}
+
+export async function getPathNode(nodeId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(_pathNodes).where(eq(_pathNodes.id, nodeId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function insertPathNode(data: {
+  name?: string | null;
+  lat: string;
+  lng: string;
+  isLandmark?: boolean;
+  scenicScore?: number;
+  isAccessible?: boolean;
+  category?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(_pathNodes).values(data as any);
+  const result = await db
+    .select()
+    .from(_pathNodes)
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function insertPathEdge(data: {
+  fromNodeId: number;
+  toNodeId: number;
+  distanceM: number;
+  walkTimeSec: number;
+  lighting?: number;
+  weatherCoverage?: number;
+  isolation?: number;
+  isAccessible?: boolean;
+  surfaceQuality?: number;
+  scenicScore?: number;
+  hasSteps?: boolean;
+  slopeGrade?: number;
+  confirmedViolenceCount?: number;
+  confirmedHazardCount?: number;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(_pathEdges).values(data as any);
+  return { success: true };
+}
+
+export async function updateEdgeHazardCounts(
+  edgeId: number,
+  confirmedViolenceCount: number,
+  confirmedHazardCount: number
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(_pathEdges)
+    .set({ confirmedViolenceCount, confirmedHazardCount })
+    .where(eq(_pathEdges.id, edgeId));
+}
+
+export async function getCachedRoutePlan(
+  fromNodeId: number,
+  toNodeId: number,
+  mode: string,
+  hourOfDay: number
+) {
+  const db = await getDb();
+  if (!db) return null;
+  const now = new Date();
+  const result = await db
+    .select()
+    .from(_routePlans)
+    .where(
+      and(
+        eq(_routePlans.fromNodeId, fromNodeId),
+        eq(_routePlans.toNodeId, toNodeId),
+        eq(_routePlans.mode, mode as any),
+        eq(_routePlans.hourOfDay, hourOfDay),
+        gt(_routePlans.expiresAt, now)
+      )
+    )
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function cacheRoutePlan(data: {
+  fromNodeId: number;
+  toNodeId: number;
+  mode: string;
+  hourOfDay: number;
+  result: any;
+  distanceM: number;
+  walkTimeSec: number;
+  safetyScore: number;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+  await db.insert(_routePlans).values({ ...data, mode: data.mode as any, expiresAt });
+}
+
+export async function countPathNodes() {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.select({ count: sql<number>`COUNT(*)` }).from(_pathNodes);
+  return Number(result[0]?.count ?? 0);
+}

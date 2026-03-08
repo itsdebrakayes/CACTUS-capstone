@@ -380,7 +380,7 @@ export default function DashboardHome() {
 
       {/* Quick Actions */}
       <QuickActions
-        onFindWay={() => navigate("/map")}
+        onFindWay={() => navigate("/find-way")}
         onClassChat={() => navigate("/class-chat")}
         onEmergency={() => {
           // Emergency action - show alert panel
