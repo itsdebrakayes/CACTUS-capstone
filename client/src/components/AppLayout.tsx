@@ -1,10 +1,10 @@
 import { useLocation } from "wouter";
-import { LayoutDashboard, CalendarDays, Map, User, MessageSquare } from "lucide-react";
+import { LayoutDashboard, CalendarDays, Map, User, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  activeTab?: "dashboard" | "schedule" | "map" | "chat" | "profile";
+  activeTab?: "dashboard" | "schedule" | "map" | "courses" | "profile";
   /** When true the content area does not scroll — used for the full-screen map */
   noScroll?: boolean;
 }
@@ -13,7 +13,7 @@ const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { id: "schedule",  label: "Schedule",  icon: CalendarDays,    href: "/schedule"  },
   { id: "map",       label: "Map",       icon: Map,             href: "/map"       },
-  { id: "chat",      label: "Class Chat",icon: MessageSquare,   href: "/class-chat"},
+  { id: "courses",   label: "Courses",   icon: BookOpen,        href: "/courses"   },
   { id: "profile",   label: "Profile",   icon: User,            href: "/profile"   },
 ] as const;
 

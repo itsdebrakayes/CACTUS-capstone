@@ -36,6 +36,20 @@
       "when": 1773000033978,
       "tag": "0004_abnormal_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1773011157477,
+      "tag": "0005_sudden_black_knight",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1773011680771,
+      "tag": "0006_spotty_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }

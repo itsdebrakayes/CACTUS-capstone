@@ -50,12 +50,60 @@ export const courses = mysqlTable("courses", {
   id: int("id").autoincrement().primaryKey(),
   courseCode: varchar("courseCode", { length: 32 }).notNull().unique(),
   courseName: varchar("courseName", { length: 255 }).notNull(),
+  description: text("description"),
+  thumbnailUrl: varchar("thumbnailUrl", { length: 512 }),
+  room: varchar("room", { length: 64 }),
+  lecturer: varchar("lecturer", { length: 255 }),
+  department: varchar("department", { length: 128 }),
   classSize: int("classSize").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
-
 export type Course = typeof courses.$inferSelect;
 export type InsertCourse = typeof courses.$inferInsert;
+
+// Course announcements (official broadcasts from class reps)
+export const courseAnnouncements = mysqlTable(
+  "course_announcements",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    courseId: int("courseId").notNull(),
+    authorId: int("authorId").notNull(),
+    announcementType: mysqlEnum("announcementType", ["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    body: text("body"),
+    isOfficial: boolean("isOfficial").default(false).notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+    upvotes: int("upvotes").default(0).notNull(),
+    downvotes: int("downvotes").default(0).notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewedAt: timestamp("reviewedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    courseIdIdx: index("idx_ann_course_id").on(table.courseId),
+    authorIdIdx: index("idx_ann_author_id").on(table.authorId),
+    statusIdx: index("idx_ann_status").on(table.status),
+  })
+);
+export type CourseAnnouncement = typeof courseAnnouncements.$inferSelect;
+export type InsertCourseAnnouncement = typeof courseAnnouncements.$inferInsert;
+
+// User saved courses (bookmarks)
+export const savedCourses = mysqlTable(
+  "saved_courses",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    courseId: int("courseId").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    uniqueSave: unique("unique_saved_course").on(table.userId, table.courseId),
+  })
+);
+export type SavedCourse = typeof savedCourses.$inferSelect;
+export type InsertSavedCourse = typeof savedCourses.$inferInsert;
 
 export const courseMemberships = mysqlTable(
   "course_memberships",

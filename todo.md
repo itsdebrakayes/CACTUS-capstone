@@ -122,3 +122,28 @@
 - [ ] Demo mode toggle that shows simulated nearby walkers on map
 - [ ] Simulated SSE events for demo (fake hazard reports, claim updates)
 - [ ] All panels testable without real GPS or other users
+
+## Phase 20: Course Management System
+
+### Backend
+- [x] Extended courses table: description, thumbnailUrl, room, lecturer, department fields
+- [x] courseAnnouncements table: type, title, body, isOfficial, status, upvotes, downvotes
+- [x] courseMemberships table: userId, courseId, membershipRole (student/class_rep/lecturer)
+- [x] savedCourses table for bookmarking
+- [x] tRPC courses router: getMyCourses, getAllCourses, getCourseById, getSavedCourses, saveCourse, enroll
+- [x] tRPC courses router: getAnnouncements, getCourseAnnouncements, postAnnouncement, submitCourseReport
+- [x] tRPC courses router: voteAnnouncement (upvote/downvote), reviewAnnouncement (approve/reject)
+- [x] tRPC courses router: getClassRepStats, getClassRepCourses, getCourseHealth, getPendingAnnouncements
+- [x] DB migration applied (upvotes/downvotes columns added)
+- [x] 10 UWI Mona courses seeded (COMP3161, COMP2140, COMP2201, PSYC2001, SOCI2005, MATH2401, ECON2010, BIOL2201, CHEM1010, COMP3901)
+- [x] Sample course memberships and announcements seeded
+
+### Frontend
+- [x] CoursesPage: grid view, My Courses / Saved / Discover tabs, search, status badges (Active Update, New Content)
+- [x] CourseDetailsPage: hero image/gradient, ACTIVE NOW badge, lecturer/room/size meta, quick-report buttons (Lecturer Late, Cancelled, Room Changed), community updates feed with upvote/downvote
+- [x] ClassRepDashboard: stats grid (Active Issues, Pending Reports, Verified Today, My Courses), broadcast button, pending report cards with Verify/Reject, course health bars
+- [x] CourseReportingPage: 6-type announcement grid (Cancelled, Lecturer Late, Room Changed, Rescheduled, Materials, General), compose form with title/body, student submissions list with Approve/Reject
+- [x] AppLayout updated: Class Chat tab replaced with Courses tab (BookOpen icon, /courses route)
+- [x] App.tsx: 4 new routes wired (/courses, /courses/:id, /courses/:id/rep, /courses/:id/reporting)
+- [x] Class rep role gating: only class_rep membership can access Rep Dashboard and post official announcements
+- [x] 122 tests still passing after all changes

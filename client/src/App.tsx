@@ -16,6 +16,11 @@ import ClassChatPage from "./pages/ClassChatPage";
 // Legacy full-featured panels (walking body, reports, check-ins)
 import Dashboard from "./pages/Dashboard";
 import FindWayPage from "./pages/FindWayPage";
+// Course management pages
+import CoursesPage from "./pages/CoursesPage";
+import CourseDetailsPage from "./pages/CourseDetailsPage";
+import ClassRepDashboard from "./pages/ClassRepDashboard";
+import CourseReportingPage from "./pages/CourseReportingPage";
 
 function Router() {
   return (
@@ -30,6 +35,13 @@ function Router() {
       <Route path="/map" component={MapPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/class-chat" component={ClassChatPage} />
+
+      {/* Course management */}
+      <Route path="/courses" component={CoursesPage} />
+      <Route path="/courses/:id/rep/reporting" component={CourseReportingPage} />
+      <Route path="/courses/:id/reporting" component={CourseReportingPage} />
+      <Route path="/courses/:id/rep" component={ClassRepDashboard} />
+      <Route path="/courses/:id" component={CourseDetailsPage} />
 
       {/* Find Way - route planner */}
       <Route path="/find-way" component={FindWayPage} />

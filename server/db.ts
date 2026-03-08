@@ -18,6 +18,8 @@ import {
   checkins,
   notificationsOutbox,
   footpaths,
+  courseAnnouncements,
+  savedCourses,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -751,19 +753,6 @@ export async function getCourse(courseId: number) {
   return result.length > 0 ? result[0] : null;
 }
 
-export async function enrollUserInCourse(courseId: number, userId: number, membershipRole: string) {
-  const db = await getDb();
-  if (!db) return null;
-
-  await db.insert(courseMemberships).values({
-    courseId,
-    userId,
-    membershipRole: membershipRole as any,
-  });
-
-  return { success: true };
-}
-
 export async function getCourseMembership(courseId: number, userId: number) {
   const db = await getDb();
   if (!db) return null;
@@ -950,4 +939,207 @@ export async function countPathNodes() {
   if (!db) return 0;
   const result = await db.select({ count: sql<number>`COUNT(*)` }).from(_pathNodes);
   return Number(result[0]?.count ?? 0);
+}
+
+// ============================================================================
+// COURSES & COURSE MANAGEMENT QUERIES
+// ============================================================================
+
+export async function getAllCourses() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(courses).where(eq(courses.isActive, true));
+}
+
+export async function getCourseById(courseId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getCoursesByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const memberships = await db
+    .select()
+    .from(courseMemberships)
+    .where(eq(courseMemberships.userId, userId));
+  if (memberships.length === 0) return [];
+  const courseIds = memberships.map((m) => m.courseId);
+  const courseList = await db
+    .select()
+    .from(courses)
+    .where(and(inArray(courses.id, courseIds), eq(courses.isActive, true)));
+  return courseList.map((c) => {
+    const membership = memberships.find((m) => m.courseId === c.id);
+    return { ...c, membershipRole: membership?.membershipRole ?? "student" };
+  });
+}
+
+export async function getSavedCoursesByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const saved = await db.select().from(savedCourses).where(eq(savedCourses.userId, userId));
+  if (saved.length === 0) return [];
+  const courseIds = saved.map((s) => s.courseId);
+  return db.select().from(courses).where(inArray(courses.id, courseIds));
+}
+
+export async function saveCourse(userId: number, courseId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(savedCourses).values({ userId, courseId }).onDuplicateKeyUpdate({ set: { userId } });
+}
+
+export async function unsaveCourse(userId: number, courseId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(savedCourses).where(and(eq(savedCourses.userId, userId), eq(savedCourses.courseId, courseId)));
+}
+
+export async function getUserMembershipForCourse(userId: number, courseId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(courseMemberships)
+    .where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.courseId, courseId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function enrollUserInCourse(userId: number, courseId: number, membershipRole: "student" | "class_rep" | "lecturer" = "student") {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onDuplicateKeyUpdate({ set: { membershipRole } });
+}
+
+// ============================================================================
+// COURSE ANNOUNCEMENTS QUERIES
+// ============================================================================
+
+export async function createCourseAnnouncement(data: {
+  courseId: number;
+  authorId: number;
+  announcementType: "cancelled" | "room_changed" | "lecturer_late" | "rescheduled" | "materials_uploaded" | "general";
+  title: string;
+  body?: string;
+  isOfficial: boolean;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(courseAnnouncements).values({
+    ...data,
+    status: data.isOfficial ? "approved" : "pending",
+  });
+  const result = await db
+    .select()
+    .from(courseAnnouncements)
+    .where(eq(courseAnnouncements.authorId, data.authorId))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getAnnouncementsByCourse(courseId: number, includeAll = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (includeAll) {
+    return db.select().from(courseAnnouncements).where(eq(courseAnnouncements.courseId, courseId)).orderBy(sql`id DESC`);
+  }
+  return db
+    .select()
+    .from(courseAnnouncements)
+    .where(and(eq(courseAnnouncements.courseId, courseId), eq(courseAnnouncements.status, "approved")))
+    .orderBy(sql`id DESC`);
+}
+
+export async function getPendingAnnouncementsByCourse(courseId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(courseAnnouncements)
+    .where(and(eq(courseAnnouncements.courseId, courseId), eq(courseAnnouncements.status, "pending")))
+    .orderBy(sql`id DESC`);
+}
+
+export async function reviewAnnouncement(announcementId: number, reviewerId: number, status: "approved" | "rejected") {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(courseAnnouncements)
+    .set({ status, reviewedBy: reviewerId, reviewedAt: new Date() })
+    .where(eq(courseAnnouncements.id, announcementId));
+}
+
+export async function getClassRepCourses(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const memberships = await db
+    .select()
+    .from(courseMemberships)
+    .where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.membershipRole, "class_rep")));
+  if (memberships.length === 0) return [];
+  const courseIds = memberships.map((m) => m.courseId);
+  return db.select().from(courses).where(inArray(courses.id, courseIds));
+}
+
+export async function getClassRepStats(userId: number) {
+  const db = await getDb();
+  if (!db) return { activeIssues: 0, pendingReports: 0, verifiedToday: 0 };
+  const repCourses = await getClassRepCourses(userId);
+  if (repCourses.length === 0) return { activeIssues: 0, pendingReports: 0, verifiedToday: 0 };
+  const courseIds = repCourses.map((c) => c.id);
+  const pendingClaims = await db
+    .select()
+    .from(classClaims)
+    .where(and(inArray(classClaims.courseId, courseIds), eq(classClaims.status, "pending")));
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const verifiedToday = await db
+    .select()
+    .from(classClaims)
+    .where(and(inArray(classClaims.courseId, courseIds), eq(classClaims.status, "verified"), gte(classClaims.resolvedAt, todayStart)));
+  const pendingAnnouncements = await db
+    .select()
+    .from(courseAnnouncements)
+    .where(and(inArray(courseAnnouncements.courseId, courseIds), eq(courseAnnouncements.status, "pending")));
+  return {
+    activeIssues: pendingClaims.length,
+    pendingReports: pendingAnnouncements.length,
+    verifiedToday: verifiedToday.length,
+  };
+}
+
+export async function getCourseHealth(courseId: number) {
+  const db = await getDb();
+  if (!db) return { openIssues: 0, status: "stable" as const };
+  const openClaims = await db
+    .select()
+    .from(classClaims)
+    .where(and(eq(classClaims.courseId, courseId), eq(classClaims.status, "pending")));
+  const openIssues = openClaims.length;
+  const status = openIssues === 0 ? "stable" : openIssues <= 2 ? "minor" : "critical";
+  return { openIssues, status };
+}
+
+export async function upsertCourse(data: {
+  courseCode: string;
+  courseName: string;
+  description?: string;
+  thumbnailUrl?: string;
+  room?: string;
+  lecturer?: string;
+  department?: string;
+  classSize: number;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(courses).values({ ...data, isActive: true }).onDuplicateKeyUpdate({
+    set: { courseName: data.courseName, room: data.room, lecturer: data.lecturer },
+  });
+  const result = await db.select().from(courses).where(eq(courses.courseCode, data.courseCode)).limit(1);
+  return result.length > 0 ? result[0] : null;
 }

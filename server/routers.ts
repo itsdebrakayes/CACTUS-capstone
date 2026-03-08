@@ -843,6 +843,177 @@ const localAuthRouter = router({
     }),
 });
 
+// ============================================================================
+// COURSES & CLASS REP ROUTER
+// ============================================================================
+const coursesRouter = router({
+  getMyCourses: protectedProcedure.query(async ({ ctx }) => {
+    return db.getCoursesByUser(ctx.user.id);
+  }),
+  getAllCourses: protectedProcedure.query(async () => {
+    return db.getAllCourses();
+  }),
+  getCourse: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ input }) => {
+      const course = await db.getCourseById(input.courseId);
+      if (!course) throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      return course;
+    }),
+  getSavedCourses: protectedProcedure.query(async ({ ctx }) => {
+    return db.getSavedCoursesByUser(ctx.user.id);
+  }),
+  saveCourse: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.saveCourse(ctx.user.id, input.courseId);
+      return { success: true };
+    }),
+  unsaveCourse: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.unsaveCourse(ctx.user.id, input.courseId);
+      return { success: true };
+    }),
+  enroll: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.enrollUserInCourse(ctx.user.id, input.courseId, "student");
+      return { success: true };
+    }),
+  getAnnouncements: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ input }) => {
+      return db.getAnnouncementsByCourse(input.courseId);
+    }),
+  getPendingAnnouncements: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+      if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep access required" });
+      }
+      return db.getPendingAnnouncementsByCourse(input.courseId);
+    }),
+  postAnnouncement: protectedProcedure
+    .input(
+      z.object({
+        courseId: z.number(),
+        announcementType: z.enum(["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]),
+        title: z.string().min(3).max(200),
+        body: z.string().max(1000).optional(),
+        isOfficial: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (input.isOfficial) {
+        const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+        if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Only class reps can post official announcements" });
+        }
+      }
+      const announcement = await db.createCourseAnnouncement({
+        courseId: input.courseId,
+        authorId: ctx.user.id,
+        announcementType: input.announcementType,
+        title: input.title,
+        body: input.body,
+        isOfficial: input.isOfficial,
+      });
+      if (announcement) {
+        eventEmitter.emit("announcement", { courseId: input.courseId, announcement });
+      }
+      return announcement;
+    }),
+  reviewAnnouncement: protectedProcedure
+    .input(
+      z.object({
+        announcementId: z.number(),
+        courseId: z.number(),
+        status: z.enum(["approved", "rejected"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+      if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep access required" });
+      }
+      await db.reviewAnnouncement(input.announcementId, ctx.user.id, input.status);
+      return { success: true };
+    }),
+  getClassRepStats: protectedProcedure.query(async ({ ctx }) => {
+    return db.getClassRepStats(ctx.user.id);
+  }),
+  getClassRepCourses: protectedProcedure.query(async ({ ctx }) => {
+    return db.getClassRepCourses(ctx.user.id);
+  }),
+  getCourseHealth: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ input }) => {
+      return db.getCourseHealth(input.courseId);
+    }),
+  // Alias for getCourse used by CourseDetailsPage
+  getCourseById: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const course = await db.getCourseById(input.courseId);
+      if (!course) throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+      return { ...course, membershipRole: membership?.membershipRole ?? null };
+    }),
+  // Alias for getAnnouncements used by CourseDetailsPage
+  getCourseAnnouncements: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ input }) => {
+      return db.getAnnouncementsByCourse(input.courseId);
+    }),
+  // Submit a quick report (student-facing, non-official)
+  submitCourseReport: protectedProcedure
+    .input(
+      z.object({
+        courseId: z.number(),
+        announcementType: z.enum(["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]),
+        title: z.string().min(3).max(200),
+        body: z.string().max(1000).optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const announcement = await db.createCourseAnnouncement({
+        courseId: input.courseId,
+        authorId: ctx.user.id,
+        announcementType: input.announcementType,
+        title: input.title,
+        body: input.body,
+        isOfficial: false,
+      });
+      return announcement;
+    }),
+  // Vote on an announcement (upvote/downvote)
+  voteAnnouncement: protectedProcedure
+    .input(
+      z.object({
+        announcementId: z.number(),
+        direction: z.enum(["up", "down"]),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { courseAnnouncements } = await import("../drizzle/schema");
+      const dbConn = await (await import("./db")).getDb();
+      if (!dbConn) return { success: false };
+      const { eq, sql } = await import("drizzle-orm");
+      if (input.direction === "up") {
+        await dbConn.update(courseAnnouncements)
+          .set({ upvotes: sql`upvotes + 1` })
+          .where(eq(courseAnnouncements.id, input.announcementId));
+      } else {
+        await dbConn.update(courseAnnouncements)
+          .set({ downvotes: sql`downvotes + 1` })
+          .where(eq(courseAnnouncements.id, input.announcementId));
+      }
+      return { success: true };
+    }),
+});
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -862,6 +1033,7 @@ export const appRouter = router({
   reports: reportsRouter,
   checkins: checkinRouter,
   footpaths: footpathRouter,
+  courses: coursesRouter,
 });
 
 export type AppRouter = typeof appRouter;
