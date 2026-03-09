@@ -17,8 +17,10 @@ import {
   ChevronRight,
   Shield,
   Megaphone,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
+import ReportSheet, { type ReportCategory } from "@/components/ReportSheet";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -198,6 +200,8 @@ export default function CourseDetailsPage() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/courses/:id");
   const courseId = params?.id ? parseInt(params.id) : 0;
+  const [reportSheetOpen, setReportSheetOpen] = useState(false);
+  const [reportInitialType, setReportInitialType] = useState<ReportCategory | undefined>();
   const { data: course, isLoading: loadingCourse } = trpc.courses.getCourseById.useQuery(
     { courseId },
     { enabled: courseId > 0 }
@@ -223,17 +227,16 @@ export default function CourseDetailsPage() {
     onSuccess: () => refetchAnnouncements(),
   });
 
-  const handleQuickReport = (type: "lecturer_late" | "cancelled" | "room_changed") => {
-    const titles: Record<string, string> = {
-      lecturer_late: "Lecturer is late",
-      cancelled: "Class has been cancelled",
-      room_changed: "Class room has changed",
-    };
-    submitReport.mutate({
-      courseId,
-      announcementType: type,
-      title: titles[type],
-    });
+  const openReportSheet = (type?: ReportCategory) => {
+    setReportInitialType(type);
+    setReportSheetOpen(true);
+  };
+
+  const handleReportSubmit = ({ type, title, comment }: { type: ReportCategory; title: string; comment: string }) => {
+    submitReport.mutate(
+      { courseId, announcementType: type, title, body: comment || undefined },
+      { onSuccess: () => setReportSheetOpen(false) }
+    );
   };
 
   const handleVote = (announcementId: number, direction: "up" | "down") => {
@@ -341,9 +344,8 @@ export default function CourseDetailsPage() {
             return (
               <button
                 key={r.type}
-                onClick={() => handleQuickReport(r.type)}
-                disabled={submitReport.isPending}
-                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-medium transition-all ${r.color} disabled:opacity-50`}
+                onClick={() => openReportSheet(r.type as ReportCategory)}
+                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-medium transition-all ${r.color} active:scale-95`}
               >
                 <Icon className="w-4 h-4" />
                 {r.label}
@@ -351,6 +353,13 @@ export default function CourseDetailsPage() {
             );
           })}
         </div>
+        <button
+          onClick={() => openReportSheet()}
+          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+          More report options...
+        </button>
       </div>
 
       {/* Community updates feed */}
@@ -394,6 +403,16 @@ export default function CourseDetailsPage() {
           </div>
         )}
       </div>
+      {/* Report Sheet */}
+      {reportSheetOpen && (
+        <ReportSheet
+          courseId={courseId}
+          initialType={reportInitialType}
+          onClose={() => setReportSheetOpen(false)}
+          onSubmit={handleReportSubmit}
+          isPending={submitReport.isPending}
+        />
+      )}
     </AppLayout>
   );
 }

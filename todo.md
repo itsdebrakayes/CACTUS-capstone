@@ -160,3 +160,22 @@
 - [x] Block login for unverified accounts (or show banner)
 - [x] Fix Dashboard "View Details" button — navigates to /courses/:id
 - [x] Verify all backend endpoints — 122 tests passing
+
+## Phase 22: Report Sheet & Map Navigation
+
+### Report Bottom Sheet
+- [x] Build ReportSheet component: slide-up bottom sheet with category grid + comment textarea
+- [x] Categories: Cancelled, Lecturer Late, Room Changed, Rescheduled, Materials Posted, General Update
+- [x] Wire ReportSheet to CourseDetailsPage quick-report buttons
+- [x] Wire ReportSheet to CourseDetailsPage (quick-report + 'More options' button)
+- [x] Submit creates a courseAnnouncement with the selected category tag + comment
+
+### Map Navigation
+- [x] Add search bar to MapPage (Apple Maps style — collapsed pill, expands to full panel)
+- [x] Destination input panel with campus autocomplete (18 known buildings)
+- [x] Live GPS mode: uses current location as start, draws Mapbox Directions route
+- [x] Simulated Walk mode: shown when GPS is off or user opts out
+- [x] Faculty hub picker: FST (4 hubs: Tasties, Eng Parking, SLT2, Guild) + 4 General hubs
+- [x] Animated route playback: green dot moves along route at simulated walking pace (500ms ticks)
+- [x] Landmark callouts at 25%, 50%, 75% progress during simulated walk
+- [x] ETA display and progress bar during navigation (HUD overlay)

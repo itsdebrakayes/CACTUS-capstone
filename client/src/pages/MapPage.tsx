@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import NavigationPanel from "@/components/NavigationPanel";
 
 // ─── Campus hazard categories ─────────────────────────────────────────────────
 const HAZARD_CATEGORIES = [
@@ -464,8 +465,8 @@ export default function MapPage() {
   const [hazards, setHazards] = useState<Hazard[]>(DEMO_HAZARDS);
   const [reportLat, setReportLat] = useState<number | undefined>();
   const [reportLng, setReportLng] = useState<number | undefined>();
-  const mapRef = useRef<CactusMapHandle>(null);
-
+   const mapRef = useRef<CactusMapHandle>(null);
+  const hasGps = userLat !== undefined && userLng !== undefined;
   const createReportMutation = trpc.reports.createReport.useMutation({
     onSuccess: (data) => {
       toast.success("Hazard reported! Other students will be notified.");
@@ -580,26 +581,13 @@ export default function MapPage() {
           onHazardClick={handleHazardClick}
         />
 
-        {/* ── Top bar: mode indicator ─────────────────────────────────────── */}
-        <div className="absolute top-4 left-4 right-4 z-10 flex items-center gap-2">
-          <div className="flex-1 bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-2.5 flex items-center gap-2">
-            <Navigation className="w-4 h-4 text-[#00c853]" />
-            <span className="text-sm font-semibold text-gray-800">UWI Mona Campus</span>
-            {activeHazardCount > 0 && (
-              <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#dc2626]">
-                {activeHazardCount} alerts
-              </span>
-            )}
-          </div>
-          {isSelectingDest && (
-            <button
-              onClick={() => setIsSelectingDest(false)}
-              className="bg-white rounded-2xl shadow-lg px-3 py-2.5 text-xs font-semibold text-[#e53935]"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
+        {/* ── Navigation Panel (Apple Maps style) ─────────────────────── */}
+        <NavigationPanel
+          mapRef={mapRef}
+          userLat={userLat}
+          userLng={userLng}
+          hasGps={hasGps}
+        />
 
         {/* ── Destination-select hint ─────────────────────────────────────── */}
         {isSelectingDest && (
