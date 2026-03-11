@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
+import CampusAi from "@/components/campusAi";
 import {
   AlertTriangle,
   Play,
@@ -17,8 +17,7 @@ import {
   XCircle,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
-
+import aiLogo from "../../../assets/brain.png";
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 function getGreeting(name: string) {
@@ -38,6 +37,31 @@ function formatDate() {
 }
 
 // ─── Mock schedule data (will be replaced with real data from DB) ────────────
+
+function AiPopUpBtn() {
+  const [showPopup, setShowPopup] = useState(false);
+
+  return (
+    <>
+      {showPopup ? <CampusAi onClose={() => setShowPopup(false)} /> : null}
+
+      <button
+        type="button"
+        onClick={() => setShowPopup((current) => !current)}
+        aria-label="Open Campus AI"
+        aria-expanded={showPopup}
+        aria-controls="campus-ai-panel"
+        className="fixed bottom-20 right-4 z-50 h-14 w-14 overflow-hidden rounded-full border border-white/70 shadow-lg transition duration-100 active:scale-95"
+      >
+        <img
+          src={aiLogo}
+          alt="AI assistant"
+          className="h-full w-full object-cover"
+        />
+      </button>
+    </>
+  );
+}
 
 const MOCK_SCHEDULE = [
   {
@@ -431,6 +455,8 @@ export default function DashboardHome() {
           })}
         </div>
       </div>
+
+  <AiPopUpBtn />
     </AppLayout>
   );
 }
