@@ -40,6 +40,7 @@ export interface CactusMapHandle {
 }
 
 interface CactusMapProps {
+  className?: string;
   userLat?: number;
   userLng?: number;
   walkers?: Walker[];
@@ -85,6 +86,7 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
 const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
   (
     {
+      className,
       userLat,
       userLng,
       walkers = [],
@@ -227,8 +229,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       });
 
       mapRef.current = map;
+      (window as any).mapboxgl = mapboxgl;
 
       return () => {
+        if ((window as any).mapboxgl === mapboxgl) {
+          delete (window as any).mapboxgl;
+        }
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
@@ -351,7 +357,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     }, [footpaths]);
 
     return (
-      <div ref={mapContainer} className="w-full h-full relative">
+      <div ref={mapContainer} className={className ?? "w-full h-full relative"}>
         {/* Destination selection hint */}
         {isSelectingDest && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">

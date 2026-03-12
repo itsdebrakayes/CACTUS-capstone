@@ -65,7 +65,9 @@ import { DefaultChatTransport } from "ai";
 // import them directly from "ai" package in your consuming code.
 // ============================================================================
 
-import type { UIMessage, UIMessagePart, UIToolInvocation } from "ai";
+import type { UIMessage, UIToolInvocation } from "ai";
+
+type ToolUIMessagePart = Extract<UIMessage["parts"][number], { type: `tool-${string}` }>;
 
 /**
  * Tool invocation state derived from AI SDK's UIToolInvocation type.
@@ -104,7 +106,7 @@ export function isToolComplete(state: ToolInvocationState): boolean {
  */
 export interface ToolPartRendererProps {
   /** The tool part from the message - type is `tool-${toolName}` */
-  part: UIMessagePart & { type: `tool-${string}` };
+  part: ToolUIMessagePart;
   /** Extracted tool name for convenience */
   toolName: string;
   /** Current state of the tool invocation */
@@ -245,7 +247,7 @@ function MessageBubble({
             }
             return (
               <div key={i} className="prose prose-sm dark:prose-invert max-w-none">
-                <Markdown mode={isStreaming ? "typewriter" : "static"} typewriterSpeed={50}>
+                <Markdown mode={isStreaming ? "streaming" : "static"}>
                   {part.text}
                 </Markdown>
               </div>
@@ -256,14 +258,7 @@ function MessageBubble({
           if (part.type.startsWith("tool-")) {
             const toolName = part.type.replace("tool-", "");
             // Cast to access tool-specific properties
-            const toolPart = part as UIMessagePart & {
-              type: `tool-${string}`;
-              toolCallId: string;
-              state: ToolInvocationState;
-              input?: unknown;
-              output?: unknown;
-              errorText?: string;
-            };
+            const toolPart = part as ToolUIMessagePart;
 
             const rendererProps: ToolPartRendererProps = {
               part: toolPart,

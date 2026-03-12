@@ -1,1 +1,0 @@
-ALTER TABLE `path_reports` ADD `description` text;

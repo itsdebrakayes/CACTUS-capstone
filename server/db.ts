@@ -1,5 +1,6 @@
 import { eq, and, or, gt, lt, lte, gte, inArray, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import {
   InsertUser,
   users,
@@ -21,16 +22,22 @@ import {
   courseAnnouncements,
   savedCourses,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _client: ReturnType<typeof postgres> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _client = postgres(process.env.DATABASE_URL, {
+        prepare: false,
+        max: 1,
+      });
+      _db = drizzle(_client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
+      _client = null;
       _db = null;
     }
   }
@@ -87,7 +94,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -185,7 +193,8 @@ export async function upsertWalkingAvailability(
       geohash,
       geohash5,
     })
-    .onDuplicateKeyUpdate({
+    .onConflictDoUpdate({
+      target: walkingAvailability.userId,
       set: {
         isAvailable,
         lat,
@@ -997,7 +1006,9 @@ export async function getSavedCoursesByUser(userId: number) {
 export async function saveCourse(userId: number, courseId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(savedCourses).values({ userId, courseId }).onDuplicateKeyUpdate({ set: { userId } });
+  await db.insert(savedCourses).values({ userId, courseId }).onConflictDoNothing({
+    target: [savedCourses.userId, savedCourses.courseId],
+  });
 }
 
 export async function unsaveCourse(userId: number, courseId: number) {
@@ -1020,7 +1031,16 @@ export async function getUserMembershipForCourse(userId: number, courseId: numbe
 export async function enrollUserInCourse(userId: number, courseId: number, membershipRole: "student" | "class_rep" | "lecturer" = "student") {
   const db = await getDb();
   if (!db) return;
-  await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onDuplicateKeyUpdate({ set: { membershipRole } });
+  await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onConflictDoUpdate({
+    target: [courseMemberships.courseId, courseMemberships.userId],
+    set: { membershipRole },
+  });
+}
+
+export async function unenrollUserFromCourse(userId: number, courseId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(courseMemberships).where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.courseId, courseId)));
 }
 
 // ============================================================================
@@ -1145,8 +1165,18 @@ export async function upsertCourse(data: {
 }) {
   const db = await getDb();
   if (!db) return null;
-  await db.insert(courses).values({ ...data, isActive: true }).onDuplicateKeyUpdate({
-    set: { courseName: data.courseName, room: data.room, lecturer: data.lecturer },
+  await db.insert(courses).values({ ...data, isActive: true }).onConflictDoUpdate({
+    target: courses.courseCode,
+    set: {
+      courseName: data.courseName,
+      description: data.description,
+      thumbnailUrl: data.thumbnailUrl,
+      room: data.room,
+      lecturer: data.lecturer,
+      department: data.department,
+      classSize: data.classSize,
+      isActive: true,
+    },
   });
   const result = await db.select().from(courses).where(eq(courses.courseCode, data.courseCode)).limit(1);
   return result.length > 0 ? result[0] : null;

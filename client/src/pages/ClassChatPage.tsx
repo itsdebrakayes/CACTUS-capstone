@@ -27,8 +27,22 @@ const MOCK_COURSES = [
   { id: 4, code: "MATH2401", name: "Calculus II", room: "FST 3", professor: "Dr. Clarke" },
 ];
 
+type ClaimType = "cancelled" | "room_change" | "time_change" | "late" | "other";
+
+type Claim = {
+  id: number;
+  courseId: number;
+  claimType: ClaimType;
+  message: string;
+  confirmCount: number;
+  denyCount: number;
+  status: "active" | "confirmed";
+  createdAt: Date;
+  userVote: "confirm" | "deny" | null;
+};
+
 // ─── Mock claims ──────────────────────────────────────────────────────────────
-const MOCK_CLAIMS = [
+const MOCK_CLAIMS: Claim[] = [
   {
     id: 1,
     courseId: 1,
@@ -75,8 +89,6 @@ const MOCK_CLAIMS = [
   },
 ];
 
-type ClaimType = "cancelled" | "room_change" | "time_change" | "late" | "other";
-
 const CLAIM_TYPE_LABELS: Record<ClaimType, string> = {
   cancelled: "Cancelled",
   room_change: "Room Change",
@@ -117,7 +129,7 @@ function ClaimCard({
   courseName,
   onVote,
 }: {
-  claim: (typeof MOCK_CLAIMS)[0];
+  claim: Claim;
   courseName: string;
   onVote: (claimId: number, vote: "confirm" | "deny") => void;
 }) {
@@ -270,7 +282,7 @@ export default function ClassChatPage() {
   const { user, loading } = useAuth();
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [showNewClaim, setShowNewClaim] = useState(false);
-  const [claims, setClaims] = useState(MOCK_CLAIMS);
+  const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
   const [activeFilter, setActiveFilter] = useState("all");
 
   const createClaimMutation = trpc.classes.createClaim.useMutation({

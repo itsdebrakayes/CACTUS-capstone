@@ -239,11 +239,13 @@ export default function CourseDetailsPage() {
   const [reportSheetOpen, setReportSheetOpen] = useState(false);
   const [reportInitialType, setReportInitialType] = useState<ReportCategory | undefined>();
   const [activeFilter, setActiveFilter] = useState("all");
+  const utils = trpc.useUtils();
 
-  const { data: course, isLoading: loadingCourse } = trpc.courses.getCourseById.useQuery(
+  const { data: course, isLoading: loadingCourse, refetch: refetchCourse } = trpc.courses.getCourseById.useQuery(
     { courseId },
     { enabled: courseId > 0 }
   );
+  const { data: savedCourses, refetch: refetchSavedCourses } = trpc.courses.getSavedCourses.useQuery();
 
   const { data: announcements, isLoading: loadingAnnouncements, refetch: refetchAnnouncements } =
     trpc.courses.getCourseAnnouncements.useQuery(
@@ -264,6 +266,40 @@ export default function CourseDetailsPage() {
   const voteAnnouncement = trpc.courses.voteAnnouncement.useMutation({
     onSuccess: () => refetchAnnouncements(),
   });
+  const enrollMutation = trpc.courses.enroll.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        refetchCourse(),
+        utils.courses.getMyCourses.invalidate(),
+      ]);
+      toast.success("Enrolled in course");
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  });
+  const unenrollMutation = trpc.courses.unenroll.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        refetchCourse(),
+        utils.courses.getMyCourses.invalidate(),
+      ]);
+      toast.success("Dropped course");
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  });
+  const saveMutation = trpc.courses.saveCourse.useMutation({
+    onSuccess: async () => {
+      await refetchSavedCourses();
+      toast.success("Course saved");
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  });
+  const unsaveMutation = trpc.courses.unsaveCourse.useMutation({
+    onSuccess: async () => {
+      await refetchSavedCourses();
+      toast.success("Removed from saved courses");
+    },
+    onError: (err) => toast.error("Error", { description: err.message }),
+  });
 
   const openReportSheet = (type?: ReportCategory) => {
     setReportInitialType(type);
@@ -283,6 +319,7 @@ export default function CourseDetailsPage() {
 
   // Use mock data when backend not available
   const courseData = (course as CourseDetail | undefined) ?? (courseId <= 1 ? MOCK_COURSE : undefined);
+  const isSaved = ((savedCourses as CourseDetail[] | undefined) ?? []).some((savedCourse) => savedCourse.id === courseId);
   const announcementList = ((announcements as Announcement[]) ?? MOCK_ANNOUNCEMENTS)
     .filter((a) => activeFilter === "all" || a.announcementType === activeFilter);
   const gradient = courseData ? getThumbnailGradient(courseData.courseCode) : "from-primary to-teal";
@@ -305,6 +342,8 @@ export default function CourseDetailsPage() {
         <button
           onClick={() => navigate("/courses")}
           className="absolute top-4 left-4 w-9 h-9 bg-charcoal/30 backdrop-blur-sm rounded-full flex items-center justify-center text-primary-foreground"
+          aria-label="Back to courses"
+          title="Back to courses"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -313,6 +352,8 @@ export default function CourseDetailsPage() {
         <button
           onClick={() => navigate("/class-chat")}
           className="absolute top-4 right-14 w-9 h-9 bg-charcoal/30 backdrop-blur-sm rounded-full flex items-center justify-center text-primary-foreground"
+          aria-label="Open class chat"
+          title="Open class chat"
         >
           <MessageSquare className="w-4 h-4" />
         </button>
@@ -356,25 +397,55 @@ export default function CourseDetailsPage() {
             <Skeleton className="h-4 w-24" />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
-            {courseData?.lecturer && (
-              <div className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                {courseData.lecturer}
-              </div>
-            )}
-            {courseData?.room && (
-              <div className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {courseData.room}
-              </div>
-            )}
-            {courseData?.classSize && (
-              <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {courseData.classSize} students
-              </div>
-            )}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+              {courseData?.lecturer && (
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3" />
+                  {courseData.lecturer}
+                </div>
+              )}
+              {courseData?.room && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  {courseData.room}
+                </div>
+              )}
+              {courseData?.classSize && (
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  {courseData.classSize} students
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  if (courseData?.membershipRole) {
+                    unenrollMutation.mutate({ courseId });
+                  } else {
+                    enrollMutation.mutate({ courseId });
+                  }
+                }}
+                disabled={enrollMutation.isPending || unenrollMutation.isPending}
+                className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50"
+              >
+                {courseData?.membershipRole ? "Drop Course" : "Enroll in Course"}
+              </button>
+              <button
+                onClick={() => {
+                  if (isSaved) {
+                    unsaveMutation.mutate({ courseId });
+                  } else {
+                    saveMutation.mutate({ courseId });
+                  }
+                }}
+                disabled={saveMutation.isPending || unsaveMutation.isPending}
+                className="px-3 py-2 rounded-xl bg-secondary text-foreground text-xs font-semibold disabled:opacity-50"
+              >
+                {isSaved ? "Unsave" : "Save Course"}
+              </button>
+            </div>
           </div>
         )}
       </div>

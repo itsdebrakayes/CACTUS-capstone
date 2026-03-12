@@ -16,9 +16,10 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
 
   const signupMutation = trpc.auth.signup.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast.success("Account created! Please verify your email.");
-      navigate("/verify-email");
+      const params = new URLSearchParams({ email: data.email });
+      navigate(`/verify-email?${params.toString()}`);
     },
     onError: (err: any) => {
       toast.error(err.message || "Signup failed");

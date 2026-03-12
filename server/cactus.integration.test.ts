@@ -16,7 +16,7 @@ function makeCtx(overrides?: Partial<TrpcContext["user"]>): TrpcContext {
       openId: "test-user-001",
       email: "test@uwimona.edu.jm",
       name: "Test Student",
-      loginMethod: "manus",
+      loginMethod: "local",
       role: "user",
       createdAt: new Date(),
       updatedAt: new Date(),

@@ -5,6 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, BookOpen, CheckCircle, Clock, AlertTriangle, BookMarked } from "lucide-react";
+import { toast } from "sonner";
 
 // Course thumbnail placeholder images (green-themed academic subjects)
 const THUMBNAIL_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ type CourseWithRole = {
   createdAt: Date;
   updatedAt: Date;
   membershipRole?: string;
+  isSaved?: boolean;
 };
 
 type AnnouncementStatus = "update" | "new" | "none";
@@ -93,7 +95,19 @@ function CourseUpdateLine({ status }: { status: AnnouncementStatus }) {
   );
 }
 
-function CourseCard({ course, onClick }: { course: CourseWithRole; onClick: () => void }) {
+function CourseCard({
+  course,
+  onClick,
+  actionLabel,
+  onAction,
+  actionDisabled,
+}: {
+  course: CourseWithRole;
+  onClick: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
+  actionDisabled?: boolean;
+}) {
   const status = getCourseStatus(course);
   const gradient = getThumbnailGradient(course.courseCode);
 
@@ -122,6 +136,24 @@ function CourseCard({ course, onClick }: { course: CourseWithRole; onClick: () =
         <p className="font-bold text-foreground text-sm leading-tight">{course.courseCode}</p>
         <p className="text-muted-foreground text-xs mt-0.5 truncate">{course.courseName}</p>
         <CourseUpdateLine status={status} />
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-[11px] text-muted-foreground flex-1">
+            {course.membershipRole ? `Enrolled as ${course.membershipRole.replace("_", " ")}` : "Not enrolled"}
+          </span>
+          {actionLabel && onAction && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onAction();
+              }}
+              disabled={actionDisabled}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              {actionLabel}
+            </button>
+          )}
+        </div>
       </div>
     </button>
   );
@@ -157,18 +189,77 @@ export default function CoursesPage() {
   const [activeTab, setActiveTab] = useState<Tab>("ongoing");
   const [search, setSearch] = useState("");
 
+  const utils = trpc.useUtils();
   const { data: myCourses, isLoading: loadingMy } = trpc.courses.getMyCourses.useQuery();
   const { data: savedCourses, isLoading: loadingSaved } = trpc.courses.getSavedCourses.useQuery();
   const { data: allCourses, isLoading: loadingAll } = trpc.courses.getAllCourses.useQuery();
+
+  const enrollMutation = trpc.courses.enroll.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.courses.getMyCourses.invalidate(),
+        utils.courses.getAllCourses.invalidate(),
+      ]);
+      toast.success("Course added");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const unenrollMutation = trpc.courses.unenroll.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.courses.getMyCourses.invalidate(),
+        utils.courses.getAllCourses.invalidate(),
+      ]);
+      toast.success("Course dropped");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const saveMutation = trpc.courses.saveCourse.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.courses.getSavedCourses.invalidate(),
+        utils.courses.getAllCourses.invalidate(),
+      ]);
+      toast.success("Course saved");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const unsaveMutation = trpc.courses.unsaveCourse.useMutation({
+    onSuccess: async () => {
+      await Promise.all([
+        utils.courses.getSavedCourses.invalidate(),
+        utils.courses.getAllCourses.invalidate(),
+      ]);
+      toast.success("Course removed from saved");
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   // Use mock data when backend data isn't available
   const fallbackCourses = MOCK_COURSES;
 
   const displayCourses = useMemo(() => {
+    const enrolledById = new Map(((myCourses as CourseWithRole[]) ?? []).map((course) => [course.id, course]));
+    const savedIds = new Set(((savedCourses as CourseWithRole[]) ?? []).map((course) => course.id));
+
     let list: CourseWithRole[] = [];
     if (activeTab === "ongoing") list = (myCourses as CourseWithRole[]) ?? fallbackCourses;
     else if (activeTab === "saved") list = (savedCourses as CourseWithRole[]) ?? fallbackCourses.slice(0, 3);
-    else list = (allCourses as CourseWithRole[]) ?? fallbackCourses;
+    else {
+      list = ((allCourses as CourseWithRole[]) ?? fallbackCourses).map((course) => ({
+        ...course,
+        membershipRole: enrolledById.get(course.id)?.membershipRole,
+        isSaved: savedIds.has(course.id),
+      }));
+    }
+
+    if (activeTab !== "all") {
+      list = list.map((course) => ({
+        ...course,
+        membershipRole: course.membershipRole ?? enrolledById.get(course.id)?.membershipRole,
+        isSaved: course.isSaved ?? savedIds.has(course.id),
+      }));
+    }
 
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -195,7 +286,9 @@ export default function CoursesPage() {
           <h1 className="text-xl font-bold text-foreground">All Courses</h1>
           <button
             className="w-9 h-9 rounded-full bg-primary flex items-center justify-center"
-            onClick={() => navigate("/courses/enroll")}
+            onClick={() => setActiveTab("all")}
+            aria-label="Browse all courses"
+            title="Browse all courses"
           >
             <BookMarked className="w-4 h-4 text-primary-foreground" />
           </button>
@@ -266,6 +359,38 @@ export default function CoursesPage() {
                 key={course.id}
                 course={course}
                 onClick={() => navigate(`/courses/${course.id}`)}
+                actionLabel={
+                  activeTab === "saved"
+                    ? "Unsave"
+                    : activeTab === "all"
+                    ? course.membershipRole
+                      ? "Drop"
+                      : "Enroll"
+                    : "Drop"
+                }
+                actionDisabled={
+                  enrollMutation.isPending ||
+                  unenrollMutation.isPending ||
+                  saveMutation.isPending ||
+                  unsaveMutation.isPending
+                }
+                onAction={() => {
+                  if (activeTab === "saved") {
+                    unsaveMutation.mutate({ courseId: course.id });
+                    return;
+                  }
+
+                  if (activeTab === "all") {
+                    if (course.membershipRole) {
+                      unenrollMutation.mutate({ courseId: course.id });
+                    } else {
+                      enrollMutation.mutate({ courseId: course.id });
+                    }
+                    return;
+                  }
+
+                  unenrollMutation.mutate({ courseId: course.id });
+                }}
               />
             ))}
           </div>

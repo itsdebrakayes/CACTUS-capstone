@@ -809,7 +809,8 @@ const localAuthRouter = router({
       await sendVerificationEmail(input.email, input.name, code).catch((err) =>
         console.error("[signup] email send failed:", err)
       );
-      return { success: true, userId: user.id, email: input.email };
+      const isDev = process.env.NODE_ENV !== "production";
+      return { success: true, userId: user.id, email: input.email, devCode: isDev ? code : undefined };
     }),
 
   sendVerificationCode: publicProcedure
@@ -824,7 +825,8 @@ const localAuthRouter = router({
       await sendVerificationEmail(input.email, user.name ?? "Student", code).catch((err) =>
         console.error("[sendVerificationCode] email send failed:", err)
       );
-      return { success: true, alreadyVerified: false };
+      const isDev = process.env.NODE_ENV !== "production";
+      return { success: true, alreadyVerified: false, devCode: isDev ? code : undefined };
     }),
 
   verifyEmail: publicProcedure
@@ -911,6 +913,12 @@ const coursesRouter = router({
     .input(z.object({ courseId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       await db.enrollUserInCourse(ctx.user.id, input.courseId, "student");
+      return { success: true };
+    }),
+  unenroll: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.unenrollUserFromCourse(ctx.user.id, input.courseId);
       return { success: true };
     }),
   getAnnouncements: protectedProcedure

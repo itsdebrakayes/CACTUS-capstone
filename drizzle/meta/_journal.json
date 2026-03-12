@@ -1,61 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1772676862338,
-      "tag": "0000_foamy_the_spike",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1772677152627,
-      "tag": "0001_shocking_shatterstar",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1772679845174,
-      "tag": "0002_tranquil_valkyrie",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1772680785689,
-      "tag": "0003_right_nocturne",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1773000033978,
-      "tag": "0004_abnormal_nighthawk",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1773011157477,
-      "tag": "0005_sudden_black_knight",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "5",
-      "when": 1773011680771,
-      "tag": "0006_spotty_mikhail_rasputin",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "5",
-      "when": 1773013035694,
-      "tag": "0007_narrow_gressill",
+      "version": "7",
+      "when": 1773284088026,
+      "tag": "0000_sharp_morlocks",
       "breakpoints": true
     }
   ]

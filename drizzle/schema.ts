@@ -1,18 +1,33 @@
 import {
-  int,
+  integer as int,
   varchar,
   text,
   timestamp,
-  mysqlEnum,
-  mysqlTable,
+  pgTable,
   decimal,
   boolean,
   json,
   index,
   unique,
-  float,
-} from "drizzle-orm/mysql-core";
+  real as float,
+  serial,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+
+const mysqlTable = pgTable;
+
+// In Postgres we just use text columns — TypeScript enforces the value constraints
+function mysqlEnum<TValues extends [string, ...string[]]>(name: string, _values: TValues) {
+  return text(name);
+}
+
+function idColumn() {
+  return serial("id").primaryKey();
+}
+
+function updatedAtColumn() {
+  return timestamp("updatedAt").defaultNow().notNull();
+}
 
 /**
  * CACTUS Database Schema
@@ -24,7 +39,7 @@ import { sql } from "drizzle-orm";
 // ============================================================================
 
 export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+  id: idColumn(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }).unique(),
@@ -37,7 +52,7 @@ export const users = mysqlTable("users", {
   role: mysqlEnum("role", ["student", "class_rep", "year_rep", "guild_admin", "lecturer"]).default("student").notNull(),
   isVerified: boolean("isVerified").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: updatedAtColumn(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
@@ -49,7 +64,7 @@ export type InsertUser = typeof users.$inferInsert;
 // ============================================================================
 
 export const courses = mysqlTable("courses", {
-  id: int("id").autoincrement().primaryKey(),
+  id: idColumn(),
   courseCode: varchar("courseCode", { length: 32 }).notNull().unique(),
   courseName: varchar("courseName", { length: 255 }).notNull(),
   description: text("description"),
@@ -68,7 +83,7 @@ export type InsertCourse = typeof courses.$inferInsert;
 export const courseAnnouncements = mysqlTable(
   "course_announcements",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseId: int("courseId").notNull(),
     authorId: int("authorId").notNull(),
     announcementType: mysqlEnum("announcementType", ["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]).notNull(),
@@ -95,7 +110,7 @@ export type InsertCourseAnnouncement = typeof courseAnnouncements.$inferInsert;
 export const savedCourses = mysqlTable(
   "saved_courses",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     courseId: int("courseId").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -110,7 +125,7 @@ export type InsertSavedCourse = typeof savedCourses.$inferInsert;
 export const courseMemberships = mysqlTable(
   "course_memberships",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseId: int("courseId").notNull(),
     userId: int("userId").notNull(),
     membershipRole: mysqlEnum("membershipRole", ["student", "class_rep", "lecturer"]).notNull(),
@@ -141,7 +156,7 @@ export const walkingAvailability = mysqlTable(
     lng: decimal("lng", { precision: 10, scale: 7 }).notNull(),
     geohash: varchar("geohash", { length: 12 }).notNull(), // precision 7
     geohash5: varchar("geohash5", { length: 5 }).notNull(), // prefix for indexing
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     geohash5Idx: index("idx_geohash5").on(table.geohash5),
@@ -155,7 +170,7 @@ export type InsertWalkingAvailability = typeof walkingAvailability.$inferInsert;
 export const walkingRequests = mysqlTable(
   "walking_requests",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     requesterId: int("requesterId").notNull(),
     originLat: decimal("originLat", { precision: 10, scale: 7 }).notNull(),
     originLng: decimal("originLng", { precision: 10, scale: 7 }).notNull(),
@@ -178,7 +193,7 @@ export type InsertWalkingRequest = typeof walkingRequests.$inferInsert;
 export const walkingMatches = mysqlTable(
   "walking_matches",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     requestId: int("requestId").notNull(),
     walkerId: int("walkerId").notNull(),
     status: mysqlEnum("status", ["pending", "accepted", "declined", "completed", "cancelled"]).default("pending").notNull(),
@@ -199,7 +214,7 @@ export type InsertWalkingMatch = typeof walkingMatches.$inferInsert;
 export const walkingRatings = mysqlTable(
   "walking_ratings",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     matchId: int("matchId").notNull(),
     raterId: int("raterId").notNull(),
     rateeId: int("rateeId").notNull(),
@@ -223,7 +238,7 @@ export type InsertWalkingRating = typeof walkingRatings.$inferInsert;
 export const classClaims = mysqlTable(
   "class_claims",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseId: int("courseId").notNull(),
     claimType: mysqlEnum("claimType", ["cancelled", "room_change", "time_change", "late", "other"]).notNull(),
     message: text("message").notNull(),
@@ -246,7 +261,7 @@ export type InsertClassClaim = typeof classClaims.$inferInsert;
 export const classClaimVotes = mysqlTable(
   "class_claim_votes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     claimId: int("claimId").notNull(),
     voterId: int("voterId").notNull(),
     vote: int("vote").notNull(), // +1 confirm, -1 deny
@@ -265,7 +280,7 @@ export type InsertClassClaimVote = typeof classClaimVotes.$inferInsert;
 export const repStrikes = mysqlTable(
   "rep_strikes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     repId: int("repId").notNull(),
     courseId: int("courseId").notNull(),
     strikeCount: int("strikeCount").default(0).notNull(),
@@ -273,7 +288,7 @@ export const repStrikes = mysqlTable(
     bypassRevoked: boolean("bypassRevoked").default(false).notNull(),
     trueStreak: int("trueStreak").default(0).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     repIdIdx: index("idx_rep_id").on(table.repId),
@@ -292,7 +307,7 @@ export type InsertRepStrike = typeof repStrikes.$inferInsert;
 export const pathReports = mysqlTable(
   "path_reports",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     reportType: mysqlEnum("reportType", ["light_out", "broken_path", "flooding", "obstruction", "suspicious"]).notNull(),
     severity: int("severity").notNull(), // 1-5
     lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
@@ -303,7 +318,7 @@ export const pathReports = mysqlTable(
     description: text("description"),
     ttlMinutes: int("ttlMinutes").notNull(),
     status: mysqlEnum("status", ["active", "verified", "expired", "resolved"]).default("active").notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
@@ -319,7 +334,7 @@ export type InsertPathReport = typeof pathReports.$inferInsert;
 export const pathReportVotes = mysqlTable(
   "path_report_votes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     reportId: int("reportId").notNull(),
     voterId: int("voterId").notNull(),
     vote: int("vote").notNull(), // +1 still_there, -1 not_there
@@ -338,11 +353,11 @@ export type InsertPathReportVote = typeof pathReportVotes.$inferInsert;
 export const pathReportReliability = mysqlTable(
   "path_report_reliability",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull().unique(),
     trueVotes: int("trueVotes").default(0).notNull(),
     falseVotes: int("falseVotes").default(0).notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     userIdIdx: index("idx_reliability_user_id").on(table.userId),
@@ -359,7 +374,7 @@ export type InsertPathReportReliability = typeof pathReportReliability.$inferIns
 export const checkins = mysqlTable(
   "checkins",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     destLat: decimal("destLat", { precision: 10, scale: 7 }).notNull(),
     destLng: decimal("destLng", { precision: 10, scale: 7 }).notNull(),
@@ -388,7 +403,7 @@ export type InsertCheckin = typeof checkins.$inferInsert;
 export const notificationsOutbox = mysqlTable(
   "notifications_outbox",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     type: varchar("type", { length: 64 }).notNull(),
     payload: json("payload"),
@@ -409,12 +424,12 @@ export type InsertNotificationOutbox = typeof notificationsOutbox.$inferInsert;
 export const footpaths = mysqlTable(
   "footpaths",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     name: varchar("name", { length: 255 }),
     geoJson: json("geoJson").notNull(), // GeoJSON LineString
     createdBy: int("createdBy").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     createdByIdx: index("idx_footpath_created_by").on(table.createdBy),
@@ -435,7 +450,7 @@ export type InsertFootpath = typeof footpaths.$inferInsert;
 export const pathNodes = mysqlTable(
   "pathNodes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     /** Human-readable label (e.g. "Main Gate", "Library Junction") */
     name: varchar("name", { length: 255 }),
     lat: decimal("lat", { precision: 10, scale: 7 }).notNull(),
@@ -464,7 +479,7 @@ export type InsertPathNode = typeof pathNodes.$inferInsert;
 export const pathEdges = mysqlTable(
   "pathEdges",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     fromNodeId: int("fromNodeId").notNull(),
     toNodeId: int("toNodeId").notNull(),
     /** Euclidean/haversine distance in metres */
@@ -527,7 +542,7 @@ export const pathEdges = mysqlTable(
     /** Soft-delete: admin can disable an edge without removing it */
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: updatedAtColumn(),
   },
   (table) => ({
     fromIdx: index("idx_edge_from").on(table.fromNodeId),
@@ -545,7 +560,7 @@ export type InsertPathEdge = typeof pathEdges.$inferInsert;
 export const routePlans = mysqlTable(
   "routePlans",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     fromNodeId: int("fromNodeId").notNull(),
     toNodeId: int("toNodeId").notNull(),
     mode: mysqlEnum("mode", ["shortest", "scenic", "accessible", "safe_night"]).notNull(),
