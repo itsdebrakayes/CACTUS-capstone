@@ -6,45 +6,30 @@ import AppLayout from "@/components/AppLayout";
 import { CactusMap, type CactusMapHandle, type Hazard } from "@/components/CactusMap";
 import { useSSE, useGeolocation } from "@/hooks/useSSE";
 import {
-  AlertTriangle,
-  Users,
-  Shield,
-  Navigation,
-  X,
-  ChevronRight,
-  ThumbsUp,
-  ThumbsDown,
-  MapPin,
-  Clock,
-  CheckCircle,
-  Zap,
-  Droplets,
-  Eye,
-  Construction,
-  Footprints,
-  Flame,
-  Wind,
-  PersonStanding,
+  AlertTriangle, Users, Shield, Navigation, X, ChevronRight,
+  ThumbsUp, ThumbsDown, MapPin, Clock, CheckCircle, Zap,
+  Droplets, Eye, Construction, Footprints, Flame, Wind,
+  PersonStanding, Route, Accessibility, TreePine, Star,
+  ChevronDown, Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import NavigationPanel from "@/components/NavigationPanel";
 
-// ─── Campus hazard categories ─────────────────────────────────────────────────
+// ─── Hazard categories ────────────────────────────────────────────────────────
 const HAZARD_CATEGORIES = [
-  { type: "light_out", label: "Broken Light", icon: Zap, color: "#f59e0b", bg: "#fef3c7", severity: 4, description: "Street or path light not working" },
-  { type: "flooding", label: "Flooding", icon: Droplets, color: "#3b82f6", bg: "#dbeafe", severity: 4, description: "Water on path / flooded area" },
-  { type: "broken_path", label: "Broken Path", icon: Footprints, color: "#ef4444", bg: "#fee2e2", severity: 3, description: "Damaged or unsafe walkway" },
-  { type: "suspicious", label: "Suspicious Activity", icon: Eye, color: "#8b5cf6", bg: "#ede9fe", severity: 4, description: "Suspicious person or behaviour" },
-  { type: "obstruction", label: "Obstruction", icon: Construction, color: "#f97316", bg: "#ffedd5", severity: 2, description: "Path blocked or under work" },
-  { type: "violent_incident", label: "Violent Incident", icon: Flame, color: "#dc2626", bg: "#fee2e2", severity: 5, description: "Fight, assault, or threat" },
-  { type: "slippery", label: "Slippery Surface", icon: Wind, color: "#0ea5e9", bg: "#e0f2fe", severity: 3, description: "Wet or slippery path surface" },
-  { type: "poor_visibility", label: "Poor Visibility", icon: PersonStanding, color: "#6b7280", bg: "#f3f4f6", severity: 3, description: "Dark or obscured area" },
+  { type: "light_out", label: "Broken Light", icon: Zap, color: "hsl(40 90% 55%)", bg: "hsl(40 90% 92%)", severity: 4, description: "Street or path light not working" },
+  { type: "flooding", label: "Flooding", icon: Droplets, color: "hsl(185 60% 40%)", bg: "hsl(185 40% 92%)", severity: 4, description: "Water on path / flooded area" },
+  { type: "broken_path", label: "Broken Path", icon: Footprints, color: "hsl(18 100% 50%)", bg: "hsl(18 100% 95%)", severity: 3, description: "Damaged or unsafe walkway" },
+  { type: "suspicious", label: "Suspicious Activity", icon: Eye, color: "hsl(0 0% 40%)", bg: "hsl(47 19% 90%)", severity: 4, description: "Suspicious person or behaviour" },
+  { type: "obstruction", label: "Obstruction", icon: Construction, color: "hsl(18 80% 55%)", bg: "hsl(18 80% 93%)", severity: 2, description: "Path blocked or under work" },
+  { type: "violent_incident", label: "Violent Incident", icon: Flame, color: "hsl(0 70% 45%)", bg: "hsl(0 70% 93%)", severity: 5, description: "Fight, assault, or threat" },
+  { type: "slippery", label: "Slippery Surface", icon: Wind, color: "hsl(185 100% 23%)", bg: "hsl(185 40% 92%)", severity: 3, description: "Wet or slippery path surface" },
+  { type: "poor_visibility", label: "Poor Visibility", icon: PersonStanding, color: "hsl(0 0% 40%)", bg: "hsl(47 19% 90%)", severity: 3, description: "Dark or obscured area" },
 ] as const;
 
 type HazardType = (typeof HAZARD_CATEGORIES)[number]["type"];
 
-// ─── Demo data: mock hazards on UWI Mona campus ───────────────────────────────
 const DEMO_HAZARDS: Hazard[] = [
   { id: 1, reportType: "light_out", lat: 18.0042, lng: -76.7485, severity: 4, ttlMinutes: 45, description: "Lamp post near Engineering broken" },
   { id: 2, reportType: "flooding", lat: 18.0028, lng: -76.7510, severity: 3, ttlMinutes: 30, description: "Water pooling after rain near Chapel" },
@@ -53,671 +38,443 @@ const DEMO_HAZARDS: Hazard[] = [
   { id: 5, reportType: "obstruction", lat: 18.0020, lng: -76.7490, severity: 2, ttlMinutes: 90, description: "Construction materials blocking path" },
 ];
 
-// ─── Demo walkers ─────────────────────────────────────────────────────────────
 const DEMO_WALKERS = [
-  { id: 101, lat: 18.0038, lng: -76.7492, trustScore: 0.85 },
-  { id: 102, lat: 18.0031, lng: -76.7505, trustScore: 0.72 },
-  { id: 103, lat: 18.0048, lng: -76.7480, trustScore: 0.91 },
-  { id: 104, lat: 18.0025, lng: -76.7515, trustScore: 0.60 },
+  { id: 101, lat: 18.0038, lng: -76.7492, trustScore: 0.85, faculty: "FST", reviews: ["Friendly, great pace", "Reliable walking partner"] },
+  { id: 102, lat: 18.0031, lng: -76.7505, trustScore: 0.72, faculty: "FMS", reviews: ["On time", "Good conversation"] },
+  { id: 103, lat: 18.0048, lng: -76.7480, trustScore: 0.91, faculty: "FST", reviews: ["Very trustworthy", "Always available"] },
+  { id: 104, lat: 18.0025, lng: -76.7515, trustScore: 0.60, faculty: "FHE", reviews: ["Okay", "Sometimes late"] },
 ];
 
-// ─── Severity label ───────────────────────────────────────────────────────────
+const ROUTE_OPTIONS = [
+  { id: "fastest", label: "Fastest Route", icon: Route, desc: "5 min · 350m", detail: "Via Engineering Parking", active: true },
+  { id: "accessible", label: "Accessible Route", icon: Accessibility, desc: "8 min · 420m", detail: "Ramp-friendly, no stairs", active: false },
+  { id: "scenic", label: "Scenic Route", icon: TreePine, desc: "12 min · 600m", detail: "Through Botanical Gardens", active: false },
+  { id: "safest", label: "Safest Route", icon: Shield, desc: "7 min · 380m", detail: "Well-lit, CCTV coverage", active: false },
+];
+
 const SEVERITY_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "Low", color: "#22c55e" },
-  2: { label: "Minor", color: "#84cc16" },
-  3: { label: "Moderate", color: "#f59e0b" },
-  4: { label: "High", color: "#ef4444" },
-  5: { label: "Critical", color: "#dc2626" },
+  1: { label: "Low", color: "hsl(185 60% 40%)" },
+  2: { label: "Minor", color: "hsl(185 100% 23%)" },
+  3: { label: "Moderate", color: "hsl(40 90% 55%)" },
+  4: { label: "High", color: "hsl(18 100% 50%)" },
+  5: { label: "Critical", color: "hsl(0 70% 45%)" },
 };
 
-function timeAgo(minutes: number) {
-  if (minutes < 60) return `${minutes}m ago`;
-  return `${Math.floor(minutes / 60)}h ago`;
-}
+// ─── Route panel (left side on desktop, bottom sheet on mobile) ───────────────
 
-// ─── Hazard Report Bottom Sheet ───────────────────────────────────────────────
-function HazardReportSheet({
-  onClose,
-  onSubmit,
-  selectedLat,
-  selectedLng,
+function RoutePanel({
+  activeRoute,
+  onSelectRoute,
+  onFindPartner,
+  showWalkers,
 }: {
-  onClose: () => void;
-  onSubmit: (type: HazardType, description: string, lat: number, lng: number) => void;
-  selectedLat?: number;
-  selectedLng?: number;
+  activeRoute: string;
+  onSelectRoute: (id: string) => void;
+  onFindPartner: () => void;
+  showWalkers: boolean;
 }) {
-  const [step, setStep] = useState<"category" | "details">("category");
-  const [selectedType, setSelectedType] = useState<HazardType | null>(null);
-  const [description, setDescription] = useState("");
-
-  const handleCategorySelect = (type: HazardType) => {
-    setSelectedType(type);
-    setStep("details");
-  };
-
-  const handleSubmit = () => {
-    if (!selectedType) return;
-    const lat = selectedLat ?? 18.0035;
-    const lng = selectedLng ?? -76.7497;
-    onSubmit(selectedType, description, lat, lng);
-  };
-
-  const selectedCat = HAZARD_CATEGORIES.find((c) => c.type === selectedType);
+  const [destQuery, setDestQuery] = useState("SLT 2 — Science Lecture Theatre 2");
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/30 z-30"
-        onClick={onClose}
-      />
-      {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            {step === "details" && (
-              <button
-                onClick={() => setStep("category")}
-                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center mr-1"
-              >
-                <ChevronRight className="w-4 h-4 text-gray-500 rotate-180" />
-              </button>
-            )}
-            <h2 className="text-base font-bold text-gray-900">Report a Hazard</h2>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-border">
+        <h2 className="text-base font-bold text-foreground mb-3">Find Your Way</h2>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 p-2.5 bg-secondary rounded-xl">
+            <div className="w-2 h-2 rounded-full bg-primary" />
+            <span className="text-xs text-muted-foreground flex-1">My Location (GPS)</span>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
-          >
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
+          <div className="flex items-center gap-2 p-2.5 bg-secondary rounded-xl">
+            <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+            <input
+              value={destQuery}
+              onChange={(e) => setDestQuery(e.target.value)}
+              className="text-xs text-foreground bg-transparent flex-1 focus:outline-none"
+              placeholder="Where to?"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Route options */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+          Route Options
+        </p>
+        {ROUTE_OPTIONS.map((route) => {
+          const Icon = route.icon;
+          const isActive = route.id === activeRoute;
+          return (
+            <button
+              key={route.id}
+              onClick={() => onSelectRoute(route.id)}
+              className={cn(
+                "w-full text-left p-3 rounded-xl border-2 transition-all",
+                isActive
+                  ? "border-primary bg-teal-light"
+                  : "border-transparent bg-card hover:bg-secondary"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                  isActive ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                )}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{route.label}</p>
+                  <p className="text-xs text-muted-foreground">{route.desc}</p>
+                </div>
+                {isActive && (
+                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                    SELECTED
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1 ml-12">{route.detail}</p>
+            </button>
+          );
+        })}
+
+        {/* Delivery/order info style card */}
+        <div className="mt-4 p-3 bg-card border border-border rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-foreground">Route Details</span>
+            <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-teal-light text-primary">
+              WALKING
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[10px] text-muted-foreground">Distance</p>
+              <p className="text-sm font-bold text-foreground">350m</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Duration</p>
+              <p className="text-sm font-bold text-foreground">5 min</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Elevation</p>
+              <p className="text-sm font-bold text-foreground">+2m</p>
+            </div>
+          </div>
         </div>
 
-        <div className="overflow-y-auto flex-1 px-5 py-4">
-          {step === "category" ? (
+        {/* Walking partner button */}
+        <button
+          onClick={onFindPartner}
+          className="w-full mt-3 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
+        >
+          <Users className="w-4 h-4" />
+          Find Walking Partner
+        </button>
+      </div>
+
+      {/* Caution report */}
+      <div className="p-4 border-t border-border">
+        <button className="w-full py-2.5 bg-orange-light text-orange rounded-xl font-semibold text-sm flex items-center justify-center gap-2 border border-orange/30 hover:bg-orange/10 transition-colors">
+          <AlertTriangle className="w-4 h-4" />
+          Report Caution
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Walking Partners Panel ──────────────────────────────────────────────────
+
+function WalkingPartnersPanel({ walkers, onClose }: { walkers: typeof DEMO_WALKERS; onClose: () => void }) {
+  return (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-border flex items-center justify-between">
+        <h2 className="text-base font-bold text-foreground">Walking Partners</h2>
+        <button onClick={onClose} className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center">
+          <X className="w-4 h-4 text-muted-foreground" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        <p className="text-xs text-muted-foreground mb-2">
+          {walkers.length} students available near you
+        </p>
+        {walkers.map((w, i) => (
+          <div key={w.id} className="bg-card border border-border rounded-xl p-3">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-teal-light flex items-center justify-center">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Student #{i + 123}</p>
+                <p className="text-xs text-muted-foreground">{w.faculty} · Trust: {Math.round(w.trustScore * 100)}%</p>
+              </div>
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }, (_, j) => (
+                  <Star
+                    key={j}
+                    className={cn("w-3 h-3", j < Math.round(w.trustScore * 5) ? "text-orange fill-orange" : "text-border")}
+                  />
+                ))}
+              </div>
+            </div>
+            {/* Recent reviews */}
+            <div className="space-y-1 ml-13">
+              {w.reviews.map((review, j) => (
+                <p key={j} className="text-[10px] text-muted-foreground italic">"{review}"</p>
+              ))}
+            </div>
+            <button className="w-full mt-2 py-2 bg-teal-light text-primary rounded-lg text-xs font-semibold hover:bg-primary/15 transition-colors">
+              Request Walk
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main MapPage ─────────────────────────────────────────────────────────────
+
+export default function MapPage() {
+  const [, navigate] = useLocation();
+  const { user, loading } = useAuth();
+  const [activeRoute, setActiveRoute] = useState("fastest");
+  const [showWalkers, setShowWalkers] = useState(false);
+  const [activeSheet, setActiveSheet] = useState<"none" | "report" | "hazard">("none");
+  const [selectedHazard, setSelectedHazard] = useState<Hazard | null>(null);
+  const [userLat, setUserLat] = useState<number | undefined>();
+  const [userLng, setUserLng] = useState<number | undefined>();
+  const [hazards, setHazards] = useState<Hazard[]>(DEMO_HAZARDS);
+  const mapRef = useRef<CactusMapHandle>(null);
+  const hasGps = userLat !== undefined && userLng !== undefined;
+
+  // Mobile panel state
+  const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+
+  const createReportMutation = trpc.reports.createReport.useMutation({
+    onSuccess: () => { toast.success("Hazard reported!"); setActiveSheet("none"); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const voteReportMutation = trpc.reports.voteReport.useMutation({
+    onSuccess: (data: any) => { toast.success(data.newTTL > 0 ? "Thanks!" : "Resolved."); setActiveSheet("none"); setSelectedHazard(null); },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  useSSE((event) => {
+    if (event.type === "reports.created") {
+      const d = event.data as any;
+      setHazards((prev) => [...prev, { id: d.reportId, reportType: d.reportType, lat: d.lat, lng: d.lng, severity: d.severity, ttlMinutes: d.severity >= 4 ? 60 : 30 }]);
+    }
+  });
+
+  useGeolocation((lat, lng) => { setUserLat(lat); setUserLng(lng); }, 3000);
+
+  const handleHazardClick = useCallback((hazard: Hazard) => { setSelectedHazard(hazard); setActiveSheet("hazard"); }, []);
+  const activeHazardCount = hazards.filter((h) => (h.ttlMinutes ?? 0) > 0).length;
+
+  if (!loading && !user) { navigate("/login"); return null; }
+
+  return (
+    <AppLayout activeTab="map" noScroll>
+      <div className="flex h-full">
+        {/* Left panel — desktop only */}
+        <div className="hidden lg:flex w-80 bg-card border-r border-border flex-col shrink-0">
+          {showWalkers ? (
+            <WalkingPartnersPanel walkers={DEMO_WALKERS} onClose={() => setShowWalkers(false)} />
+          ) : (
+            <RoutePanel
+              activeRoute={activeRoute}
+              onSelectRoute={setActiveRoute}
+              onFindPartner={() => setShowWalkers(true)}
+              showWalkers={showWalkers}
+            />
+          )}
+        </div>
+
+        {/* Map area */}
+        <div className="flex-1 relative">
+          <CactusMap
+            ref={mapRef}
+            userLat={userLat}
+            userLng={userLng}
+            walkers={DEMO_WALKERS}
+            hazards={hazards}
+            isSelectingDest={false}
+            onDestinationSelected={() => {}}
+            onHazardClick={handleHazardClick}
+          />
+
+          {/* Mobile: collapsed search bar at top */}
+          <div className="lg:hidden absolute top-4 left-4 right-4 z-20">
+            <button
+              onClick={() => setMobilePanelOpen(true)}
+              className="w-full bg-card/97 backdrop-blur-sm rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left border border-border"
+            >
+              <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground flex-1">Where would you like to go?</span>
+              <Navigation className="w-4 h-4 text-primary shrink-0" />
+            </button>
+          </div>
+
+          {/* Mobile bottom sheet panel */}
+          {mobilePanelOpen && (
             <>
-              <p className="text-xs text-gray-500 mb-4">
-                What hazard are you reporting on this footpath?
-              </p>
+              <div className="lg:hidden fixed inset-0 bg-charcoal/30 z-30" onClick={() => setMobilePanelOpen(false)} />
+              <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-card rounded-t-3xl max-h-[80vh] overflow-y-auto">
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 bg-border rounded-full" />
+                </div>
+                {showWalkers ? (
+                  <WalkingPartnersPanel walkers={DEMO_WALKERS} onClose={() => { setShowWalkers(false); setMobilePanelOpen(false); }} />
+                ) : (
+                  <RoutePanel
+                    activeRoute={activeRoute}
+                    onSelectRoute={setActiveRoute}
+                    onFindPartner={() => setShowWalkers(true)}
+                    showWalkers={showWalkers}
+                  />
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Right-side FABs */}
+          <div className="absolute right-4 bottom-24 lg:bottom-8 z-20 flex flex-col gap-3">
+
+            <button
+              onClick={() => setActiveSheet("report")}
+              className="w-12 h-12 rounded-full bg-card flex items-center justify-center hover:scale-105 transition-transform active:scale-95 border-2 border-orange"
+            >
+              <AlertTriangle className="w-5 h-5 text-orange" />
+              {activeHazardCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+                  {activeHazardCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+
+          {/* Info card at bottom of map — delivery/transit style */}
+          <div className="hidden lg:block absolute bottom-0 left-0 right-0 z-10">
+            <div className="bg-card backdrop-blur-sm rounded-t-2xl px-6 py-5 border-t border-border flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Current Route</p>
+                <p className="text-base font-bold text-foreground">
+                  My Location → SLT 2
+                </p>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Distance</p>
+                  <p className="text-base font-bold text-foreground">350m</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">ETA</p>
+                  <p className="text-base font-bold text-primary">5 min</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hazard report sheet (mobile) */}
+      {activeSheet === "report" && (
+        <>
+          <div className="fixed inset-0 bg-charcoal/30 z-30" onClick={() => setActiveSheet("none")} />
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-card rounded-t-3xl max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-border rounded-full" /></div>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <h2 className="text-base font-bold text-foreground">Report a Hazard</h2>
+              <button onClick={() => setActiveSheet("none")} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                <X className="w-4 h-4 text-muted-foreground" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 py-4">
+              <p className="text-xs text-muted-foreground mb-4">What hazard are you reporting?</p>
               <div className="grid grid-cols-3 gap-3">
                 {HAZARD_CATEGORIES.map((cat) => {
                   const Icon = cat.icon;
                   return (
                     <button
                       key={cat.type}
-                      onClick={() => handleCategorySelect(cat.type)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-2xl border-2 border-transparent hover:border-gray-200 hover:bg-gray-50 transition-all active:scale-95"
+                      onClick={() => {
+                        const newHazard: Hazard = { id: Date.now(), reportType: cat.type, lat: userLat ?? 18.0035, lng: userLng ?? -76.7497, severity: cat.severity, ttlMinutes: cat.severity >= 4 ? 60 : 30 };
+                        setHazards((prev) => [...prev, newHazard]);
+                        toast.success("Hazard reported!");
+                        setActiveSheet("none");
+                      }}
+                      className="flex flex-col items-center gap-2 p-3 rounded-2xl border-2 border-transparent hover:border-border hover:bg-secondary transition-all active:scale-95"
                     >
-                      <div
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                        style={{ backgroundColor: cat.bg }}
-                      >
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: cat.bg }}>
                         <Icon className="w-6 h-6" style={{ color: cat.color }} />
                       </div>
-                      <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">
-                        {cat.label}
-                      </span>
+                      <span className="text-[11px] font-semibold text-foreground text-center leading-tight">{cat.label}</span>
                     </button>
                   );
                 })}
               </div>
-            </>
-          ) : (
-            selectedCat && (
-              <div>
-                {/* Selected category preview */}
-                <div
-                  className="flex items-center gap-3 p-3 rounded-2xl mb-4"
-                  style={{ backgroundColor: selectedCat.bg }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: selectedCat.bg }}
-                  >
-                    <selectedCat.icon className="w-5 h-5" style={{ color: selectedCat.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: selectedCat.color }}>
-                      {selectedCat.label}
-                    </p>
-                    <p className="text-xs text-gray-500">{selectedCat.description}</p>
-                  </div>
-                </div>
-
-                {/* Severity indicator */}
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-gray-500">Auto-severity:</span>
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: SEVERITY_LABELS[selectedCat.severity]?.color }}
-                  >
-                    {SEVERITY_LABELS[selectedCat.severity]?.label}
-                  </span>
-                </div>
-
-                {/* Location indicator */}
-                <div className="flex items-center gap-2 mb-4 p-2.5 bg-[#f5f7fa] rounded-xl">
-                  <MapPin className="w-4 h-4 text-[#00c853] shrink-0" />
-                  <span className="text-xs text-gray-600">
-                    {selectedLat && selectedLng
-                      ? `${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`
-                      : "Your current location on campus"}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={`Describe the ${selectedCat.label.toLowerCase()} (optional)`}
-                  className="w-full p-3 bg-[#f5f7fa] rounded-xl text-sm text-gray-700 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#00c853]/30 mb-4"
-                  rows={3}
-                  maxLength={300}
-                />
-
-                {/* Submit buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-colors"
-                    style={{ backgroundColor: selectedCat.color }}
-                  >
-                    Report
-                  </button>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Hazard Detail Sheet ──────────────────────────────────────────────────────
-function HazardDetailSheet({
-  hazard,
-  onClose,
-  onVote,
-}: {
-  hazard: Hazard;
-  onClose: () => void;
-  onVote: (reportId: number, vote: "still_there" | "not_there") => void;
-}) {
-  const cat = HAZARD_CATEGORIES.find((c) => c.type === hazard.reportType);
-  const Icon = cat?.icon ?? AlertTriangle;
-  const severity = SEVERITY_LABELS[hazard.severity] ?? SEVERITY_LABELS[3];
-  const ttlPct = Math.min(100, ((hazard.ttlMinutes ?? 30) / 60) * 100);
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        <div className="px-5 py-4">
-          {/* Header */}
-          <div className="flex items-start gap-3 mb-4">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: cat?.bg ?? "#f3f4f6" }}
-            >
-              <Icon className="w-6 h-6" style={{ color: cat?.color ?? "#6b7280" }} />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-base font-bold text-gray-900">{cat?.label ?? hazard.reportType}</h3>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: severity.color }}
-                >
-                  {severity.label}
-                </span>
-              </div>
-              {hazard.description && (
-                <p className="text-sm text-gray-600">{hazard.description}</p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
-            >
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-
-          {/* TTL bar */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>Expires in ~{hazard.ttlMinutes ?? 30} min</span>
-              </div>
-              <span>{Math.round(ttlPct)}% remaining</span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${ttlPct}%`,
-                  backgroundColor: ttlPct > 50 ? "#22c55e" : ttlPct > 25 ? "#f59e0b" : "#ef4444",
-                }}
-              />
             </div>
           </div>
-
-          {/* Vote buttons */}
-          <p className="text-xs text-gray-500 mb-3 text-center">Is this hazard still there?</p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => onVote(hazard.id, "still_there")}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#fff8e1] border-2 border-[#f59e0b] text-[#b45309] font-bold text-sm hover:bg-[#fef3c7] transition-colors active:scale-95"
-            >
-              <ThumbsUp className="w-4 h-4" />
-              Still There
-            </button>
-            <button
-              onClick={() => onVote(hazard.id, "not_there")}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#f0fdf4] border-2 border-[#22c55e] text-[#15803d] font-bold text-sm hover:bg-[#dcfce7] transition-colors active:scale-95"
-            >
-              <CheckCircle className="w-4 h-4" />
-              It's Gone
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Walking Request Sheet ────────────────────────────────────────────────────
-function WalkingSheet({ onClose }: { onClose: () => void }) {
-  const [, navigate] = useLocation();
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900">Walking Body</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {DEMO_WALKERS.length} students available to walk with you near campus right now.
-          </p>
-          <div className="space-y-2 mb-4">
-            {DEMO_WALKERS.map((w) => (
-              <div key={w.id} className="flex items-center gap-3 p-3 bg-[#f5f7fa] rounded-xl">
-                <div className="w-9 h-9 rounded-full bg-[#e8faf0] flex items-center justify-center">
-                  <Users className="w-4 h-4 text-[#00c853]" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800">Student #{w.id}</p>
-                  <p className="text-xs text-gray-500">Trust: {Math.round(w.trustScore * 100)}%</p>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse" />
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={() => { onClose(); navigate("/walking"); }}
-            className="w-full py-3 bg-[#00c853] text-white font-bold text-sm rounded-2xl hover:bg-[#00b84a] transition-colors"
-          >
-            Request Walking Partner
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Check-In Sheet ───────────────────────────────────────────────────────────
-function CheckInSheet({
-  onClose,
-  selectedDest,
-  onSelectDest,
-}: {
-  onClose: () => void;
-  selectedDest: { lat: number; lng: number } | null;
-  onSelectDest: () => void;
-}) {
-  const [, navigate] = useLocation();
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900">Safety Check-In</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Set your destination. If you don't arrive in time, your emergency contact will be notified.
-          </p>
-
-          {/* Destination picker */}
-          <button
-            onClick={onSelectDest}
-            className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-xl border-2 mb-4 transition-all",
-              selectedDest
-                ? "border-[#00c853] bg-[#f0fdf4]"
-                : "border-dashed border-gray-300 bg-[#f5f7fa] hover:border-[#00c853]"
-            )}
-          >
-            <MapPin className={cn("w-5 h-5 shrink-0", selectedDest ? "text-[#00c853]" : "text-gray-400")} />
-            <span className={cn("text-sm font-medium", selectedDest ? "text-[#00c853]" : "text-gray-500")}>
-              {selectedDest
-                ? `${selectedDest.lat.toFixed(5)}, ${selectedDest.lng.toFixed(5)}`
-                : "Tap map to set destination"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => { onClose(); navigate("/check-in"); }}
-            className="w-full py-3 bg-[#7b1fa2] text-white font-bold text-sm rounded-2xl hover:bg-[#6a1a8f] transition-colors"
-          >
-            Set Up Check-In
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Main MapPage ─────────────────────────────────────────────────────────────
-type ActiveSheet = "none" | "report" | "hazard" | "walking" | "checkin";
-
-export default function MapPage() {
-  const [, navigate] = useLocation();
-  const { user, loading } = useAuth();
-  const [activeSheet, setActiveSheet] = useState<ActiveSheet>("none");
-  const [selectedHazard, setSelectedHazard] = useState<Hazard | null>(null);
-  const [isSelectingDest, setIsSelectingDest] = useState(false);
-  const [selectedDest, setSelectedDest] = useState<{ lat: number; lng: number } | null>(null);
-  const [userLat, setUserLat] = useState<number | undefined>();
-  const [userLng, setUserLng] = useState<number | undefined>();
-  const [hazards, setHazards] = useState<Hazard[]>(DEMO_HAZARDS);
-  const [reportLat, setReportLat] = useState<number | undefined>();
-  const [reportLng, setReportLng] = useState<number | undefined>();
-   const mapRef = useRef<CactusMapHandle>(null);
-  const hasGps = userLat !== undefined && userLng !== undefined;
-  const createReportMutation = trpc.reports.createReport.useMutation({
-    onSuccess: (data) => {
-      toast.success("Hazard reported! Other students will be notified.");
-      setActiveSheet("none");
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  const voteReportMutation = trpc.reports.voteReport.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.newTTL > 0 ? "Thanks for confirming!" : "Report marked as resolved.");
-      setActiveSheet("none");
-      setSelectedHazard(null);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  // SSE for live hazard updates
-  useSSE((event) => {
-    if (event.type === "reports.created") {
-      const d = event.data as { reportId: number; reportType: string; severity: number; lat: number; lng: number };
-      setHazards((prev) => [
-        ...prev,
-        {
-          id: d.reportId,
-          reportType: d.reportType,
-          lat: d.lat,
-          lng: d.lng,
-          severity: d.severity,
-          ttlMinutes: d.severity >= 4 ? 60 : 30,
-        },
-      ]);
-    }
-  });
-
-  // Geolocation
-  useGeolocation((lat, lng) => {
-    setUserLat(lat);
-    setUserLng(lng);
-  }, 3000);
-
-  // Active hazard count
-  const activeHazardCount = hazards.filter((h) => (h.ttlMinutes ?? 0) > 0).length;
-
-  const handleHazardClick = useCallback((hazard: Hazard) => {
-    setSelectedHazard(hazard);
-    setActiveSheet("hazard");
-  }, []);
-
-  const handleDestinationSelected = useCallback((lat: number, lng: number) => {
-    setSelectedDest({ lat, lng });
-    setIsSelectingDest(false);
-    setActiveSheet("checkin");
-  }, []);
-
-  const handleReportSubmit = (type: HazardType, description: string, lat: number, lng: number) => {
-    const cat = HAZARD_CATEGORIES.find((c) => c.type === type);
-    if (!cat) return;
-
-    // Optimistic update for demo
-    const newHazard: Hazard = {
-      id: Date.now(),
-      reportType: type,
-      lat,
-      lng,
-      severity: cat.severity,
-      ttlMinutes: cat.severity >= 4 ? 60 : 30,
-      description,
-    };
-    setHazards((prev) => [...prev, newHazard]);
-
-    // Real API call
-    createReportMutation.mutate({
-      reportType: type as any,
-      severity: cat.severity,
-      lat,
-      lng,
-      description,
-    });
-  };
-
-  const handleVote = (reportId: number, vote: "still_there" | "not_there") => {
-    // Optimistic TTL update
-    setHazards((prev) =>
-      prev.map((h) => {
-        if (h.id !== reportId) return h;
-        const adj = vote === "still_there" ? (h.severity >= 4 ? 30 : 15) : -(h.severity >= 4 ? 30 : 15);
-        return { ...h, ttlMinutes: Math.max(0, (h.ttlMinutes ?? 30) + adj) };
-      })
-    );
-    voteReportMutation.mutate({ reportId, vote });
-  };
-
-  if (!loading && !user) {
-    navigate("/login");
-    return null;
-  }
-
-  return (
-    <AppLayout activeTab="map" noScroll>
-      {/* Full-height map container — fills all space above the bottom nav (64px) */}
-      <div className="relative" style={{ height: "calc(100vh - 64px)" }}>
-        {/* Map */}
-        <CactusMap
-          ref={mapRef}
-          userLat={userLat}
-          userLng={userLng}
-          walkers={DEMO_WALKERS}
-          hazards={hazards}
-          isSelectingDest={isSelectingDest}
-          onDestinationSelected={handleDestinationSelected}
-          onHazardClick={handleHazardClick}
-        />
-
-        {/* ── Navigation Panel (Apple Maps style) ─────────────────────── */}
-        <NavigationPanel
-          mapRef={mapRef}
-          userLat={userLat}
-          userLng={userLng}
-          hasGps={hasGps}
-        />
-
-        {/* ── Destination-select hint ─────────────────────────────────────── */}
-        {isSelectingDest && (
-          <div className="absolute top-20 left-4 right-4 z-10">
-            <div className="bg-[#7b1fa2] text-white rounded-2xl px-4 py-3 text-center shadow-lg">
-              <p className="text-sm font-bold">Tap the map to set your destination</p>
-              <p className="text-xs opacity-80 mt-0.5">Your check-in will monitor your journey</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Right-side FABs ─────────────────────────────────────────────── */}
-        <div className="absolute right-4 bottom-24 z-20 flex flex-col gap-3">
-          {/* Walking Body FAB */}
-          <button
-            onClick={() => setActiveSheet("walking")}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#00c853] relative hover:scale-105 transition-transform active:scale-95"
-          >
-            <Users className="w-6 h-6 text-[#00c853]" />
-            {DEMO_WALKERS.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#00c853] text-white text-[9px] font-bold flex items-center justify-center">
-                {DEMO_WALKERS.length}
-              </span>
-            )}
-          </button>
-
-          {/* Check-In FAB */}
-          <button
-            onClick={() => setActiveSheet("checkin")}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#7b1fa2] hover:scale-105 transition-transform active:scale-95"
-          >
-            <Shield className="w-6 h-6 text-[#7b1fa2]" />
-          </button>
-
-          {/* Caution / Report FAB — Waze-style yellow triangle */}
-          <button
-            onClick={() => {
-              setReportLat(userLat);
-              setReportLng(userLng);
-              setActiveSheet("report");
-            }}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 relative"
-            style={{ border: "2.5px solid #f59e0b" }}
-          >
-            {/* Triangle icon matching Waze style */}
-            <svg viewBox="0 0 40 36" className="w-7 h-7" fill="none">
-              <path
-                d="M20 2L38 34H2L20 2Z"
-                fill="#f59e0b"
-                stroke="#f59e0b"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-              <text
-                x="20"
-                y="28"
-                textAnchor="middle"
-                fontSize="18"
-                fontWeight="bold"
-                fill="white"
-              >
-                !
-              </text>
-            </svg>
-            {activeHazardCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#ef4444] text-white text-[9px] font-bold flex items-center justify-center">
-                {activeHazardCount}
-              </span>
-            )}
-          </button>
-        </div>
-
-        {/* ── Bottom legend strip ─────────────────────────────────────────── */}
-        {activeSheet === "none" && !isSelectingDest && (
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {[
-                    { color: "#ef4444", label: "Critical" },
-                    { color: "#f59e0b", label: "High" },
-                    { color: "#22c55e", label: "Low" },
-                  ].map((s) => (
-                    <div key={s.label} className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="text-[10px] text-gray-500">{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#00c853] animate-pulse" />
-                  <span className="text-[10px] text-gray-500">{DEMO_WALKERS.length} walkers nearby</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Sheets ──────────────────────────────────────────────────────────── */}
-      {activeSheet === "report" && (
-        <HazardReportSheet
-          onClose={() => setActiveSheet("none")}
-          onSubmit={handleReportSubmit}
-          selectedLat={reportLat}
-          selectedLng={reportLng}
-        />
+        </>
       )}
 
+      {/* Hazard detail sheet */}
       {activeSheet === "hazard" && selectedHazard && (
-        <HazardDetailSheet
-          hazard={selectedHazard}
-          onClose={() => { setActiveSheet("none"); setSelectedHazard(null); }}
-          onVote={handleVote}
-        />
-      )}
-
-      {activeSheet === "walking" && (
-        <WalkingSheet onClose={() => setActiveSheet("none")} />
-      )}
-
-      {activeSheet === "checkin" && (
-        <CheckInSheet
-          onClose={() => setActiveSheet("none")}
-          selectedDest={selectedDest}
-          onSelectDest={() => {
-            setActiveSheet("none");
-            setIsSelectingDest(true);
-          }}
-        />
+        <>
+          <div className="fixed inset-0 bg-charcoal/30 z-30" onClick={() => { setActiveSheet("none"); setSelectedHazard(null); }} />
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-card rounded-t-3xl">
+            <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 bg-border rounded-full" /></div>
+            <div className="px-5 py-4">
+              {(() => {
+                const cat = HAZARD_CATEGORIES.find((c) => c.type === selectedHazard.reportType);
+                const Icon = cat?.icon ?? AlertTriangle;
+                const severity = SEVERITY_LABELS[selectedHazard.severity] ?? SEVERITY_LABELS[3];
+                return (
+                  <>
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: cat?.bg }}>
+                        <Icon className="w-6 h-6" style={{ color: cat?.color }} />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-base font-bold text-foreground">{cat?.label ?? selectedHazard.reportType}</h3>
+                        {selectedHazard.description && <p className="text-sm text-muted-foreground">{selectedHazard.description}</p>}
+                      </div>
+                      <button onClick={() => { setActiveSheet("none"); setSelectedHazard(null); }} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <X className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3 text-center">Is this hazard still there?</p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => {
+                          setHazards((prev) => prev.map((h) => h.id === selectedHazard.id ? { ...h, ttlMinutes: Math.max(0, (h.ttlMinutes ?? 30) + 15) } : h));
+                          toast.success("Confirmed!");
+                          setActiveSheet("none"); setSelectedHazard(null);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-orange-light border-2 border-orange text-orange font-bold text-sm"
+                      >
+                        <ThumbsUp className="w-4 h-4" /> Still There
+                      </button>
+                      <button
+                        onClick={() => {
+                          setHazards((prev) => prev.map((h) => h.id === selectedHazard.id ? { ...h, ttlMinutes: 0 } : h));
+                          toast.success("Resolved!");
+                          setActiveSheet("none"); setSelectedHazard(null);
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-teal-light border-2 border-primary text-primary font-bold text-sm"
+                      >
+                        <CheckCircle className="w-4 h-4" /> It's Gone
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </>
       )}
     </AppLayout>
   );

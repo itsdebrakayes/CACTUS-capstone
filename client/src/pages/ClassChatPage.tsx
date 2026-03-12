@@ -62,6 +62,17 @@ const MOCK_CLAIMS = [
     createdAt: new Date(Date.now() - 1000 * 60 * 5),
     userVote: null as "confirm" | "deny" | null,
   },
+  {
+    id: 4,
+    courseId: 1,
+    claimType: "other" as const,
+    message: "Extra tutorial session announced for Friday 2PM in Room 301",
+    confirmCount: 12,
+    denyCount: 0,
+    status: "confirmed" as const,
+    createdAt: new Date(Date.now() - 1000 * 60 * 90),
+    userVote: "confirm" as "confirm" | "deny" | null,
+  },
 ];
 
 type ClaimType = "cancelled" | "room_change" | "time_change" | "late" | "other";
@@ -75,12 +86,22 @@ const CLAIM_TYPE_LABELS: Record<ClaimType, string> = {
 };
 
 const CLAIM_TYPE_COLORS: Record<ClaimType, { color: string; bg: string; icon: typeof XCircle }> = {
-  cancelled: { color: "#e53935", bg: "#ffebee", icon: XCircle },
-  room_change: { color: "#e65100", bg: "#fff3e0", icon: AlertTriangle },
-  time_change: { color: "#1565c0", bg: "#e3f0ff", icon: Clock },
-  late: { color: "#7b1fa2", bg: "#f3e5f5", icon: Clock },
-  other: { color: "#455a64", bg: "#eceff1", icon: MessageSquare },
+  cancelled: { color: "hsl(18 100% 50%)", bg: "hsl(18 100% 95%)", icon: XCircle },
+  room_change: { color: "hsl(185 100% 23%)", bg: "hsl(185 40% 92%)", icon: AlertTriangle },
+  time_change: { color: "hsl(185 60% 40%)", bg: "hsl(185 40% 92%)", icon: Clock },
+  late: { color: "hsl(18 100% 50%)", bg: "hsl(18 100% 95%)", icon: Clock },
+  other: { color: "hsl(0 0% 40%)", bg: "hsl(47 19% 90%)", icon: MessageSquare },
 };
+
+// ─── Filter tabs ──────────────────────────────────────────────────────────────
+
+const FILTER_TYPES = [
+  { key: "all", label: "All" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "room_change", label: "Room" },
+  { key: "late", label: "Late" },
+  { key: "other", label: "Other" },
+];
 
 function timeAgo(date: Date) {
   const diff = Date.now() - date.getTime();
@@ -106,7 +127,7 @@ function ClaimCard({
   const confirmPct = total > 0 ? Math.round((claim.confirmCount / total) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       {/* Header */}
       <div className="flex items-start gap-3 mb-3">
         <div
@@ -123,57 +144,57 @@ function ClaimCard({
             >
               {CLAIM_TYPE_LABELS[claim.claimType]}
             </span>
-            <span className="text-[10px] text-gray-400">{courseName}</span>
+            <span className="text-[10px] text-muted-foreground">{courseName}</span>
           </div>
-          <p className="text-sm text-gray-800 leading-snug">{claim.message}</p>
-          <p className="text-[10px] text-gray-400 mt-1">{timeAgo(claim.createdAt)}</p>
+          <p className="text-sm text-foreground leading-snug">{claim.message}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(claim.createdAt)}</p>
         </div>
       </div>
 
       {/* Confidence bar */}
       {total > 0 && (
         <div className="mb-3">
-          <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-            <span>{claim.confirmCount} confirmed</span>
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+            <span>{claim.confirmCount} approved</span>
             <span>{confirmPct}% confidence</span>
           </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all"
               style={{
                 width: `${confirmPct}%`,
-                backgroundColor: confirmPct >= 60 ? "#00c853" : confirmPct >= 40 ? "#e65100" : "#e53935",
+                backgroundColor: confirmPct >= 60 ? "hsl(185 100% 23%)" : confirmPct >= 40 ? "hsl(18 100% 50%)" : "hsl(0 60% 50%)",
               }}
             />
           </div>
         </div>
       )}
 
-      {/* Vote buttons */}
+      {/* Vote buttons — Approve / Disapprove */}
       <div className="flex gap-2">
         <button
           onClick={() => onVote(claim.id, "confirm")}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
             claim.userVote === "confirm"
-              ? "bg-[#00c853] text-white"
-              : "bg-[#f5f7fa] text-gray-600 hover:bg-[#e8faf0] hover:text-[#00c853]"
+              ? "bg-primary text-primary-foreground"
+              : "bg-teal-light text-primary hover:bg-primary/20"
           )}
         >
           <ThumbsUp className="w-3.5 h-3.5" />
-          Confirm ({claim.confirmCount})
+          Approve ({claim.confirmCount})
         </button>
         <button
           onClick={() => onVote(claim.id, "deny")}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
             claim.userVote === "deny"
-              ? "bg-[#e53935] text-white"
-              : "bg-[#f5f7fa] text-gray-600 hover:bg-[#ffebee] hover:text-[#e53935]"
+              ? "bg-destructive text-primary-foreground"
+              : "bg-orange-light text-destructive hover:bg-destructive/20"
           )}
         >
           <ThumbsDown className="w-3.5 h-3.5" />
-          Deny ({claim.denyCount})
+          Disapprove ({claim.denyCount})
         </button>
       </div>
     </div>
@@ -194,10 +215,10 @@ function NewClaimForm({
   const [message, setMessage] = useState("");
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 mb-4">
+    <div className="bg-card rounded-2xl border border-border p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">New Class Update</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+        <h3 className="text-sm font-semibold text-foreground">New Class Update</h3>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-3">
@@ -210,8 +231,8 @@ function NewClaimForm({
               className={cn(
                 "py-2 px-3 rounded-xl text-xs font-medium transition-all text-left",
                 claimType === type
-                  ? "text-white"
-                  : "bg-[#f5f7fa] text-gray-600"
+                  ? "text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
               )}
               style={claimType === type ? { backgroundColor: config.color } : undefined}
             >
@@ -225,7 +246,7 @@ function NewClaimForm({
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Describe the update (e.g. 'Lecturer confirmed class is cancelled via email')"
-        className="w-full p-3 bg-[#f5f7fa] rounded-xl text-sm text-gray-700 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#00c853]/30 mb-3"
+        className="w-full p-3 bg-secondary rounded-xl text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 mb-3"
         rows={3}
         maxLength={500}
       />
@@ -235,7 +256,7 @@ function NewClaimForm({
           if (!message.trim()) { toast.error("Please describe the update"); return; }
           onSubmit(claimType, message.trim());
         }}
-        className="w-full py-2.5 bg-[#00c853] text-white text-sm font-semibold rounded-xl hover:bg-[#00b84a] transition-colors"
+        className="w-full py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
       >
         Post Update
       </button>
@@ -250,17 +271,18 @@ export default function ClassChatPage() {
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [showNewClaim, setShowNewClaim] = useState(false);
   const [claims, setClaims] = useState(MOCK_CLAIMS);
+  const [activeFilter, setActiveFilter] = useState("all");
 
   const createClaimMutation = trpc.classes.createClaim.useMutation({
     onSuccess: () => {
       toast.success("Update posted!");
       setShowNewClaim(false);
     },
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   const voteClaimMutation = trpc.classes.voteClaim.useMutation({
-    onError: (err) => toast.error(err.message),
+    onError: (err: any) => toast.error(err.message),
   });
 
   if (!loading && !user) {
@@ -269,7 +291,6 @@ export default function ClassChatPage() {
   }
 
   const handleVote = (claimId: number, vote: "confirm" | "deny") => {
-    // Optimistic update
     setClaims((prev) =>
       prev.map((c) => {
         if (c.id !== claimId) return c;
@@ -290,12 +311,26 @@ export default function ClassChatPage() {
         };
       })
     );
-    // Real API call
     voteClaimMutation.mutate({ claimId, vote });
   };
 
   const handleNewClaim = (type: ClaimType, message: string) => {
     if (!selectedCourse) return;
+    // Optimistic add for preview
+    const newClaim = {
+      id: Date.now(),
+      courseId: selectedCourse,
+      claimType: type,
+      message,
+      confirmCount: 1,
+      denyCount: 0,
+      status: "active" as const,
+      createdAt: new Date(),
+      userVote: "confirm" as "confirm" | "deny" | null,
+    };
+    setClaims((prev) => [newClaim, ...prev]);
+    setShowNewClaim(false);
+    toast.success("Update posted!");
     createClaimMutation.mutate({
       courseId: selectedCourse,
       claimType: type,
@@ -304,70 +339,94 @@ export default function ClassChatPage() {
   };
 
   const selectedCourseData = MOCK_COURSES.find((c) => c.id === selectedCourse);
-  const courseClaims = claims.filter((c) => c.courseId === selectedCourse);
+  const courseClaims = claims
+    .filter((c) => c.courseId === selectedCourse)
+    .filter((c) => activeFilter === "all" || c.claimType === activeFilter);
 
   return (
     <AppLayout activeTab="courses">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-3 sticky top-0 z-10">
+      <div className="bg-card border-b border-border px-4 pt-12 pb-3 sticky top-0 z-10">
         <div className="flex items-center gap-3">
           {selectedCourse && (
             <button
-              onClick={() => { setSelectedCourse(null); setShowNewClaim(false); }}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+              onClick={() => { setSelectedCourse(null); setShowNewClaim(false); setActiveFilter("all"); }}
+              className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center"
             >
-              <ArrowLeft className="w-4 h-4 text-gray-600" />
+              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
-          <h1 className="text-lg font-bold text-gray-900 flex-1">
+          <h1 className="text-lg font-bold text-foreground flex-1">
             {selectedCourseData ? selectedCourseData.name : "Class Chat"}
           </h1>
           {selectedCourse && (
             <button
               onClick={() => setShowNewClaim(!showNewClaim)}
-              className="w-8 h-8 rounded-full bg-[#00c853] flex items-center justify-center shadow-sm"
+              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
             >
-              <Plus className="w-4 h-4 text-white" />
+              <Plus className="w-4 h-4 text-primary-foreground" />
             </button>
           )}
         </div>
         {selectedCourseData && (
-          <p className="text-xs text-gray-500 mt-0.5 ml-11">
+          <p className="text-xs text-muted-foreground mt-0.5 ml-11">
             {selectedCourseData.code} · {selectedCourseData.room}
           </p>
         )}
       </div>
 
+      {/* Filter tabs (only when viewing a specific course) */}
+      {selectedCourse && (
+        <div className="bg-card border-b border-border px-4 py-2">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar">
+            {FILTER_TYPES.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setActiveFilter(f.key)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all",
+                  activeFilter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="px-4 py-3">
         {!selectedCourse ? (
           /* Course list */
           <div className="space-y-2">
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               Select a course to view and post class updates
             </p>
             {MOCK_COURSES.map((course) => {
-              const courseClaims = claims.filter((c) => c.courseId === course.id);
-              const activeClaims = courseClaims.filter((c) => c.status === "active");
+              const courseClaimsAll = claims.filter((c) => c.courseId === course.id);
+              const activeClaims = courseClaimsAll.filter((c) => c.status === "active");
               return (
                 <button
                   key={course.id}
                   onClick={() => setSelectedCourse(course.id)}
-                  className="w-full bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex items-center gap-3 hover:shadow-md transition-all text-left"
+                  className="w-full bg-card rounded-xl border border-border p-4 flex items-center gap-3 hover:border-primary/30 transition-all text-left"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-[#e8faf0] flex items-center justify-center shrink-0">
-                    <BookOpen className="w-5 h-5 text-[#00c853]" />
+                  <div className="w-10 h-10 rounded-xl bg-teal-light flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{course.name}</p>
-                    <p className="text-xs text-gray-500">{course.code} · {course.professor}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{course.name}</p>
+                    <p className="text-xs text-muted-foreground">{course.code} · {course.professor}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {activeClaims.length > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-[#e53935] text-white text-[10px] font-bold flex items-center justify-center">
+                      <span className="w-5 h-5 rounded-full bg-destructive text-primary-foreground text-[10px] font-bold flex items-center justify-center">
                         {activeClaims.length}
                       </span>
                     )}
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
                   </div>
                 </button>
               );
@@ -386,14 +445,14 @@ export default function ClassChatPage() {
 
             {courseClaims.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-[#f5f7fa] flex items-center justify-center mb-3">
-                  <CheckCircle className="w-6 h-6 text-gray-300" />
+                <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center mb-3">
+                  <CheckCircle className="w-6 h-6 text-muted-foreground/40" />
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">No updates yet</p>
-                <p className="text-xs text-gray-400 mb-4">Be the first to post a class update</p>
+                <p className="text-sm font-medium text-foreground mb-1">No updates yet</p>
+                <p className="text-xs text-muted-foreground mb-4">Be the first to post a class update</p>
                 <button
                   onClick={() => setShowNewClaim(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#00c853] text-white text-sm font-semibold rounded-xl"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-semibold rounded-xl"
                 >
                   <Plus className="w-4 h-4" />
                   Post Update

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import {
@@ -8,14 +7,16 @@ import {
   Play,
   MapPin,
   MessageSquare,
-  AlertCircle,
+  ShieldAlert,
   ChevronRight,
   Bell,
   Search,
   Clock,
   CheckCircle,
   XCircle,
-  RefreshCw,
+  BookOpen,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +25,9 @@ import { cn } from "@/lib/utils";
 function getGreeting(name: string) {
   const hour = new Date().getHours();
   const first = name.split(" ")[0];
-  if (hour < 12) return `Good Morning, ${first}`;
-  if (hour < 17) return `Good Afternoon, ${first}`;
-  return `Good Evening, ${first}`;
+  if (hour < 12) return `Good Morning`;
+  if (hour < 17) return `Good Afternoon`;
+  return `Good Evening`;
 }
 
 function formatDate() {
@@ -34,10 +35,11 @@ function formatDate() {
     weekday: "long",
     month: "long",
     day: "numeric",
+    year: "numeric",
   });
 }
 
-// ─── Mock schedule data (will be replaced with real data from DB) ────────────
+// ─── Mock data ──────────────────────────────────────────────────────────────
 
 const MOCK_SCHEDULE = [
   {
@@ -49,6 +51,7 @@ const MOCK_SCHEDULE = [
     endTime: new Date(new Date().setHours(10, 0, 0, 0)),
     professor: "Dr. Williams",
     status: "live" as const,
+    color: "bg-primary",
   },
   {
     id: 2,
@@ -59,6 +62,7 @@ const MOCK_SCHEDULE = [
     endTime: new Date(new Date().setHours(13, 0, 0, 0)),
     professor: "Prof. Miller",
     status: "upcoming" as const,
+    color: "bg-teal-mid",
   },
   {
     id: 3,
@@ -69,236 +73,27 @@ const MOCK_SCHEDULE = [
     endTime: new Date(new Date().setHours(15, 30, 0, 0)),
     professor: "Dr. Brown",
     status: "upcoming" as const,
+    color: "bg-orange",
   },
+];
+
+const MOCK_COURSES = [
+  { id: 1, code: "PSYC1001", name: "Introduction to Psychology", professor: "Dr. Williams", category: "Psychology", hours: 12, level: "Beginner" },
+  { id: 2, code: "STAT2202", name: "Advanced Statistics", professor: "Prof. Miller", category: "Mathematics", hours: 12, level: "Intermediate" },
+  { id: 3, code: "COMP3161", name: "Database Management", professor: "Dr. Brown", category: "Computer Science", hours: 12, level: "Advanced" },
 ];
 
 const MOCK_ALERTS = [
-  {
-    id: 1,
-    type: "cancelled" as const,
-    message: "Sociology lecture at 4 PM is CANCELLED (Room 102).",
-    course: "SOCI2001",
-    timestamp: new Date(),
-  },
+  { id: 1, type: "cancelled" as const, message: "Sociology lecture at 4 PM is CANCELLED", course: "SOCI2001", time: "2 min ago" },
+  { id: 2, type: "confirmed" as const, message: "Psych 101 confirmed as scheduled", course: "PSYC1001", time: "1 hr ago" },
 ];
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function UrgentAlertBanner({
-  alerts,
-}: {
-  alerts: typeof MOCK_ALERTS;
-}) {
-  const [current, setCurrent] = useState(0);
-  if (!alerts.length) return null;
-  const alert = alerts[current];
-
-  return (
-    <div className="mx-4 mb-3 bg-[#fff5f5] border border-[#ffcccc] rounded-xl p-3.5">
-      <div className="flex items-start gap-2.5">
-        <AlertTriangle className="w-4 h-4 text-[#e53935] mt-0.5 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-[#e53935] uppercase tracking-wide mb-0.5">
-            Urgent Update
-          </p>
-          <p className="text-sm text-[#333] leading-snug">
-            {alert.message.split("CANCELLED").map((part, i) =>
-              i === 0 ? (
-                part
-              ) : (
-                <>
-                  <span className="font-bold text-[#e53935] underline">CANCELLED</span>
-                  {part}
-                </>
-              )
-            )}
-          </p>
-        </div>
-        {alerts.length > 1 && (
-          <button
-            onClick={() => setCurrent((c) => (c + 1) % alerts.length)}
-            className="text-[#e53935] shrink-0"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CurrentClassCard({
-  cls,
-  onViewDetails,
-}: {
-  cls: (typeof MOCK_SCHEDULE)[0];
-  onViewDetails: () => void;
-}) {
-  const [minsLeft, setMinsLeft] = useState(0);
-
-  useEffect(() => {
-    const update = () => {
-      const now = new Date();
-      const diff = Math.max(0, Math.round((cls.endTime.getTime() - now.getTime()) / 60000));
-      setMinsLeft(diff);
-    };
-    update();
-    const interval = setInterval(update, 30000);
-    return () => clearInterval(interval);
-  }, [cls.endTime]);
-
-  return (
-    <div className="mx-4 mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Play className="w-4 h-4 text-[#00c853]" fill="#00c853" />
-        <span className="text-sm font-semibold text-gray-800">Current Class</span>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Class image placeholder */}
-        <div className="relative h-36 bg-gradient-to-br from-[#1a2a4a] to-[#0d1f3a] flex items-end p-3">
-          <div className="absolute inset-0 opacity-20"
-            style={{
-              backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
-            }}
-          />
-          <span className="relative z-10 bg-[#00c853] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-            Live Now
-          </span>
-        </div>
-
-        <div className="p-3.5">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm leading-tight">{cls.courseName}</h3>
-              <div className="flex items-center gap-1 mt-1">
-                <MapPin className="w-3 h-3 text-gray-400" />
-                <span className="text-xs text-gray-500">{cls.room}</span>
-              </div>
-            </div>
-            <div className="text-right shrink-0">
-              <span className="text-lg font-bold text-[#00c853]">{minsLeft}</span>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide leading-none">Mins Left</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onViewDetails}
-              className="flex-1 bg-[#00c853] hover:bg-[#00b84a] text-white text-sm font-semibold py-2 rounded-xl transition-colors"
-            >
-              View Details
-            </button>
-            <button className="w-9 h-9 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
-              <span className="text-lg leading-none font-bold">···</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function QuickActions({ onFindWay, onClassChat, onEmergency }: {
-  onFindWay: () => void;
-  onClassChat: () => void;
-  onEmergency: () => void;
-}) {
-  const actions = [
-    {
-      icon: MapPin,
-      label: "Find Way",
-      color: "#00c853",
-      bg: "#e8faf0",
-      onClick: onFindWay,
-    },
-    {
-      icon: MessageSquare,
-      label: "Class Chat",
-      color: "#1565c0",
-      bg: "#e3f0ff",
-      onClick: onClassChat,
-    },
-    {
-      icon: AlertCircle,
-      label: "Emergency",
-      color: "#e53935",
-      bg: "#ffebee",
-      onClick: onEmergency,
-    },
-  ];
-
-  return (
-    <div className="mx-4 mb-4 grid grid-cols-3 gap-3">
-      {actions.map((action) => {
-        const Icon = action.icon;
-        return (
-          <button
-            key={action.label}
-            onClick={action.onClick}
-            className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95"
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: action.bg }}
-            >
-              <Icon className="w-5 h-5" style={{ color: action.color }} />
-            </div>
-            <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
-              {action.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function UpNextSection({ classes }: { classes: typeof MOCK_SCHEDULE }) {
-  const [, navigate] = useLocation();
-  const upcoming = classes.filter((c) => c.status === "upcoming");
-  if (!upcoming.length) return null;
-
-  return (
-    <div className="mx-4 mb-4">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="flex gap-0.5">
-          <ChevronRight className="w-3.5 h-3.5 text-[#00c853]" />
-          <ChevronRight className="w-3.5 h-3.5 text-[#00c853]" />
-        </div>
-        <span className="text-sm font-semibold text-gray-800">Up Next</span>
-      </div>
-
-      <div className="space-y-2">
-        {upcoming.slice(0, 2).map((cls) => (
-          <div
-            key={cls.id}
-            className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3"
-          >
-            <div className="text-center shrink-0 w-12">
-              <p className="text-sm font-bold text-gray-900 leading-none">
-                {cls.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).split(" ")[0]}
-              </p>
-              <p className="text-[10px] text-gray-400 uppercase">
-                {cls.startTime.toLocaleTimeString("en-US", { hour12: true }).includes("AM") ? "AM" : "PM"}
-              </p>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{cls.courseName}</p>
-              <p className="text-xs text-gray-500">{cls.room} · {cls.professor}</p>
-            </div>
-            <button
-              onClick={() => navigate(`/courses/${cls.id}`)}
-              className="w-8 h-8 rounded-full bg-[#e8faf0] flex items-center justify-center shrink-0 hover:bg-[#d0f5e0] transition-colors"
-            >
-              <ChevronRight className="w-4 h-4 text-[#00c853]" />
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+const MOCK_TASKS = [
+  { id: 1, title: "Complete Lab Report", course: "STAT2202", due: "2 days remaining", color: "bg-teal-light" },
+  { id: 2, title: "Read Chapter 5", course: "PSYC1001", due: "3 days remaining", color: "bg-orange-light" },
+  { id: 3, title: "Database ER Diagram", course: "COMP3161", due: "4 days remaining", color: "bg-teal-light" },
+  { id: 4, title: "Statistics Problem Set", course: "STAT2202", due: "6 days remaining", color: "bg-orange-light" },
+];
 
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
@@ -306,17 +101,14 @@ export default function DashboardHome() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
 
-  // Load class claims for alerts (disabled until user has enrolled courses)
-  // const claimsQuery = trpc.classes.getClaimsByCourse.useQuery({ courseId: 1 }, { enabled: false });
-
   const currentClass = MOCK_SCHEDULE.find((c) => c.status === "live");
-  const activeAlerts = MOCK_ALERTS;
+  const nextClass = MOCK_SCHEDULE.find((c) => c.status === "upcoming");
 
   if (loading) {
     return (
       <AppLayout activeTab="dashboard">
         <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-3 border-[#00c853]/30 border-t-[#00c853] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
         </div>
       </AppLayout>
     );
@@ -331,104 +123,223 @@ export default function DashboardHome() {
 
   return (
     <AppLayout activeTab="dashboard">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#00c853] to-[#00b84a] flex items-center justify-center text-white font-bold text-sm shadow-sm">
-              {displayName.charAt(0).toUpperCase()}
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-sm text-muted-foreground">{getGreeting(displayName)}</p>
+              <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+                Welcome, {displayName.split(" ")[0]}!
+              </h1>
             </div>
-            <span className="font-bold text-gray-900 text-base">CACTUS</span>
+            <div className="flex items-center gap-2">
+              <button className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+              <button className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors relative">
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
-              <Search className="w-4 h-4" />
-            </button>
-            <button className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors relative">
-              <Bell className="w-4 h-4" />
-              {activeAlerts.length > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#e53935] rounded-full" />
-              )}
-            </button>
+          <p className="text-xs text-muted-foreground">{formatDate()}</p>
+        </div>
+
+        {/* Search bar */}
+        <div className="px-4 lg:px-8 mb-6">
+          <div className="relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <Search className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search courses"
+              className="w-full pl-14 pr-4 py-3 bg-card border border-border rounded-2xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/30 transition-all"
+            />
           </div>
         </div>
-      </div>
 
-      {/* Greeting */}
-      <div className="px-4 pt-5 pb-3">
-        <h1 className="text-2xl font-bold text-gray-900 leading-tight">
-          {getGreeting(displayName)}
-        </h1>
-        <p className="text-sm text-gray-500 mt-0.5">{formatDate()}</p>
-      </div>
+        {/* Main grid: left + right columns on desktop */}
+        <div className="px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
+          {/* LEFT column */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Current & Next class cards */}
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Today's Classes
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Current class */}
+                {currentClass && (
+                  <button
+                    onClick={() => navigate(`/courses/${currentClass.id}`)}
+                    className="relative bg-gradient-to-br from-primary to-teal-mid rounded-2xl p-4 text-left overflow-hidden group"
+                  >
+                    <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
+                      LIVE
+                    </span>
+                    <div className="h-20 mb-3" />
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-white/20" />
+                      <span className="text-xs text-primary-foreground/70">{currentClass.professor}</span>
+                    </div>
+                    <p className="font-bold text-primary-foreground text-sm">{currentClass.courseName}</p>
+                    <p className="text-xs text-primary-foreground/60 mt-0.5">
+                      {currentClass.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · {currentClass.room}
+                    </p>
+                  </button>
+                )}
 
-      {/* Urgent Alerts */}
-      <UrgentAlertBanner alerts={activeAlerts} />
-
-      {/* Current Class */}
-      {currentClass ? (
-        <CurrentClassCard
-          cls={currentClass}
-          onViewDetails={() => navigate(`/courses/${currentClass.id}`)}
-        />
-      ) : (
-        <div className="mx-4 mb-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-center">
-          <Clock className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">No class in session right now</p>
-        </div>
-      )}
-
-      {/* Quick Actions */}
-      <QuickActions
-        onFindWay={() => navigate("/find-way")}
-        onClassChat={() => navigate("/class-chat")}
-        onEmergency={() => {
-          // Emergency action - show alert panel
-          navigate("/map?emergency=true");
-        }}
-      />
-
-      {/* Up Next */}
-      <UpNextSection classes={MOCK_SCHEDULE} />
-
-      {/* Recent Alerts from Class Chat */}
-      <div className="mx-4 mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-800">Recent Class Updates</span>
-          <button
-            onClick={() => navigate("/class-chat")}
-            className="text-xs text-[#00c853] font-medium"
-          >
-            See all
-          </button>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-          {[
-            { icon: XCircle, color: "#e53935", bg: "#ffebee", text: "Sociology lecture cancelled", time: "2 min ago", badge: "CANCELLED" },
-            { icon: CheckCircle, color: "#00c853", bg: "#e8faf0", text: "Psych 101 confirmed as scheduled", time: "1 hr ago", badge: "CONFIRMED" },
-          ].map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} className="flex items-center gap-3 p-3">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: item.bg }}
-                >
-                  <Icon className="w-4 h-4" style={{ color: item.color }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 truncate">{item.text}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{item.time}</p>
-                </div>
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                  style={{ color: item.color, backgroundColor: item.bg }}
-                >
-                  {item.badge}
-                </span>
+                {/* Next class */}
+                {nextClass && (
+                  <button
+                    onClick={() => navigate(`/courses/${nextClass.id}`)}
+                    className="relative bg-gradient-to-br from-teal-mid to-primary/80 rounded-2xl p-4 text-left overflow-hidden group"
+                  >
+                    <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      UP NEXT
+                    </span>
+                    <div className="h-20 mb-3" />
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-6 h-6 rounded-full bg-white/20" />
+                      <span className="text-xs text-primary-foreground/70">{nextClass.professor}</span>
+                    </div>
+                    <p className="font-bold text-primary-foreground text-sm">{nextClass.courseName}</p>
+                    <p className="text-xs text-primary-foreground/60 mt-0.5">
+                      {nextClass.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · {nextClass.room}
+                    </p>
+                  </button>
+                )}
               </div>
-            );
-          })}
+            </div>
+
+
+            {/* Your courses */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Your courses
+                </p>
+                <button onClick={() => navigate("/courses")} className="text-xs text-primary font-medium">
+                  View All
+                </button>
+              </div>
+              <div className="space-y-2">
+                {MOCK_COURSES.map((course) => (
+                  <button
+                    key={course.id}
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                    className="w-full bg-card rounded-xl border border-border p-3.5 flex items-center gap-3 hover:border-primary/30 transition-colors text-left"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm">{course.name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        {course.category} · {course.hours} hours · {course.level}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{course.professor}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT column */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quick actions */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { icon: MapPin, label: "Find Way", bg: "bg-teal-light", color: "text-primary", onClick: () => navigate("/find-way") },
+                { icon: MessageSquare, label: "Class Chat", bg: "bg-teal-light", color: "text-primary", onClick: () => navigate("/class-chat") },
+                { icon: ShieldAlert, label: "Emergency", bg: "bg-orange-light", color: "text-destructive", onClick: () => navigate("/safety") },
+              ].map((a) => {
+                const Icon = a.icon;
+                return (
+                  <button
+                    key={a.label}
+                    onClick={a.onClick}
+                    className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-card border border-border hover:border-primary/30 transition-all active:scale-95"
+                  >
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", a.bg)}>
+                      <Icon className={cn("w-5 h-5", a.color)} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      {a.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Course Tasks */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Course Tasks
+                </p>
+                <button className="text-xs text-primary font-medium">View All</button>
+              </div>
+              <div className="space-y-2">
+                {MOCK_TASKS.map((task) => (
+                  <div
+                    key={task.id}
+                    className="bg-card rounded-xl border border-border p-3 flex items-center gap-3"
+                  >
+                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", task.color)}>
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{task.title}</p>
+                      <p className="text-xs text-muted-foreground">{task.due}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent class updates */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Class Updates
+                </p>
+                <button onClick={() => navigate("/class-chat")} className="text-xs text-primary font-medium">
+                  See all
+                </button>
+              </div>
+              <div className="bg-card rounded-xl border border-border divide-y divide-border">
+                {MOCK_ALERTS.map((alert) => {
+                  const Icon = alert.type === "cancelled" ? XCircle : CheckCircle;
+                  const iconClass = alert.type === "cancelled" ? "text-destructive" : "text-primary";
+                  const bgClass = alert.type === "cancelled" ? "bg-orange-light" : "bg-teal-light";
+                  const badge = alert.type === "cancelled" ? "CANCELLED" : "CONFIRMED";
+                  const badgeClass = alert.type === "cancelled" ? "text-destructive bg-orange-light" : "text-primary bg-teal-light";
+                  return (
+                    <div key={alert.id} className="flex items-center gap-3 p-3">
+                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", bgClass)}>
+                        <Icon className={cn("w-4 h-4", iconClass)} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-foreground truncate">{alert.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{alert.time}</p>
+                      </div>
+                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0", badgeClass)}>
+                        {badge}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </AppLayout>

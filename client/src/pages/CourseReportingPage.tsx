@@ -21,6 +21,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,13 @@ type PendingAnnouncement = {
   createdAt: Date;
 };
 
+// ─── Mock data ────────────────────────────────────────────────────────────────
+
+const MOCK_PENDING: PendingAnnouncement[] = [
+  { id: 201, courseId: 1, authorId: 3, announcementType: "cancelled", title: "Morning lecture cancelled", body: "Lecturer sent email about family emergency", isOfficial: false, status: "pending", upvotes: 14, downvotes: 2, createdAt: new Date(Date.now() - 300000) },
+  { id: 202, courseId: 1, authorId: 7, announcementType: "materials_uploaded", title: "Week 8 slides on OurVLE", body: null, isOfficial: false, status: "pending", upvotes: 6, downvotes: 0, createdAt: new Date(Date.now() - 3600000) },
+];
+
 // ─── Announcement type options ────────────────────────────────────────────────
 
 const ANNOUNCEMENT_TYPES: {
@@ -53,60 +61,60 @@ const ANNOUNCEMENT_TYPES: {
   label: string;
   icon: React.ElementType;
   color: string;
-  bg: string;
+  bgClass: string;
   defaultTitle: string;
 }[] = [
   {
     type: "cancelled",
     label: "Class Cancelled",
     icon: AlertCircle,
-    color: "text-red-600",
-    bg: "bg-red-50 border-red-200",
+    color: "text-destructive",
+    bgClass: "bg-orange-light border-destructive/20",
     defaultTitle: "Today's class has been cancelled",
   },
   {
     type: "lecturer_late",
     label: "Lecturer Late",
     icon: Clock,
-    color: "text-amber-600",
-    bg: "bg-amber-50 border-amber-200",
+    color: "text-orange",
+    bgClass: "bg-orange-light border-orange/20",
     defaultTitle: "Lecturer will be late today",
   },
   {
     type: "room_changed",
     label: "Room Changed",
     icon: MapPin,
-    color: "text-blue-600",
-    bg: "bg-blue-50 border-blue-200",
+    color: "text-primary",
+    bgClass: "bg-teal-light border-primary/20",
     defaultTitle: "Class location has changed",
   },
   {
     type: "rescheduled",
     label: "Rescheduled",
     icon: Calendar,
-    color: "text-purple-600",
-    bg: "bg-purple-50 border-purple-200",
+    color: "text-teal-mid",
+    bgClass: "bg-teal-light border-teal-mid/20",
     defaultTitle: "Class has been rescheduled",
   },
   {
     type: "materials_uploaded",
-    label: "Materials Uploaded",
+    label: "Materials",
     icon: BookMarked,
-    color: "text-green-600",
-    bg: "bg-green-50 border-green-200",
+    color: "text-primary",
+    bgClass: "bg-teal-light border-primary/20",
     defaultTitle: "New course materials are available",
   },
   {
     type: "general",
-    label: "General Update",
+    label: "General",
     icon: MessageSquare,
-    color: "text-gray-600",
-    bg: "bg-gray-50 border-gray-200",
+    color: "text-muted-foreground",
+    bgClass: "bg-secondary border-border",
     defaultTitle: "",
   },
 ];
 
-// ─── Pending submission card ──────────────────────────────────────────────────
+// ─── Submission card ──────────────────────────────────────────────────────────
 
 function SubmissionCard({
   announcement,
@@ -131,12 +139,12 @@ function SubmissionCard({
   };
 
   const typeColors: Record<string, string> = {
-    lecturer_late: "bg-amber-100 text-amber-700",
-    cancelled: "bg-red-100 text-red-700",
-    room_changed: "bg-blue-100 text-blue-700",
-    rescheduled: "bg-purple-100 text-purple-700",
-    materials_uploaded: "bg-green-100 text-green-700",
-    general: "bg-gray-100 text-gray-600",
+    lecturer_late: "bg-orange-light text-orange",
+    cancelled: "bg-orange-light text-destructive",
+    room_changed: "bg-teal-light text-primary",
+    rescheduled: "bg-teal-light text-teal-mid",
+    materials_uploaded: "bg-teal-light text-primary",
+    general: "bg-secondary text-muted-foreground",
   };
 
   const timeAgo = (date: Date) => {
@@ -149,37 +157,38 @@ function SubmissionCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-card rounded-2xl border border-border overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4"
       >
         <div className="flex items-start gap-3 text-left">
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${
+            className={cn(
+              "text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5",
               typeColors[announcement.announcementType] ?? typeColors.general
-            }`}
+            )}
           >
             {typeLabels[announcement.announcementType] ?? announcement.announcementType}
           </span>
           <div>
-            <p className="text-sm font-medium text-gray-800 leading-tight">{announcement.title}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{timeAgo(announcement.createdAt)}</p>
+            <p className="text-sm font-medium text-foreground leading-tight">{announcement.title}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{timeAgo(announcement.createdAt)}</p>
           </div>
         </div>
         {expanded ? (
-          <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronUp className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
         )}
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-3">
+        <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
           {announcement.body && (
-            <p className="text-xs text-gray-600">{announcement.body}</p>
+            <p className="text-xs text-muted-foreground">{announcement.body}</p>
           )}
-          <div className="flex items-center gap-2 text-xs text-gray-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <span>👍 {announcement.upvotes}</span>
             <span>👎 {announcement.downvotes}</span>
           </div>
@@ -187,7 +196,7 @@ function SubmissionCard({
             <button
               onClick={onApprove}
               disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-green-500 text-white rounded-xl text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               Approve & Broadcast
@@ -195,7 +204,7 @@ function SubmissionCard({
             <button
               onClick={onReject}
               disabled={isLoading}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-200 transition-colors disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-secondary text-muted-foreground rounded-xl text-xs font-semibold hover:bg-muted transition-colors disabled:opacity-50"
             >
               <XCircle className="w-3.5 h-3.5" />
               Reject
@@ -212,7 +221,7 @@ function SubmissionCard({
 export default function CourseReportingPage() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/courses/:id/reporting");
-  const courseId = params?.id ? parseInt(params.id) : 0;
+  const courseId = params?.id ? parseInt((params as any).id) : 0;
 
   const [selectedType, setSelectedType] = useState<AnnouncementType | null>(null);
   const [title, setTitle] = useState("");
@@ -273,25 +282,27 @@ export default function CourseReportingPage() {
     });
   };
 
-  const pending = (pendingAnnouncements as PendingAnnouncement[]) ?? [];
+  const pending = ((pendingAnnouncements as PendingAnnouncement[]) ?? []).length > 0
+    ? (pendingAnnouncements as PendingAnnouncement[])
+    : MOCK_PENDING;
 
   return (
     <AppLayout activeTab="courses">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-4 pb-3">
+      <div className="bg-card border-b border-border px-4 pt-12 pb-3">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(courseId > 0 ? `/courses/${courseId}/rep` : "/courses")}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center"
           >
-            <ArrowLeft className="w-4 h-4 text-gray-600" />
+            <ArrowLeft className="w-4 h-4 text-muted-foreground" />
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4 text-green-500" />
-              <h1 className="text-lg font-bold text-gray-900">Course Reporting</h1>
+              <Megaphone className="w-4 h-4 text-primary" />
+              <h1 className="text-lg font-bold text-foreground">Course Reporting</h1>
             </div>
-            <p className="text-xs text-gray-500">Post official updates &amp; manage submissions</p>
+            <p className="text-xs text-muted-foreground">Post official updates & manage submissions</p>
           </div>
         </div>
       </div>
@@ -299,9 +310,9 @@ export default function CourseReportingPage() {
       <div className="p-4 space-y-5">
         {/* Post official update */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Shield className="w-3.5 h-3.5 text-green-500" />
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Post Official Update
             </p>
           </div>
@@ -315,13 +326,14 @@ export default function CourseReportingPage() {
                 <button
                   key={opt.type}
                   onClick={() => handleSelectType(opt.type)}
-                  className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border text-xs font-medium transition-all ${
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 py-3 px-2 rounded-2xl border text-xs font-medium transition-all",
                     isSelected
-                      ? `${opt.bg} border-current ring-2 ring-offset-1 ring-current/30 ${opt.color}`
-                      : "bg-white border-gray-100 text-gray-500 hover:border-gray-200"
-                  }`}
+                      ? `${opt.bgClass} ring-2 ring-offset-1 ring-primary/20 ${opt.color}`
+                      : "bg-card border-border text-muted-foreground hover:border-primary/20"
+                  )}
                 >
-                  <Icon className={`w-4 h-4 ${isSelected ? opt.color : "text-gray-400"}`} />
+                  <Icon className={cn("w-4 h-4", isSelected ? opt.color : "text-muted-foreground")} />
                   <span className="text-center leading-tight">{opt.label}</span>
                 </button>
               );
@@ -330,24 +342,24 @@ export default function CourseReportingPage() {
 
           {/* Compose form */}
           {selectedType && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+            <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
               <Input
                 placeholder="Announcement title..."
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-gray-50 border-gray-200 rounded-xl text-sm"
+                className="bg-secondary border-border rounded-xl text-sm"
               />
               <textarea
                 placeholder="Additional details (optional)..."
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 rows={3}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-transparent"
+                className="w-full bg-secondary border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent"
               />
               <button
                 onClick={handlePost}
                 disabled={postMutation.isPending || !title.trim()}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-green-500 text-white rounded-xl text-sm font-semibold hover:bg-green-600 transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 {postMutation.isPending ? "Posting..." : "Broadcast to All Students"}
@@ -358,24 +370,24 @@ export default function CourseReportingPage() {
 
         {/* Student submissions */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Student Submissions
             </p>
-            <span className="text-xs text-gray-400">{pending.length} pending</span>
+            <span className="text-xs text-muted-foreground">{pending.length} pending</span>
           </div>
 
-          {loadingPending ? (
+          {loadingPending && !pendingAnnouncements ? (
             <div className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <Skeleton key={i} className="h-16 rounded-2xl" />
               ))}
             </div>
           ) : pending.length === 0 ? (
-            <div className="bg-white rounded-2xl p-6 text-center border border-gray-100">
-              <CheckCheck className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-sm text-gray-500">No pending submissions</p>
-              <p className="text-xs text-gray-400 mt-1">Student reports will appear here for review.</p>
+            <div className="bg-card rounded-2xl p-6 text-center border border-border">
+              <CheckCheck className="w-8 h-8 text-primary/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No pending submissions</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Student reports will appear here for review.</p>
             </div>
           ) : (
             <div className="space-y-3">

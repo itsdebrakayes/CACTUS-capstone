@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import ReportSheet, { type ReportCategory } from "@/components/ReportSheet";
+import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,27 @@ type CourseDetail = {
   membershipRole?: string;
 };
 
+// ─── Mock data for preview ────────────────────────────────────────────────────
+
+const MOCK_COURSE: CourseDetail = {
+  id: 1,
+  courseCode: "PSYC1001",
+  courseName: "Introduction to Psychology",
+  description: "Learn essential psychological concepts, including cognition, behaviour, and practical research methods.",
+  room: "SLT 2",
+  lecturer: "Dr. Williams",
+  department: "Psychology",
+  classSize: 150,
+  isActive: true,
+  membershipRole: "student",
+};
+
+const MOCK_ANNOUNCEMENTS: Announcement[] = [
+  { id: 1, courseId: 1, authorId: 100, announcementType: "lecturer_late", title: "Lecturer running 15 minutes late", body: "Dr. Williams sent email confirming she'll be late today", isOfficial: true, status: "verified", upvotes: 12, downvotes: 1, createdAt: new Date(Date.now() - 1000 * 60 * 10) },
+  { id: 2, courseId: 1, authorId: 101, announcementType: "materials_uploaded", title: "Week 8 slides uploaded to Moodle", body: null, isOfficial: false, status: "verified", upvotes: 8, downvotes: 0, createdAt: new Date(Date.now() - 1000 * 60 * 45) },
+  { id: 3, courseId: 1, authorId: 102, announcementType: "room_changed", title: "Tutorial moved to Room 205", body: "Due to maintenance in the usual room", isOfficial: true, status: "pending", upvotes: 5, downvotes: 2, createdAt: new Date(Date.now() - 1000 * 60 * 120) },
+];
+
 // ─── Quick-report button types ────────────────────────────────────────────────
 
 const QUICK_REPORTS = [
@@ -59,19 +81,19 @@ const QUICK_REPORTS = [
     type: "lecturer_late" as const,
     label: "Lecturer Late",
     icon: Clock,
-    color: "bg-amber-50 text-amber-600 border-amber-200",
+    color: "bg-orange-light text-orange border-orange/20",
   },
   {
     type: "cancelled" as const,
     label: "Cancelled",
     icon: AlertCircle,
-    color: "bg-red-50 text-red-600 border-red-200",
+    color: "bg-destructive/10 text-destructive border-destructive/20",
   },
   {
     type: "room_changed" as const,
     label: "Room Changed",
     icon: MapPin,
-    color: "bg-blue-50 text-blue-600 border-blue-200",
+    color: "bg-teal-light text-primary border-primary/20",
   },
 ];
 
@@ -94,12 +116,12 @@ function AnnouncementCard({
   };
 
   const typeColors: Record<string, string> = {
-    lecturer_late: "bg-amber-100 text-amber-700",
-    cancelled: "bg-red-100 text-red-700",
-    room_changed: "bg-blue-100 text-blue-700",
-    rescheduled: "bg-purple-100 text-purple-700",
-    materials_uploaded: "bg-green-100 text-green-700",
-    general: "bg-gray-100 text-gray-600",
+    lecturer_late: "bg-orange-light text-orange",
+    cancelled: "bg-destructive/10 text-destructive",
+    room_changed: "bg-teal-light text-primary",
+    rescheduled: "bg-secondary text-charcoal",
+    materials_uploaded: "bg-teal-light text-primary",
+    general: "bg-secondary text-muted-foreground",
   };
 
   const timeAgo = (date: Date) => {
@@ -111,25 +133,27 @@ function AnnouncementCard({
     return `${Math.floor(hrs / 24)}d ago`;
   };
 
+  const total = announcement.upvotes + announcement.downvotes;
+
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <div className="bg-card rounded-2xl p-4 border border-border">
       {/* Header */}
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2">
           {announcement.isOfficial ? (
-            <div className="w-7 h-7 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-              <Shield className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+              <Shield className="w-3.5 h-3.5 text-primary-foreground" />
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-              <User className="w-3.5 h-3.5 text-gray-500" />
+            <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+              <User className="w-3.5 h-3.5 text-muted-foreground" />
             </div>
           )}
           <div>
-            <p className="text-xs font-semibold text-gray-800">
+            <p className="text-xs font-semibold text-foreground">
               {announcement.isOfficial ? "Class Rep" : "Student"}
             </p>
-            <p className="text-[10px] text-gray-400">{timeAgo(announcement.createdAt)}</p>
+            <p className="text-[10px] text-muted-foreground">{timeAgo(announcement.createdAt)}</p>
           </div>
         </div>
         <span
@@ -142,34 +166,41 @@ function AnnouncementCard({
       </div>
 
       {/* Body */}
-      <p className="text-sm text-gray-700 leading-relaxed">{announcement.title}</p>
+      <p className="text-sm text-foreground leading-relaxed">{announcement.title}</p>
       {announcement.body && (
-        <p className="text-xs text-gray-500 mt-1">{announcement.body}</p>
+        <p className="text-xs text-muted-foreground mt-1">{announcement.body}</p>
       )}
 
-      {/* Voting */}
-      <div className="flex items-center gap-3 mt-3">
+      {/* Voting — Approve / Disapprove */}
+      <div className="flex items-center gap-2 mt-3">
         <button
           onClick={() => onVote(announcement.id, "up")}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-600 transition-colors"
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
+            "bg-teal-light text-primary hover:bg-primary/20"
+          )}
         >
           <ThumbsUp className="w-3.5 h-3.5" />
-          <span>{announcement.upvotes}</span>
+          Approve ({announcement.upvotes})
         </button>
         <button
           onClick={() => onVote(announcement.id, "down")}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-500 transition-colors"
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
+            "bg-orange-light text-destructive hover:bg-destructive/20"
+          )}
         >
           <ThumbsDown className="w-3.5 h-3.5" />
-          <span>{announcement.downvotes}</span>
+          Disapprove ({announcement.downvotes})
         </button>
-        <div className="flex-1" />
-        {announcement.status === "pending" && (
-          <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-            Pending review
-          </span>
-        )}
       </div>
+
+      {/* Total votes */}
+      {total > 0 && (
+        <p className="text-[10px] text-muted-foreground text-center mt-2">
+          {total} students voted · {Math.round((announcement.upvotes / total) * 100)}% approval
+        </p>
+      )}
     </div>
   );
 }
@@ -177,31 +208,38 @@ function AnnouncementCard({
 // ─── Thumbnail gradient ───────────────────────────────────────────────────────
 
 const THUMBNAIL_COLORS: Record<string, string> = {
-  PSYC: "from-emerald-800 to-emerald-600",
-  STAT: "from-green-700 to-teal-600",
-  SOCI: "from-lime-700 to-green-600",
-  COMP: "from-teal-800 to-cyan-600",
-  MATH: "from-green-800 to-emerald-500",
-  LIT: "from-emerald-700 to-lime-600",
-  ECON: "from-teal-700 to-green-500",
-  BIOL: "from-green-600 to-emerald-400",
-  CHEM: "from-cyan-700 to-teal-500",
-  PHYS: "from-emerald-900 to-teal-700",
+  PSYC: "from-teal to-teal-mid",
+  STAT: "from-teal-mid to-primary",
+  SOCI: "from-primary to-teal",
+  COMP: "from-charcoal to-teal",
+  MATH: "from-teal to-charcoal",
 };
 
 function getThumbnailGradient(courseCode: string) {
   const prefix = courseCode.replace(/[^A-Z]/g, "").slice(0, 4);
-  return THUMBNAIL_COLORS[prefix] ?? "from-green-700 to-emerald-500";
+  return THUMBNAIL_COLORS[prefix] ?? "from-primary to-teal";
 }
+
+// ─── Filter tabs ──────────────────────────────────────────────────────────────
+
+const FILTER_TYPES = [
+  { key: "all", label: "Overview" },
+  { key: "lecturer_late", label: "Late" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "room_changed", label: "Room" },
+  { key: "materials_uploaded", label: "Resources" },
+];
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function CourseDetailsPage() {
   const [, navigate] = useLocation();
   const [, params] = useRoute("/courses/:id");
-  const courseId = params?.id ? parseInt(params.id) : 0;
+  const courseId = params?.id ? parseInt((params as any).id) : 0;
   const [reportSheetOpen, setReportSheetOpen] = useState(false);
   const [reportInitialType, setReportInitialType] = useState<ReportCategory | undefined>();
+  const [activeFilter, setActiveFilter] = useState("all");
+
   const { data: course, isLoading: loadingCourse } = trpc.courses.getCourseById.useQuery(
     { courseId },
     { enabled: courseId > 0 }
@@ -243,13 +281,15 @@ export default function CourseDetailsPage() {
     voteAnnouncement.mutate({ announcementId, direction });
   };
 
-  const courseData = course as CourseDetail | undefined;
-  const announcementList = (announcements as Announcement[]) ?? [];
-  const gradient = courseData ? getThumbnailGradient(courseData.courseCode) : "from-green-700 to-emerald-500";
+  // Use mock data when backend not available
+  const courseData = (course as CourseDetail | undefined) ?? (courseId <= 1 ? MOCK_COURSE : undefined);
+  const announcementList = ((announcements as Announcement[]) ?? MOCK_ANNOUNCEMENTS)
+    .filter((a) => activeFilter === "all" || a.announcementType === activeFilter);
+  const gradient = courseData ? getThumbnailGradient(courseData.courseCode) : "from-primary to-teal";
 
   return (
     <AppLayout activeTab="courses">
-      {/* Hero */}
+      {/* Hero — course info at top with image */}
       <div className={`relative h-52 bg-gradient-to-br ${gradient} flex items-end`}>
         {courseData?.thumbnailUrl && (
           <img
@@ -259,58 +299,64 @@ export default function CourseDetailsPage() {
           />
         )}
         {/* Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/60 to-transparent" />
 
         {/* Back button */}
         <button
           onClick={() => navigate("/courses")}
-          className="absolute top-4 left-4 w-9 h-9 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white"
+          className="absolute top-4 left-4 w-9 h-9 bg-charcoal/30 backdrop-blur-sm rounded-full flex items-center justify-center text-primary-foreground"
         >
           <ArrowLeft className="w-4 h-4" />
+        </button>
+
+        {/* Chat icon */}
+        <button
+          onClick={() => navigate("/class-chat")}
+          className="absolute top-4 right-14 w-9 h-9 bg-charcoal/30 backdrop-blur-sm rounded-full flex items-center justify-center text-primary-foreground"
+        >
+          <MessageSquare className="w-4 h-4" />
         </button>
 
         {/* Class rep badge */}
         {courseData?.membershipRole === "class_rep" && (
           <button
             onClick={() => navigate(`/courses/${courseId}/rep`)}
-            className="absolute top-4 right-4 flex items-center gap-1.5 bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1.5 rounded-full"
+            className="absolute top-4 right-4 flex items-center gap-1.5 bg-orange text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full"
           >
             <Shield className="w-3 h-3" />
-            Rep Dashboard
+            Rep
             <ChevronRight className="w-3 h-3" />
           </button>
         )}
 
         {/* Course info */}
         <div className="relative z-10 p-4 w-full">
-          {loadingCourse ? (
+          {loadingCourse && !courseData ? (
             <div className="space-y-2">
-              <Skeleton className="h-5 w-24 bg-white/20" />
-              <Skeleton className="h-7 w-48 bg-white/20" />
+              <Skeleton className="h-5 w-24 bg-primary-foreground/20" />
+              <Skeleton className="h-7 w-48 bg-primary-foreground/20" />
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-bold text-green-300 bg-green-900/40 px-2 py-0.5 rounded-full">
-                  ACTIVE NOW
-                </span>
-              </div>
-              <p className="text-white font-bold text-xl leading-tight">{courseData?.courseCode}</p>
-              <p className="text-white/80 text-sm">{courseData?.courseName}</p>
+              <p className="text-primary-foreground font-bold text-xl leading-tight">{courseData?.courseCode}</p>
+              <p className="text-primary-foreground/80 text-sm mt-0.5">{courseData?.courseName}</p>
+              {courseData?.description && (
+                <p className="text-primary-foreground/60 text-xs mt-1 line-clamp-2">{courseData.description}</p>
+              )}
             </>
           )}
         </div>
       </div>
 
       {/* Course meta */}
-      <div className="bg-white border-b border-gray-100 px-4 py-3">
-        {loadingCourse ? (
+      <div className="bg-card border-b border-border px-4 py-3">
+        {loadingCourse && !courseData ? (
           <div className="flex gap-4">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-4 w-24" />
           </div>
         ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-gray-500">
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
             {courseData?.lecturer && (
               <div className="flex items-center gap-1">
                 <User className="w-3 h-3" />
@@ -333,9 +379,37 @@ export default function CourseDetailsPage() {
         )}
       </div>
 
+      {/* Filter tabs — horizontally scrollable */}
+      <div className="bg-card border-b border-border px-4 py-2">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {FILTER_TYPES.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all",
+                activeFilter === f.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+
+          {/* New Notification button */}
+          <button
+            onClick={() => openReportSheet()}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20 transition-all ml-auto"
+          >
+            + New Notification
+          </button>
+        </div>
+      </div>
+
       {/* Quick report buttons */}
       <div className="px-4 pt-4 pb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           Quick Report
         </p>
         <div className="flex gap-2">
@@ -353,28 +427,21 @@ export default function CourseDetailsPage() {
             );
           })}
         </div>
-        <button
-          onClick={() => openReportSheet()}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          More report options...
-        </button>
       </div>
 
       {/* Community updates feed */}
       <div className="px-4 pt-2 pb-6">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Community Updates
           </p>
-          <span className="text-xs text-gray-400">{announcementList.length} updates</span>
+          <span className="text-xs text-muted-foreground">{announcementList.length} updates</span>
         </div>
 
-        {loadingAnnouncements ? (
+        {loadingAnnouncements && !announcementList.length ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <div key={i} className="bg-card rounded-2xl p-4 border border-border">
                 <div className="flex gap-2 mb-2">
                   <Skeleton className="w-7 h-7 rounded-full" />
                   <div className="space-y-1">
@@ -389,11 +456,11 @@ export default function CourseDetailsPage() {
           </div>
         ) : announcementList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center mb-3">
-              <Megaphone className="w-6 h-6 text-green-400" />
+            <div className="w-12 h-12 bg-teal-light rounded-full flex items-center justify-center mb-3">
+              <Megaphone className="w-6 h-6 text-primary/40" />
             </div>
-            <p className="text-sm text-gray-500">No updates yet</p>
-            <p className="text-xs text-gray-400 mt-1">Be the first to report something</p>
+            <p className="text-sm text-muted-foreground">No updates yet</p>
+            <p className="text-xs text-muted-foreground mt-1">Be the first to report something</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -403,6 +470,7 @@ export default function CourseDetailsPage() {
           </div>
         )}
       </div>
+
       {/* Report Sheet */}
       {reportSheetOpen && (
         <ReportSheet

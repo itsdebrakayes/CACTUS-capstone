@@ -13,6 +13,7 @@ import SchedulePage from "./pages/SchedulePage";
 import MapPage from "./pages/MapPage";
 import ProfilePage from "./pages/ProfilePage";
 import ClassChatPage from "./pages/ClassChatPage";
+import SafetyPage from "./pages/SafetyPage";
 // Legacy full-featured panels (walking body, reports, check-ins)
 import Dashboard from "./pages/Dashboard";
 import FindWayPage from "./pages/FindWayPage";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/map" component={MapPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/class-chat" component={ClassChatPage} />
+      <Route path="/safety" component={SafetyPage} />
 
       {/* Course management */}
       <Route path="/courses" component={CoursesPage} />
@@ -55,7 +57,7 @@ function Router() {
 
       {/* Root redirect to dashboard */}
       <Route path="/">
-        <Redirect to="/dashboard" />
+        <Redirect to="/login" />
       </Route>
 
       <Route path="/404" component={NotFound} />
