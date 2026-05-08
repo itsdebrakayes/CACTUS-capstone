@@ -1,7 +1,9 @@
 import { getLoginUrl } from "@/const";
+import { supabase } from "@/lib/supabase";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -12,21 +14,41 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
+    enabled: !!session,
     retry: false,
     refetchOnWindowFocus: false,
   });
 
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
-    },
-  });
+  useEffect(() => {
+    let mounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setAuthLoading(false);
+      void utils.auth.me.invalidate();
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [utils.auth.me]);
 
   const logout = useCallback(async () => {
     try {
-      await logoutMutation.mutateAsync();
+      await supabase.auth.signOut();
     } catch (error: unknown) {
       if (
         error instanceof TRPCClientError &&
@@ -36,43 +58,69 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      setSession(null);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
     }
-  }, [logoutMutation, utils]);
+  }, [utils]);
 
   const state = useMemo(() => {
+    const fallbackUser = session
+      ? {
+          id: 0,
+          openId: `supabase:${session.user.id}`,
+          name:
+            (session.user.user_metadata.full_name as string | undefined) ??
+            (session.user.user_metadata.name as string | undefined) ??
+            session.user.email?.split("@")[0] ??
+            "Student",
+          email: session.user.email ?? null,
+          passwordHash: null,
+          emailVerified: Boolean(session.user.email_confirmed_at),
+          verificationCode: null,
+          verificationExpiry: null,
+          avatarUrl:
+            (session.user.user_metadata.avatar_url as string | undefined) ?? null,
+          loginMethod: "supabase",
+          role: "student" as const,
+          isVerified: Boolean(session.user.email_confirmed_at),
+          createdAt: new Date(session.user.created_at),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        }
+      : null;
+    const resolvedUser = meQuery.data ?? fallbackUser;
+
     localStorage.setItem(
       "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
+      JSON.stringify(resolvedUser)
     );
     return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
+      user: resolvedUser,
+      loading: authLoading || (Boolean(session) && meQuery.isLoading),
+      error: meQuery.error ?? null,
+      isAuthenticated: Boolean(session),
     };
   }, [
+    authLoading,
     meQuery.data,
     meQuery.error,
     meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
+    session,
   ]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
+    if (authLoading) return;
     if (state.user) return;
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
     window.location.href = redirectPath
   }, [
+    authLoading,
     redirectOnUnauthenticated,
     redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
     state.user,
   ]);
 

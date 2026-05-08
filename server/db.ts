@@ -24,11 +24,20 @@ import {
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let loggedSqlDisabled = false;
 
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (ENV.sqlDisabled) {
+    if (!loggedSqlDisabled) {
+      console.warn("[Database] SQL disabled via DISABLE_SQL=true");
+      loggedSqlDisabled = true;
+    }
+    return null;
+  }
+
+  if (!_db && ENV.databaseUrl) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      _db = drizzle(ENV.databaseUrl);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -119,6 +128,78 @@ export async function getUserByEmail(email: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function syncSupabaseAuthUser(data: {
+  supabaseUserId: string;
+  email?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) {
+    throw new Error("Database not available");
+  }
+
+  const openId = `supabase:${data.supabaseUserId}`;
+  const signedInAt = new Date();
+  const displayName = data.name?.trim() || null;
+  const avatarUrl = data.avatarUrl?.trim() || null;
+
+  let user = await getUserByOpenId(openId);
+  if (user) {
+    await db
+      .update(users)
+      .set({
+        name: displayName ?? user.name,
+        email: data.email ?? user.email,
+        avatarUrl: avatarUrl ?? user.avatarUrl,
+        loginMethod: "supabase",
+        emailVerified: true,
+        isVerified: true,
+        lastSignedIn: signedInAt,
+      })
+      .where(eq(users.id, user.id));
+    return getUserByOpenId(openId);
+  }
+
+  if (data.email) {
+    const existingUser = await getUserByEmail(data.email);
+    if (existingUser) {
+      await db
+        .update(users)
+        .set({
+          openId,
+          name: displayName ?? existingUser.name,
+          email: data.email,
+          avatarUrl: avatarUrl ?? existingUser.avatarUrl,
+          loginMethod: "supabase",
+          emailVerified: true,
+          isVerified: true,
+          lastSignedIn: signedInAt,
+        })
+        .where(eq(users.id, existingUser.id));
+      return getUserByOpenId(openId);
+    }
+  }
+
+  await db.insert(users).values({
+    openId,
+    name: displayName,
+    email: data.email ?? null,
+    avatarUrl,
+    loginMethod: "supabase",
+    emailVerified: true,
+    isVerified: true,
+    lastSignedIn: signedInAt,
+  });
+
+  user = await getUserByOpenId(openId);
+  if (user) {
+    await enrollUserInAllActiveCourses(user.id, "student");
+  }
+
+  return user;
 }
 
 export async function createLocalUser(data: {
@@ -1021,6 +1102,32 @@ export async function enrollUserInCourse(userId: number, courseId: number, membe
   const db = await getDb();
   if (!db) return;
   await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onDuplicateKeyUpdate({ set: { membershipRole } });
+}
+
+export async function enrollUserInAllActiveCourses(
+  userId: number,
+  membershipRole: "student" | "class_rep" | "lecturer" = "student"
+) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const activeCourses = await db
+    .select({ id: courses.id })
+    .from(courses)
+    .where(eq(courses.isActive, true));
+
+  if (activeCourses.length === 0) {
+    return [];
+  }
+
+  for (const course of activeCourses) {
+    await db
+      .insert(courseMemberships)
+      .values({ userId, courseId: course.id, membershipRole })
+      .onDuplicateKeyUpdate({ set: { membershipRole } });
+  }
+
+  return activeCourses.map((course) => course.id);
 }
 
 // ============================================================================

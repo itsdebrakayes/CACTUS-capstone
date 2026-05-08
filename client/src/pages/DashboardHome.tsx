@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
+import {
+  loadSupabaseCourses,
+  type SupabaseCourseRecord,
+} from "@/lib/supabaseCourses";
+import {
+  formatCourseScheduleLine,
+  mergeCoursesWithSchedule,
+  type ScheduledCourse,
+} from "@/lib/courseSchedule";
 import {
   AlertTriangle,
   Play,
@@ -14,12 +22,13 @@ import {
   Search,
   Clock,
   CheckCircle,
-  XCircle,
   RefreshCw,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+type DashboardAlert = {
+  id: string;
+  message: string;
+};
 
 function getGreeting(name: string) {
   const hour = new Date().getHours();
@@ -37,58 +46,7 @@ function formatDate() {
   });
 }
 
-// ─── Mock schedule data (will be replaced with real data from DB) ────────────
-
-const MOCK_SCHEDULE = [
-  {
-    id: 1,
-    courseCode: "PSYC1001",
-    courseName: "Introduction to Psychology",
-    room: "SLT 2",
-    startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(10, 0, 0, 0)),
-    professor: "Dr. Williams",
-    status: "live" as const,
-  },
-  {
-    id: 2,
-    courseCode: "STAT2202",
-    courseName: "Advanced Statistics",
-    room: "Lab 4",
-    startTime: new Date(new Date().setHours(11, 30, 0, 0)),
-    endTime: new Date(new Date().setHours(13, 0, 0, 0)),
-    professor: "Prof. Miller",
-    status: "upcoming" as const,
-  },
-  {
-    id: 3,
-    courseCode: "COMP3161",
-    courseName: "Database Management",
-    room: "FST 1",
-    startTime: new Date(new Date().setHours(14, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(15, 30, 0, 0)),
-    professor: "Dr. Brown",
-    status: "upcoming" as const,
-  },
-];
-
-const MOCK_ALERTS = [
-  {
-    id: 1,
-    type: "cancelled" as const,
-    message: "Sociology lecture at 4 PM is CANCELLED (Room 102).",
-    course: "SOCI2001",
-    timestamp: new Date(),
-  },
-];
-
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function UrgentAlertBanner({
-  alerts,
-}: {
-  alerts: typeof MOCK_ALERTS;
-}) {
+function UrgentAlertBanner({ alerts }: { alerts: DashboardAlert[] }) {
   const [current, setCurrent] = useState(0);
   if (!alerts.length) return null;
   const alert = alerts[current];
@@ -101,22 +59,11 @@ function UrgentAlertBanner({
           <p className="text-xs font-bold text-[#e53935] uppercase tracking-wide mb-0.5">
             Urgent Update
           </p>
-          <p className="text-sm text-[#333] leading-snug">
-            {alert.message.split("CANCELLED").map((part, i) =>
-              i === 0 ? (
-                part
-              ) : (
-                <>
-                  <span className="font-bold text-[#e53935] underline">CANCELLED</span>
-                  {part}
-                </>
-              )
-            )}
-          </p>
+          <p className="text-sm text-[#333] leading-snug">{alert.message}</p>
         </div>
         {alerts.length > 1 && (
           <button
-            onClick={() => setCurrent((c) => (c + 1) % alerts.length)}
+            onClick={() => setCurrent((value) => (value + 1) % alerts.length)}
             className="text-[#e53935] shrink-0"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -131,21 +78,30 @@ function CurrentClassCard({
   cls,
   onViewDetails,
 }: {
-  cls: (typeof MOCK_SCHEDULE)[0];
+  cls: ScheduledCourse;
   onViewDetails: () => void;
 }) {
   const [minsLeft, setMinsLeft] = useState(0);
 
   useEffect(() => {
     const update = () => {
+      if (!cls.endDate) {
+        setMinsLeft(0);
+        return;
+      }
+
       const now = new Date();
-      const diff = Math.max(0, Math.round((cls.endTime.getTime() - now.getTime()) / 60000));
+      const diff = Math.max(
+        0,
+        Math.round((cls.endDate.getTime() - now.getTime()) / 60000)
+      );
       setMinsLeft(diff);
     };
+
     update();
     const interval = setInterval(update, 30000);
     return () => clearInterval(interval);
-  }, [cls.endTime]);
+  }, [cls.endDate]);
 
   return (
     <div className="mx-4 mb-4">
@@ -155,11 +111,12 @@ function CurrentClassCard({
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* Class image placeholder */}
         <div className="relative h-36 bg-gradient-to-br from-[#1a2a4a] to-[#0d1f3a] flex items-end p-3">
-          <div className="absolute inset-0 opacity-20"
+          <div
+            className="absolute inset-0 opacity-20"
             style={{
-              backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+              backgroundImage:
+                "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
             }}
           />
           <span className="relative z-10 bg-[#00c853] text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
@@ -170,15 +127,21 @@ function CurrentClassCard({
         <div className="p-3.5">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
-              <h3 className="font-semibold text-gray-900 text-sm leading-tight">{cls.courseName}</h3>
+              <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                {cls.courseName}
+              </h3>
               <div className="flex items-center gap-1 mt-1">
                 <MapPin className="w-3 h-3 text-gray-400" />
-                <span className="text-xs text-gray-500">{cls.room}</span>
+                <span className="text-xs text-gray-500">
+                  {cls.room ?? "Room TBA"}
+                </span>
               </div>
             </div>
             <div className="text-right shrink-0">
               <span className="text-lg font-bold text-[#00c853]">{minsLeft}</span>
-              <p className="text-[10px] text-gray-400 uppercase tracking-wide leading-none">Mins Left</p>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wide leading-none">
+                Mins Left
+              </p>
             </div>
           </div>
 
@@ -190,7 +153,7 @@ function CurrentClassCard({
               View Details
             </button>
             <button className="w-9 h-9 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 hover:bg-gray-50 transition-colors">
-              <span className="text-lg leading-none font-bold">···</span>
+              <span className="text-lg leading-none font-bold">...</span>
             </button>
           </div>
         </div>
@@ -199,7 +162,11 @@ function CurrentClassCard({
   );
 }
 
-function QuickActions({ onFindWay, onClassChat, onEmergency }: {
+function QuickActions({
+  onFindWay,
+  onClassChat,
+  onEmergency,
+}: {
   onFindWay: () => void;
   onClassChat: () => void;
   onEmergency: () => void;
@@ -254,9 +221,9 @@ function QuickActions({ onFindWay, onClassChat, onEmergency }: {
   );
 }
 
-function UpNextSection({ classes }: { classes: typeof MOCK_SCHEDULE }) {
+function UpNextSection({ classes }: { classes: ScheduledCourse[] }) {
   const [, navigate] = useLocation();
-  const upcoming = classes.filter((c) => c.status === "upcoming");
+  const upcoming = classes.filter((course) => course.isUpcoming);
   if (!upcoming.length) return null;
 
   return (
@@ -270,25 +237,39 @@ function UpNextSection({ classes }: { classes: typeof MOCK_SCHEDULE }) {
       </div>
 
       <div className="space-y-2">
-        {upcoming.slice(0, 2).map((cls) => (
+        {upcoming.slice(0, 2).map((course) => (
           <div
-            key={cls.id}
+            key={course.id}
             className="bg-white rounded-xl border border-gray-100 shadow-sm p-3.5 flex items-center gap-3"
           >
             <div className="text-center shrink-0 w-12">
               <p className="text-sm font-bold text-gray-900 leading-none">
-                {cls.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }).split(" ")[0]}
+                {course.startDate
+                  ?.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                  .split(" ")[0] ?? "--:--"}
               </p>
               <p className="text-[10px] text-gray-400 uppercase">
-                {cls.startTime.toLocaleTimeString("en-US", { hour12: true }).includes("AM") ? "AM" : "PM"}
+                {course.startDate
+                  ?.toLocaleTimeString("en-US", { hour12: true })
+                  .includes("AM")
+                  ? "AM"
+                  : "PM"}
               </p>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">{cls.courseName}</p>
-              <p className="text-xs text-gray-500">{cls.room} · {cls.professor}</p>
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {course.courseName}
+              </p>
+              <p className="text-xs text-gray-500">
+                {course.room ?? "Room TBA"} - {course.lecturer ?? "Lecturer TBA"}
+              </p>
             </div>
             <button
-              onClick={() => navigate(`/courses/${cls.id}`)}
+              onClick={() => navigate(`/courses/${course.id}`)}
               className="w-8 h-8 rounded-full bg-[#e8faf0] flex items-center justify-center shrink-0 hover:bg-[#d0f5e0] transition-colors"
             >
               <ChevronRight className="w-4 h-4 text-[#00c853]" />
@@ -300,19 +281,87 @@ function UpNextSection({ classes }: { classes: typeof MOCK_SCHEDULE }) {
   );
 }
 
-// ─── Main Dashboard ──────────────────────────────────────────────────────────
-
 export default function DashboardHome() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
+  const [supabaseCourses, setSupabaseCourses] = useState<
+    Awaited<ReturnType<typeof loadSupabaseCourses>>
+  >([]);
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [coursesError, setCoursesError] = useState<string | null>(null);
 
-  // Load class claims for alerts (disabled until user has enrolled courses)
-  // const claimsQuery = trpc.classes.getClaimsByCourse.useQuery({ courseId: 1 }, { enabled: false });
+  useEffect(() => {
+    let cancelled = false;
 
-  const currentClass = MOCK_SCHEDULE.find((c) => c.status === "live");
-  const activeAlerts = MOCK_ALERTS;
+    if (loading) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
-  if (loading) {
+    if (!user) {
+      setSupabaseCourses([]);
+      setCoursesError(null);
+      setCoursesLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setCoursesLoading(true);
+    setCoursesError(null);
+
+    void loadSupabaseCourses()
+      .then((courses) => {
+        if (!cancelled) {
+          setSupabaseCourses(courses);
+          setCoursesLoading(false);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setSupabaseCourses([]);
+          setCoursesError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load the Supabase course schedule."
+          );
+          setCoursesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
+
+  const mergedCourses = useMemo(
+    () =>
+      mergeCoursesWithSchedule(
+        supabaseCourses.map((course) => toCourseWithRole(course)),
+        supabaseCourses
+      ),
+    [supabaseCourses]
+  );
+
+  const currentClass = mergedCourses.find((course) => course.isLive);
+  const activeAlerts: DashboardAlert[] = currentClass
+    ? [
+        {
+          id: `live-${currentClass.id}`,
+          message: `${currentClass.courseName} is live now in ${currentClass.room ?? "its assigned room"}.`,
+        },
+      ]
+    : mergedCourses.length > 0
+      ? [
+          {
+            id: `next-${mergedCourses[0].id}`,
+            message: `${mergedCourses[0].courseName} is scheduled for ${formatCourseScheduleLine(mergedCourses[0])}.`,
+          },
+        ]
+      : [];
+
+  if (loading || coursesLoading) {
     return (
       <AppLayout activeTab="dashboard">
         <div className="flex items-center justify-center h-64">
@@ -331,7 +380,6 @@ export default function DashboardHome() {
 
   return (
     <AppLayout activeTab="dashboard">
-      {/* Header */}
       <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -354,7 +402,6 @@ export default function DashboardHome() {
         </div>
       </div>
 
-      {/* Greeting */}
       <div className="px-4 pt-5 pb-3">
         <h1 className="text-2xl font-bold text-gray-900 leading-tight">
           {getGreeting(displayName)}
@@ -362,11 +409,23 @@ export default function DashboardHome() {
         <p className="text-sm text-gray-500 mt-0.5">{formatDate()}</p>
       </div>
 
-      {/* Urgent Alerts */}
       <UrgentAlertBanner alerts={activeAlerts} />
 
-      {/* Current Class */}
-      {currentClass ? (
+      {coursesError ? (
+        <div className="mx-4 mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 text-amber-700 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                Unable to load your class schedule
+              </p>
+              <p className="text-xs text-amber-800 mt-1 break-words">
+                {coursesError}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : currentClass ? (
         <CurrentClassCard
           cls={currentClass}
           onViewDetails={() => navigate(`/courses/${currentClass.id}`)}
@@ -378,23 +437,25 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Quick Actions */}
       <QuickActions
-        onFindWay={() => navigate("/find-way")}
+        onFindWay={() =>
+          navigate(
+            currentClass?.room
+              ? `/find-way?room=${encodeURIComponent(currentClass.room)}`
+              : "/find-way"
+          )
+        }
         onClassChat={() => navigate("/class-chat")}
-        onEmergency={() => {
-          // Emergency action - show alert panel
-          navigate("/map?emergency=true");
-        }}
+        onEmergency={() => navigate("/map?emergency=true")}
       />
 
-      {/* Up Next */}
-      <UpNextSection classes={MOCK_SCHEDULE} />
+      <UpNextSection classes={mergedCourses} />
 
-      {/* Recent Alerts from Class Chat */}
       <div className="mx-4 mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-800">Recent Class Updates</span>
+          <span className="text-sm font-semibold text-gray-800">
+            Recent Class Updates
+          </span>
           <button
             onClick={() => navigate("/class-chat")}
             className="text-xs text-[#00c853] font-medium"
@@ -403,34 +464,67 @@ export default function DashboardHome() {
           </button>
         </div>
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-          {[
-            { icon: XCircle, color: "#e53935", bg: "#ffebee", text: "Sociology lecture cancelled", time: "2 min ago", badge: "CANCELLED" },
-            { icon: CheckCircle, color: "#00c853", bg: "#e8faf0", text: "Psych 101 confirmed as scheduled", time: "1 hr ago", badge: "CONFIRMED" },
-          ].map((item, i) => {
-            const Icon = item.icon;
+          {mergedCourses.slice(0, 2).map((course) => {
+            const isLive = course.isLive;
+            const Icon = isLive ? CheckCircle : Clock;
+            const bg = isLive ? "#e8faf0" : "#e3f0ff";
+            const color = isLive ? "#00c853" : "#1565c0";
             return (
-              <div key={i} className="flex items-center gap-3 p-3">
+              <div key={course.id} className="flex items-center gap-3 p-3">
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: item.bg }}
+                  style={{ backgroundColor: bg }}
                 >
-                  <Icon className="w-4 h-4" style={{ color: item.color }} />
+                  <Icon className="w-4 h-4" style={{ color }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-700 truncate">{item.text}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5">{item.time}</p>
+                  <p className="text-xs text-gray-700 truncate">
+                    {course.courseName} - {formatCourseScheduleLine(course)}
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">
+                    {isLive ? "Live now" : "Scheduled class"}
+                  </p>
                 </div>
                 <span
                   className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
-                  style={{ color: item.color, backgroundColor: item.bg }}
+                  style={{ color, backgroundColor: bg }}
                 >
-                  {item.badge}
+                  {isLive ? "LIVE" : "SCHEDULED"}
                 </span>
               </div>
             );
           })}
+          {mergedCourses.length === 0 && (
+            <div className="flex items-center gap-3 p-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 bg-gray-100">
+                <Clock className="w-4 h-4 text-gray-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-700 truncate">No class updates yet</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">
+                  Your enrolled course schedule will appear here.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
   );
+}
+
+function toCourseWithRole(course: SupabaseCourseRecord) {
+  return {
+    id: course.id,
+    courseCode: course.courseCode,
+    courseName: course.courseName,
+    description: course.description ?? null,
+    thumbnailUrl: null,
+    room: course.room ?? null,
+    lecturer: course.lecturer ?? null,
+    department: course.department ?? null,
+    classSize: course.classSize ?? 0,
+    isActive: true,
+    membershipRole: "student",
+  };
 }

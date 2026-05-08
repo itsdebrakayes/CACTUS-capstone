@@ -21,7 +21,6 @@ import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
 import ClassRepDashboard from "./pages/ClassRepDashboard";
 import CourseReportingPage from "./pages/CourseReportingPage";
-import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 function Router() {
   return (
@@ -29,7 +28,6 @@ function Router() {
       {/* Auth */}
       <Route path="/login" component={Login} />
       <Route path="/signup" component={Signup} />
-      <Route path="/verify-email" component={VerifyEmailPage} />
 
       {/* Main app tabs */}
       <Route path="/dashboard" component={DashboardHome} />

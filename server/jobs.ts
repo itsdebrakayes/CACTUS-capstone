@@ -2,6 +2,7 @@ import * as cron from "node-cron";
 import * as db from "./db";
 import * as algo from "./algorithms";
 import { eventEmitter } from "./realtime";
+import { ENV } from "./_core/env";
 
 /**
  * Background Jobs for CACTUS
@@ -15,6 +16,19 @@ let jobsStarted = false;
  */
 export function initializeJobs() {
   if (jobsStarted) return;
+
+  if (ENV.sqlDisabled) {
+    jobsStarted = true;
+    console.log("[Jobs] SQL disabled via DISABLE_SQL=true. Skipping background jobs.");
+    return;
+  }
+
+  if (!ENV.databaseUrl) {
+    jobsStarted = true;
+    console.log("[Jobs] DATABASE_URL is not configured. Skipping background jobs.");
+    return;
+  }
+
   jobsStarted = true;
 
   console.log("[Jobs] Initializing background jobs...");

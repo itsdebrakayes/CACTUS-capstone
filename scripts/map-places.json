@@ -1,0 +1,566 @@
+[
+  {
+    "source_id": "social-sciences-administration-building",
+    "name": "Administration Building",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.0060742,
+    "lng": -76.7474179
+  },
+  {
+    "source_id": "block-a-20",
+    "name": "Block A",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00589132,
+    "lng": -76.75016479
+  },
+  {
+    "source_id": "block-e-life-sciences-9",
+    "name": "Block E Life Sciences",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00622419,
+    "lng": -76.75020495,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "department-of-life-sciences-8",
+    "name": "Department of Life Sciences",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00596845,
+    "lng": -76.75022282,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "doc-7",
+    "name": "DOC",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00572351,
+    "lng": -76.75008783
+  },
+  {
+    "source_id": "social-sciences-msbm",
+    "name": "MSBM",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.0062492,
+    "lng": -76.7479899
+  },
+  {
+    "source_id": "humanities-n-block",
+    "name": "N Block",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.0050947,
+    "lng": -76.746253
+  },
+  {
+    "source_id": "natural-products-institute-11",
+    "name": "Natural Products Institute",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00666516,
+    "lng": -76.75054392,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "the-biotechnology-centre-30",
+    "name": "The Biotechnology Centre",
+    "type": "building",
+    "source_category": "building",
+    "lat": 18.00451856,
+    "lng": -76.75062959
+  },
+  {
+    "source_id": "biology-lecture-theatre-13",
+    "name": "Biology Lecture Theatre",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00628679,
+    "lng": -76.75045748,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "physics-classroom-materials-and-general-physics-lab-1",
+    "name": "Classroom Materials and General Physics Lab",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0052032,
+    "lng": -76.74909257,
+    "parent_name": "Physics Department"
+  },
+  {
+    "source_id": "demonstration-room-21",
+    "name": "Demonstration Room",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00572632,
+    "lng": -76.74971245
+  },
+  {
+    "source_id": "engineering-room-a-b-c-27",
+    "name": "Engineering Room A,B,C",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00499544,
+    "lng": -76.74998101,
+    "parent_name": "Faculty of Engineering"
+  },
+  {
+    "source_id": "humanities-room-1",
+    "name": "Humanities Room 1",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.005557,
+    "lng": -76.746494,
+    "parent_name": "Faculty of Humanities"
+  },
+  {
+    "source_id": "humanities-room-2",
+    "name": "Humanities Room 2",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.005557,
+    "lng": -76.746494,
+    "parent_name": "Faculty of Humanities"
+  },
+  {
+    "source_id": "physics-physics-lecture-room-d-10",
+    "name": "Physics Lecture Room D",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00460007,
+    "lng": -76.74901137,
+    "parent_name": "Physics Department"
+  },
+  {
+    "source_id": "humanities-rooms-21-36",
+    "name": "Rooms 21 to 36",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0056592,
+    "lng": -76.7463793
+  },
+  {
+    "source_id": "slt-1-2",
+    "name": "SLT 1",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00516173,
+    "lng": -76.74978513
+  },
+  {
+    "source_id": "slt-2-3",
+    "name": "SLT 2",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00516173,
+    "lng": -76.74978513
+  },
+  {
+    "source_id": "slt-3-23",
+    "name": "SLT 3",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00548571,
+    "lng": -76.74998598
+  },
+  {
+    "source_id": "social-sciences-lec-theatre",
+    "name": "Social Sciences Lec Theatre",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0067448,
+    "lng": -76.7472685,
+    "parent_name": "Faculty of Social Sciences"
+  },
+  {
+    "source_id": "social-sciences-sr-5",
+    "name": "SR 5",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0070502,
+    "lng": -76.7474131
+  },
+  {
+    "source_id": "social-sciences-sr10",
+    "name": "SR10",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0065455,
+    "lng": -76.7480173
+  },
+  {
+    "source_id": "social-sciences-sr14",
+    "name": "SR14",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0065196,
+    "lng": -76.74811
+  },
+  {
+    "source_id": "social-sciences-tr-12",
+    "name": "TR 12",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.0069562,
+    "lng": -76.7473451
+  },
+  {
+    "source_id": "social-sciences-tutorial-room-11",
+    "name": "Tutorial Room 11",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.007018,
+    "lng": -76.7474146
+  },
+  {
+    "source_id": "physics-tutorial-room-11-7",
+    "name": "Tutorial Room 11",
+    "type": "classroom",
+    "source_category": "classroom",
+    "lat": 18.00482478,
+    "lng": -76.7488434
+  },
+  {
+    "source_id": "social-sciences-fac-of-law",
+    "name": "Fac of Law",
+    "type": "faculty",
+    "source_category": "building",
+    "lat": 18.0080958,
+    "lng": -76.7482684
+  },
+  {
+    "source_id": "faculty-of-engineering-29",
+    "name": "Faculty of Engineering",
+    "type": "faculty",
+    "source_category": "building",
+    "lat": 18.00478334,
+    "lng": -76.75077311,
+    "parent_name": "Faculty of Engineering"
+  },
+  {
+    "source_id": "humanities-faculty-of-humanities",
+    "name": "Faculty of Humanities",
+    "type": "faculty",
+    "source_category": "building",
+    "lat": 18.0052698,
+    "lng": -76.7462916,
+    "parent_name": "Faculty of Humanities"
+  },
+  {
+    "source_id": "social-sciences-faculty-of-social-sciences",
+    "name": "Faculty Of Social Sciences",
+    "type": "faculty",
+    "source_category": "building",
+    "lat": 18.0066263,
+    "lng": -76.7469916,
+    "parent_name": "Faculty of Social Sciences"
+  },
+  {
+    "source_id": "botany-garden-15",
+    "name": "Botany Garden",
+    "type": "garden",
+    "source_category": "garden",
+    "lat": 18.00595937,
+    "lng": -76.75068327,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "social-sciences-assembly-hall",
+    "name": "Assembly Hall",
+    "type": "hall",
+    "source_category": "building",
+    "lat": 18.0056734,
+    "lng": -76.7474427
+  },
+  {
+    "source_id": "aquatics-laboratory-16",
+    "name": "Aquatics Laboratory",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.0060465,
+    "lng": -76.75005696
+  },
+  {
+    "source_id": "block-b-lab-2-3-4-14",
+    "name": "Block B Lab#2,3,4",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00619796,
+    "lng": -76.75040752
+  },
+  {
+    "source_id": "physics-computer-application-lab-4",
+    "name": "Computer Application Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00501588,
+    "lng": -76.7489868
+  },
+  {
+    "source_id": "computing-post-grad-lab-18",
+    "name": "Computing Post Grad Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00606001,
+    "lng": -76.74979231
+  },
+  {
+    "source_id": "physics-electric-lab-1-9",
+    "name": "Electric Lab 1",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00461333,
+    "lng": -76.74898406
+  },
+  {
+    "source_id": "electronics-and-electrical-engineering-lab-28",
+    "name": "Electronics and Electrical Engineering Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00487137,
+    "lng": -76.75013896,
+    "parent_name": "Faculty of Engineering"
+  },
+  {
+    "source_id": "social-sciences-grad-lab-ab",
+    "name": "Grad Lab A,B",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.0066179,
+    "lng": -76.7475911
+  },
+  {
+    "source_id": "humanities-language-lab",
+    "name": "Language Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.0053654,
+    "lng": -76.745664
+  },
+  {
+    "source_id": "mechanics-of-solids-lab-24",
+    "name": "Mechanics of Solids Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00540767,
+    "lng": -76.75014784
+  },
+  {
+    "source_id": "physics-metallography-115-2",
+    "name": "Metallography 115",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00513619,
+    "lng": -76.74905081
+  },
+  {
+    "source_id": "physics-po4-laboratory-5",
+    "name": "PO4 Laboratory",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00501588,
+    "lng": -76.7489868
+  },
+  {
+    "source_id": "physics-po4-laboratory-second-door-6",
+    "name": "PO4 Laboratory Second Door",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00489827,
+    "lng": -76.74889919
+  },
+  {
+    "source_id": "physics-radioecological-lab-3",
+    "name": "Radioecological Lab",
+    "type": "lab",
+    "source_category": "lab",
+    "lat": 18.00512938,
+    "lng": -76.74902113
+  },
+  {
+    "source_id": "animal-house-25",
+    "name": "Animal House",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.00498664,
+    "lng": -76.75043582
+  },
+  {
+    "source_id": "conservation-ecology-19",
+    "name": "Conservation Ecology",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.00601115,
+    "lng": -76.74981177
+  },
+  {
+    "source_id": "histology-room-17",
+    "name": "Histology Room",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.00608807,
+    "lng": -76.74996759
+  },
+  {
+    "source_id": "humanities-lslt",
+    "name": "LSLT",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.0050121,
+    "lng": -76.7466317
+  },
+  {
+    "source_id": "medicanja-26",
+    "name": "MedicanJA",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.00504181,
+    "lng": -76.7506533
+  },
+  {
+    "source_id": "social-sciences-ncb-atm",
+    "name": "NCB ATM",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.0072906,
+    "lng": -76.7476433
+  },
+  {
+    "source_id": "social-sciences-scotia-atm",
+    "name": "Scotia ATM",
+    "type": "landmark",
+    "source_category": "landmark",
+    "lat": 18.0077573,
+    "lng": -76.7479118
+  },
+  {
+    "source_id": "library-1",
+    "name": "Library",
+    "type": "library",
+    "source_category": "library",
+    "lat": 18.00533018,
+    "lng": -76.74929177
+  },
+  {
+    "source_id": "social-sciences-department-of-econ-grad-office",
+    "name": "Department of Econ Grad Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.0067314,
+    "lng": -76.7471733
+  },
+  {
+    "source_id": "social-sciences-department-of-econ-office",
+    "name": "Department Of Econ Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.0067314,
+    "lng": -76.7471733
+  },
+  {
+    "source_id": "social-sciences-faculty-of-ss-office",
+    "name": "Faculty of SS Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.0070971,
+    "lng": -76.747331
+  },
+  {
+    "source_id": "fst-dean-s-office-6",
+    "name": "FST Dean's Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.00539316,
+    "lng": -76.74993091,
+    "parent_name": "FST"
+  },
+  {
+    "source_id": "fst-guild-office-4",
+    "name": "FST Guild Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.00522919,
+    "lng": -76.74984927,
+    "parent_name": "FST"
+  },
+  {
+    "source_id": "mona-engineering-society-room-22",
+    "name": "Mona Engineering Society Room",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.00566022,
+    "lng": -76.74979417,
+    "parent_name": "Faculty of Engineering"
+  },
+  {
+    "source_id": "physics-physics-office-8",
+    "name": "Physics Office",
+    "type": "office",
+    "source_category": "office",
+    "lat": 18.00482478,
+    "lng": -76.7488434,
+    "parent_name": "Physics Department"
+  },
+  {
+    "source_id": "life-sciences-parking-lot-12",
+    "name": "Life Sciences Parking Lot",
+    "type": "parking",
+    "source_category": "parking",
+    "lat": 18.00634124,
+    "lng": -76.75062754,
+    "parent_name": "Department of Life Sciences"
+  },
+  {
+    "source_id": "social-sciences-bathrooms-4",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.006024,
+    "lng": -76.7471386
+  },
+  {
+    "source_id": "social-sciences-bathrooms-1",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.0065196,
+    "lng": -76.74811
+  },
+  {
+    "source_id": "bathrooms-5",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.00522919,
+    "lng": -76.74984927
+  },
+  {
+    "source_id": "social-sciences-bathrooms-3",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.006281,
+    "lng": -76.7475351
+  },
+  {
+    "source_id": "social-sciences-bathrooms-2",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.0069842,
+    "lng": -76.7475055
+  },
+  {
+    "source_id": "bathrooms-10",
+    "name": "Bathrooms",
+    "type": "restroom",
+    "source_category": "restroom",
+    "lat": 18.00638033,
+    "lng": -76.75032002
+  }
+]

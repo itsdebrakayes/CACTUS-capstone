@@ -25,6 +25,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type CactusMapHandle } from "./CactusMap";
+import {
+  getCategoryMeta,
+  type NavigationDestination,
+} from "@/lib/campusPlaces";
 
 // ─── Faculty hubs ─────────────────────────────────────────────────────────────
 
@@ -117,25 +121,25 @@ export const FACULTY_HUBS: FacultyHub[] = [
 
 // ─── Known campus destinations for autocomplete ───────────────────────────────
 
-const CAMPUS_DESTINATIONS = [
-  { label: "SLT 1 — Science Lecture Theatre 1", lat: 18.0033, lng: -76.7495 },
-  { label: "SLT 2 — Science Lecture Theatre 2", lat: 18.0035, lng: -76.7497 },
-  { label: "FST Block A", lat: 18.0040, lng: -76.7490 },
-  { label: "FST Block B", lat: 18.0038, lng: -76.7488 },
-  { label: "Main Library", lat: 18.0040, lng: -76.7505 },
-  { label: "Student Union", lat: 18.0030, lng: -76.7480 },
-  { label: "Medical Sciences Block", lat: 18.0050, lng: -76.7510 },
-  { label: "Mona Visitors Lodge", lat: 18.0025, lng: -76.7515 },
-  { label: "Philip Sherlock Centre", lat: 18.0036, lng: -76.7482 },
-  { label: "Rex Nettleford Hall", lat: 18.0028, lng: -76.7495 },
-  { label: "Taylor Hall", lat: 18.0055, lng: -76.7488 },
-  { label: "Irvine Hall", lat: 18.0058, lng: -76.7492 },
-  { label: "Elsa Leo-Rhynie Hall", lat: 18.0052, lng: -76.7485 },
-  { label: "Engineering Block", lat: 18.0037, lng: -76.7503 },
-  { label: "Chemistry Department", lat: 18.0043, lng: -76.7493 },
-  { label: "Physics Department", lat: 18.0041, lng: -76.7496 },
-  { label: "Maths Department", lat: 18.0039, lng: -76.7491 },
-  { label: "Computer Science Department", lat: 18.0036, lng: -76.7489 },
+const DEFAULT_CAMPUS_DESTINATIONS: NavigationDestination[] = [
+  { id: "slt-1", label: "SLT 1 — Science Lecture Theatre 1", lat: 18.0033, lng: -76.7495, category: "classroom" },
+  { id: "slt-2", label: "SLT 2 — Science Lecture Theatre 2", lat: 18.0035, lng: -76.7497, category: "classroom" },
+  { id: "fst-block-a", label: "FST Block A", lat: 18.0040, lng: -76.7490, category: "building" },
+  { id: "fst-block-b", label: "FST Block B", lat: 18.0038, lng: -76.7488, category: "building" },
+  { id: "main-library", label: "Main Library", lat: 18.0040, lng: -76.7505, category: "library" },
+  { id: "student-union", label: "Student Union", lat: 18.0030, lng: -76.7480, category: "landmark" },
+  { id: "medical-sciences-block", label: "Medical Sciences Block", lat: 18.0050, lng: -76.7510, category: "building" },
+  { id: "mona-visitors-lodge", label: "Mona Visitors Lodge", lat: 18.0025, lng: -76.7515, category: "building" },
+  { id: "philip-sherlock-centre", label: "Philip Sherlock Centre", lat: 18.0036, lng: -76.7482, category: "landmark" },
+  { id: "rex-nettleford-hall", label: "Rex Nettleford Hall", lat: 18.0028, lng: -76.7495, category: "building" },
+  { id: "taylor-hall", label: "Taylor Hall", lat: 18.0055, lng: -76.7488, category: "building" },
+  { id: "irvine-hall", label: "Irvine Hall", lat: 18.0058, lng: -76.7492, category: "building" },
+  { id: "elsa-leo-rhynie-hall", label: "Elsa Leo-Rhynie Hall", lat: 18.0052, lng: -76.7485, category: "building" },
+  { id: "engineering-block", label: "Engineering Block", lat: 18.0037, lng: -76.7503, category: "building" },
+  { id: "chemistry-department", label: "Chemistry Department", lat: 18.0043, lng: -76.7493, category: "lab" },
+  { id: "physics-department", label: "Physics Department", lat: 18.0041, lng: -76.7496, category: "lab" },
+  { id: "maths-department", label: "Maths Department", lat: 18.0039, lng: -76.7491, category: "building" },
+  { id: "computer-science-department", label: "Computer Science Department", lat: 18.0036, lng: -76.7489, category: "lab" },
 ];
 
 // ─── Simulated walk helpers ───────────────────────────────────────────────────
@@ -181,6 +185,7 @@ interface NavigationPanelProps {
   userLat?: number;
   userLng?: number;
   hasGps: boolean;
+  destinations?: NavigationDestination[];
   /** Called when simulated marker position changes */
   onSimPosition?: (lat: number, lng: number) => void;
   /** Called when navigation ends */
@@ -192,6 +197,7 @@ export default function NavigationPanel({
   userLat,
   userLng,
   hasGps,
+  destinations = DEFAULT_CAMPUS_DESTINATIONS,
   onSimPosition,
   onNavigationEnd,
 }: NavigationPanelProps) {
@@ -201,8 +207,8 @@ export default function NavigationPanel({
 
   // Destination search
   const [destQuery, setDestQuery] = useState("");
-  const [destSuggestions, setDestSuggestions] = useState<typeof CAMPUS_DESTINATIONS>([]);
-  const [selectedDest, setSelectedDest] = useState<(typeof CAMPUS_DESTINATIONS)[0] | null>(null);
+  const [destSuggestions, setDestSuggestions] = useState<NavigationDestination[]>([]);
+  const [selectedDest, setSelectedDest] = useState<NavigationDestination | null>(null);
 
   // Hub selection
   const [selectedHub, setSelectedHub] = useState<FacultyHub | null>(null);
@@ -218,6 +224,8 @@ export default function NavigationPanel({
 
   const animFrameRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const simMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const availableDestinations =
+    destinations.length > 0 ? destinations : DEFAULT_CAMPUS_DESTINATIONS;
 
   // Autocomplete
   useEffect(() => {
@@ -227,9 +235,9 @@ export default function NavigationPanel({
     }
     const q = destQuery.toLowerCase();
     setDestSuggestions(
-      CAMPUS_DESTINATIONS.filter((d) => d.label.toLowerCase().includes(q)).slice(0, 5)
+      availableDestinations.filter((d) => d.label.toLowerCase().includes(q)).slice(0, 8)
     );
-  }, [destQuery]);
+  }, [availableDestinations, destQuery]);
 
   // Fetch route from Mapbox Directions
   const fetchRoute = useCallback(
@@ -594,7 +602,7 @@ export default function NavigationPanel({
                   type="text"
                   value={destQuery}
                   onChange={(e) => setDestQuery(e.target.value)}
-                  placeholder="Search campus buildings, halls..."
+                  placeholder="Search classrooms, labs, offices, faculty..."
                   className="w-full pl-9 pr-9 py-3 rounded-2xl border border-gray-200 bg-gray-50 text-sm text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#00c853] focus:bg-white transition-colors"
                   autoFocus
                 />
@@ -611,20 +619,26 @@ export default function NavigationPanel({
               {/* Suggestions */}
               {destSuggestions.length > 0 && (
                 <div className="mt-2 bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden">
-                  {destSuggestions.map((s) => (
-                    <button
-                      key={s.label}
-                      onClick={() => {
-                        setSelectedDest(s);
-                        setDestQuery(s.label);
-                        setDestSuggestions([]);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-[#00c853] shrink-0" />
-                      <span className="text-sm text-gray-700">{s.label}</span>
-                    </button>
-                  ))}
+                  {destSuggestions.map((s) => {
+                    const categoryLabel = getCategoryMeta(s.category).label;
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          setSelectedDest(s);
+                          setDestQuery(s.label);
+                          setDestSuggestions([]);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-[#00c853] shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-sm text-gray-700 truncate">{s.label}</div>
+                          <div className="text-[11px] text-gray-400">{categoryLabel}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -632,9 +646,14 @@ export default function NavigationPanel({
               {selectedDest && (
                 <div className="mt-3 flex items-center gap-2 bg-[#e8faf0] border border-[#00c853] rounded-xl px-3 py-2">
                   <MapPin className="w-3.5 h-3.5 text-[#00c853] shrink-0" />
-                  <span className="text-xs font-semibold text-[#00c853] flex-1 truncate">
-                    {selectedDest.label}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-[#00c853] truncate">
+                      {selectedDest.label}
+                    </div>
+                    <div className="text-[10px] text-[#00a644]">
+                      {getCategoryMeta(selectedDest.category).label}
+                    </div>
+                  </div>
                   <button onClick={() => { setSelectedDest(null); setDestQuery(""); }}>
                     <X className="w-3.5 h-3.5 text-[#00c853]" />
                   </button>

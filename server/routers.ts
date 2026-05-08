@@ -806,6 +806,7 @@ const localAuthRouter = router({
       if (!user) {
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
       }
+      await db.enrollUserInAllActiveCourses(user.id, "student");
       await sendVerificationEmail(input.email, input.name, code).catch((err) =>
         console.error("[signup] email send failed:", err)
       );

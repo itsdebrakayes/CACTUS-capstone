@@ -4,7 +4,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx watch server/_core/index.ts",
+    "dev": "tsx watch scripts/dev.mjs",
     "build": "vite build && esbuild server/_core/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit",
@@ -48,6 +48,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@streamdown/code": "^1.0.1",
     "@streamdown/mermaid": "^1.0.1",
+    "@supabase/supabase-js": "^2.105.3",
     "@tanstack/react-query": "^5.90.2",
     "@trpc/client": "^11.6.0",
     "@trpc/react-query": "^11.6.0",

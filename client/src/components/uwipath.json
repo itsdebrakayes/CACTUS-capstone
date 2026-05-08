@@ -1,0 +1,1060 @@
+{
+  "type": "FeatureCollection",
+  "name": "UWI Mona Faculty Paths",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "library-1",
+        "name": "Library",
+        "category": "library"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74929177, 18.00533018, 182.69]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "slt-1-2",
+        "name": "SLT 1",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74978513, 18.00516173, 183.49]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "slt-2-3",
+        "name": "SLT 2",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74978513, 18.00516173, 183.49]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "fst-guild-office-4",
+        "name": "FST Guild Office",
+        "category": "office"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74984927, 18.00522919, 181.75]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "bathrooms-5",
+        "name": "Bathrooms",
+        "category": "restroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74984927, 18.00522919, 181.75]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "fst-dean-s-office-6",
+        "name": "FST Dean's Office",
+        "category": "office"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74993091, 18.00539316, 181.75]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "doc-7",
+        "name": "DOC",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75008783, 18.00572351, 178.36]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "department-of-life-sciences-8",
+        "name": "Department of Life Sciences",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75022282, 18.00596845, 177.14]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "block-e-life-sciences-9",
+        "name": "Block E Life Sciences",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75020495, 18.00622419, 177.09]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "bathrooms-10",
+        "name": "Bathrooms",
+        "category": "restroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75032002, 18.00638033, 178.13]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "natural-products-institute-11",
+        "name": "Natural Products Institute",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75054392, 18.00666516, 183.43]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "life-sciences-parking-lot-12",
+        "name": "Life Sciences Parking Lot",
+        "category": "parking"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75062754, 18.00634124, 181.39]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "biology-lecture-theatre-13",
+        "name": "Biology Lecture Theatre",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75045748, 18.00628679, 180.74]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "block-b-lab-2-3-4-14",
+        "name": "Block B Lab#2,3,4",
+        "category": "lab"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75040752, 18.00619796, 181.16]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "botany-garden-15",
+        "name": "Botany Garden",
+        "category": "garden"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75068327, 18.00595937, 180.72]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "aquatics-laboratory-16",
+        "name": "Aquatics Laboratory",
+        "category": "lab"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75005696, 18.0060465, 181.39]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "histology-room-17",
+        "name": "Histology Room",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74996759, 18.00608807, 181.93]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "computing-post-grad-lab-18",
+        "name": "Computing Post Grad Lab",
+        "category": "lab"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74979231, 18.00606001, 183.48]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "conservation-ecology-19",
+        "name": "Conservation Ecology",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74981177, 18.00601115, 182.3]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "block-a-20",
+        "name": "Block A",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75016479, 18.00589132, 176.65]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "demonstration-room-21",
+        "name": "Demonstration Room",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74971245, 18.00572632, 178.51]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mona-engineering-society-room-22",
+        "name": "Mona Engineering Society Room",
+        "category": "office"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74979417, 18.00566022, 178.35]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "slt-3-23",
+        "name": "SLT 3",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74998598, 18.00548571, 179.2]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "mechanics-of-solids-lab-24",
+        "name": "Mechanics of Solids Lab",
+        "category": "lab"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75014784, 18.00540767, 181.39]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "animal-house-25",
+        "name": "Animal House",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75043582, 18.00498664, 181.19]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "medicanja-26",
+        "name": "MedicanJA",
+        "category": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7506533, 18.00504181, 180.06]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "engineering-room-a-b-c-27",
+        "name": "Engineering Room A,B,C",
+        "category": "classroom"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74998101, 18.00499544, 178.87]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "electronics-and-electrical-engineering-lab-28",
+        "name": "Electronics and Electrical Engineering Lab",
+        "category": "lab"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75013896, 18.00487137, 177.72]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "faculty-of-engineering-29",
+        "name": "Faculty of Engineering",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75077311, 18.00478334, 179.89]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "the-biotechnology-centre-30",
+        "name": "The Biotechnology Centre",
+        "category": "building"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.75062959, 18.00451856, 178.91]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "science-and-technology-path-network",
+        "name": "Science and Technology Path Network",
+        "category": "path-network"
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [-76.74920729, 18.00537122, 179.81],
+            [-76.74929177, 18.00533018, 182.69],
+            [-76.74936555, 18.00526578, 184.04],
+            [-76.74944962, 18.00521753, 182.67],
+            [-76.74954387, 18.0051805, 183.73],
+            [-76.74963308, 18.00513519, 183.97],
+            [-76.74971968, 18.00509503, 183.02],
+            [-76.74978513, 18.00516173, 175.38],
+            [-76.74984927, 18.00522919, 184.83],
+            [-76.74988787, 18.00531193, 181.58],
+            [-76.74993091, 18.00539316, 179.16],
+            [-76.74994815, 18.0054821, 175.89],
+            [-76.7500017, 18.00555814, 177.8],
+            [-76.75004959, 18.00563679, 177.37],
+            [-76.75008783, 18.00572351, 176.07],
+            [-76.75014189, 18.00579924, 176.12],
+            [-76.75016479, 18.00589132, 178.35],
+            [-76.75022282, 18.00596845, 175.48],
+            [-76.75027519, 18.00605212, 177.4],
+            [-76.7502484, 18.00614146, 178.11],
+            [-76.75020495, 18.00622419, 179.11],
+            [-76.75025363, 18.00631214, 180.53],
+            [-76.75032002, 18.00638033, 182.9],
+            [-76.75036144, 18.00646467, 185.62],
+            [-76.7504162, 18.00653999, 184.93],
+            [-76.75045752, 18.00662313, 183.19],
+            [-76.75054392, 18.00666516, 181.22]
+          ],
+          [
+            [-76.75055017, 18.00659752, 181.99],
+            [-76.75061195, 18.00652006, 180.69],
+            [-76.75064915, 18.00643181, 179.86],
+            [-76.75062754, 18.00634124, 180.55],
+            [-76.75055576, 18.00627385, 180.61],
+            [-76.75045748, 18.00628679, 179.59],
+            [-76.75034633, 18.00636052, 183.39]
+          ],
+          [
+            [-76.75046052, 18.0062747, 181.11],
+            [-76.75040752, 18.00619796, 181.1],
+            [-76.75043764, 18.00611083, 180.38],
+            [-76.75050013, 18.00604232, 180.6],
+            [-76.750594, 18.00600688, 181.53],
+            [-76.75068327, 18.00595937, 179.96]
+          ],
+          [
+            [-76.75047294, 18.00604941, 182.03],
+            [-76.75049862, 18.00595006, 183.26],
+            [-76.75049625, 18.00585725, 181.48],
+            [-76.75039708, 18.00586601, 180.48],
+            [-76.7503184, 18.00592198, 181.31],
+            [-76.7502403, 18.00598328, 180.04],
+            [-76.75015105, 18.00601314, 181.82],
+            [-76.75005696, 18.0060465, 183.31],
+            [-76.74996759, 18.00608807, 183.16],
+            [-76.74988581, 18.00603545, 185.58],
+            [-76.74979231, 18.00606001, 183.53],
+            [-76.7496984, 18.00607408, 181.43],
+            [-76.74981177, 18.00601115, 177.8],
+            [-76.74989189, 18.0059619, 175.9],
+            [-76.75000265, 18.0059531, 178.09],
+            [-76.75002834, 18.00586462, 179.02],
+            [-76.75012304, 18.00573526, 179.74],
+            [-76.75040062, 18.00585496, 180.05],
+            [-76.75028579, 18.00582568, 180.68],
+            [-76.7502186, 18.00575441, 181]
+          ],
+          [[-76.75016595, 18.00588099, 177.49]],
+          [
+            [-76.74998622, 18.00563088, 178.2],
+            [-76.74989194, 18.00564138, 175.84],
+            [-76.74979417, 18.00566022, 179.2],
+            [-76.74971245, 18.00572632, 181.8],
+            [-76.74962325, 18.00576028, 178.24]
+          ],
+          [
+            [-76.74998598, 18.00548571, 180.91],
+            [-76.75004605, 18.00540952, 183.12],
+            [-76.75014784, 18.00540767, 182.88],
+            [-76.75025254, 18.00539943, 179.54],
+            [-76.75028307, 18.00529492, 178.67],
+            [-76.75027246, 18.00520485, 183.33],
+            [-76.75028804, 18.00511194, 182.93],
+            [-76.75036343, 18.00505038, 180.84],
+            [-76.75043582, 18.00498664, 180.19]
+          ],
+          [
+            [-76.75046487, 18.00502183, 178.89],
+            [-76.75056431, 18.0050095, 179.68],
+            [-76.7506533, 18.00504181, 180.7],
+            [-76.75070066, 18.00512667, 182.01],
+            [-76.7507615, 18.00520182, 181.27],
+            [-76.75075114, 18.00529328, 180.48],
+            [-76.75068289, 18.00536369, 180.57],
+            [-76.75060273, 18.00541636, 181.76],
+            [-76.75054404, 18.00549144, 180.84],
+            [-76.75048185, 18.00556125, 179.61],
+            [-76.75039386, 18.00559583, 179.71],
+            [-76.75029962, 18.00563823, 180.76],
+            [-76.75021717, 18.00569067, 181.37],
+            [-76.7501515, 18.00575986, 180.84]
+          ],
+          [
+            [-76.74975046, 18.00512719, 180],
+            [-76.74979593, 18.00504495, 178.62],
+            [-76.749897, 18.00503715, 178.08],
+            [-76.74998101, 18.00499544, 176.83],
+            [-76.75005894, 18.00493152, 175.08],
+            [-76.75013896, 18.00487137, 175.24],
+            [-76.75023382, 18.00486762, 179.37],
+            [-76.75035216, 18.00479746, 178.73],
+            [-76.75044243, 18.00474899, 179.77],
+            [-76.75053452, 18.00478795, 179.17],
+            [-76.75061052, 18.00473137, 178.52],
+            [-76.75070941, 18.004715, 180.66],
+            [-76.75077311, 18.00478334, 181.32],
+            [-76.75086996, 18.00476867, 180.43],
+            [-76.75088626, 18.00467688, 177.29],
+            [-76.750843, 18.00459168, 178.72],
+            [-76.75079342, 18.00450478, 178.81],
+            [-76.75074957, 18.00442376, 178.5],
+            [-76.75068292, 18.00434668, 178.64],
+            [-76.75062737, 18.00442808, 178.89],
+            [-76.75062959, 18.00451856, 179.72],
+            [-76.75065384, 18.00460709, 180.77],
+            [-76.75067932, 18.00470116, 181.6],
+            [-76.75061205, 18.00476853, 180.35]
+          ],
+          [
+            [-76.75014037, 18.00493092, 179.08],
+            [-76.75004953, 18.00496087, 180.16],
+            [-76.74994881, 18.00498335, 180.58],
+            [-76.74985512, 18.00502064, 181.95],
+            [-76.74977449, 18.00508082, 183.7]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-classroom-materials-and-general-physics-lab-1",
+        "name": "Classroom Materials and General Physics Lab",
+        "category": "classroom",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74909257, 18.0052032, 172.22]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-metallography-115-2",
+        "name": "Metallography 115",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74905081, 18.00513619, 173]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-radioecological-lab-3",
+        "name": "Radioecological Lab",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74902113, 18.00512938, 175.3]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-computer-application-lab-4",
+        "name": "Computer Application Lab",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7489868, 18.00501588, 177]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-po4-laboratory-5",
+        "name": "PO4 Laboratory",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7489868, 18.00501588, 177]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-po4-laboratory-second-door-6",
+        "name": "PO4 Laboratory Second Door",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74889919, 18.00489827, 172.94]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-tutorial-room-11-7",
+        "name": "Tutorial Room 11",
+        "category": "classroom",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7488434, 18.00482478, 174.98]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-physics-office-8",
+        "name": "Physics Office",
+        "category": "office",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7488434, 18.00482478, 174.98]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-electric-lab-1-9",
+        "name": "Electric Lab 1",
+        "category": "lab",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74898406, 18.00461333, 171.49]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-physics-lecture-room-d-10",
+        "name": "Physics Lecture Room D",
+        "category": "classroom",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74901137, 18.00460007, 177.61]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "physics-first-floor-path-network",
+        "name": "Physics First Floor Path Network",
+        "category": "path-network",
+        "group": "physics-first-floor"
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [-76.74920826, 18.00535771, 169.03],
+            [-76.74914075, 18.00528863, 171.14],
+            [-76.74909257, 18.0052032, 172.22],
+            [-76.74902113, 18.00512938, 175.3],
+            [-76.7489868, 18.00501588, 177],
+            [-76.74889919, 18.00489827, 179.25],
+            [-76.7488434, 18.00482478, 179.6],
+            [-76.74897289, 18.00477814, 176.93]
+          ],
+          [[-76.74901137, 18.00460007, 171.13]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-msbm",
+        "name": "MSBM",
+        "category": "building",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7479899, 18.0062492, 186.83]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-sr10",
+        "name": "SR10",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7480173, 18.0065455, 189.92]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-bathrooms-1",
+        "name": "Bathrooms",
+        "category": "restroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74811, 18.0065196, 190.37]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-sr14",
+        "name": "SR14",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.74811, 18.0065196, 190.37]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-bathrooms-2",
+        "name": "Bathrooms",
+        "category": "restroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7475055, 18.0069842, 189.23]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-tutorial-room-11",
+        "name": "Tutorial Room 11",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7474146, 18.007018, 188.76]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-tr-12",
+        "name": "TR 12",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7473451, 18.0069562, 189.85]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-department-of-econ-office",
+        "name": "Department Of Econ Office",
+        "category": "office",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7471733, 18.0067314, 191.56]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-department-of-econ-grad-office",
+        "name": "Department of Econ Grad Office",
+        "category": "office",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7471733, 18.0067314, 191.56]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-lec-theatre",
+        "name": "Social Sciences Lec Theatre",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7472685, 18.0067448, 193]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-grad-lab-ab",
+        "name": "Grad Lab A,B",
+        "category": "lab",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7475911, 18.0066179, 190.04]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-bathrooms-3",
+        "name": "Bathrooms",
+        "category": "restroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7475351, 18.006281, 190.71]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-administration-building",
+        "name": "Administration Building",
+        "category": "building",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7474179, 18.0060742, 189.95]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-assembly-hall",
+        "name": "Assembly Hall",
+        "category": "building",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7474427, 18.0056734, 189.37]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-bathrooms-4",
+        "name": "Bathrooms",
+        "category": "restroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7471386, 18.006024, 189.34]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-faculty-of-social-sciences",
+        "name": "Faculty Of Social Sciences",
+        "category": "building",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7469916, 18.0066263, 189.44]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-sr-5",
+        "name": "SR 5",
+        "category": "classroom",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7474131, 18.0070502, 191.2]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-faculty-of-ss-office",
+        "name": "Faculty of SS Office",
+        "category": "office",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.747331, 18.0070971, 191.34]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-ncb-atm",
+        "name": "NCB ATM",
+        "category": "landmark",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7476433, 18.0072906, 191.54]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-scotia-atm",
+        "name": "Scotia ATM",
+        "category": "landmark",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7479118, 18.0077573, 192.58]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-fac-of-law",
+        "name": "Fac of Law",
+        "category": "building",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-76.7482684, 18.0080958, 194.19]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "social-sciences-path-network",
+        "name": "Social Sciences Path Network",
+        "category": "path-network",
+        "group": "social-sciences"
+      },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [
+            [-76.7490731, 18.0054192, 186.06],
+            [-76.7489652, 18.0054501, 187],
+            [-76.7488857, 18.0055205, 185.88],
+            [-76.748798, 18.0055704, 185.08],
+            [-76.7487043, 18.0055902, 185.45],
+            [-76.7486023, 18.0056056, 185.89],
+            [-76.7484933, 18.0056223, 184.43],
+            [-76.7483985, 18.0056459, 184.72],
+            [-76.7483824, 18.0057401, 186.67],
+            [-76.7483774, 18.0058351, 187.02],
+            [-76.748316, 18.0059078, 185.95],
+            [-76.7482424, 18.005967, 185.87],
+            [-76.7481803, 18.0060359, 186.17],
+            [-76.7481244, 18.0061181, 188.26],
+            [-76.748065, 18.0061905, 187.91],
+            [-76.7479899, 18.0062492, 188.77],
+            [-76.7478982, 18.0062834, 190.73],
+            [-76.7478234, 18.0063442, 190.23],
+            [-76.7478612, 18.0064283, 189.24],
+            [-76.7479334, 18.0064898, 190.65],
+            [-76.7480173, 18.0065455, 191.01],
+            [-76.74811, 18.0065196, 183.26],
+            [-76.7481925, 18.0065731, 182.97],
+            [-76.7482706, 18.0066464, 180.39],
+            [-76.7481853, 18.0067413, 185.21],
+            [-76.7480881, 18.0067599, 188.06],
+            [-76.748043, 18.0066716, 188.94],
+            [-76.7479987, 18.0065887, 190.62],
+            [-76.747919, 18.0066441, 190.34],
+            [-76.7478599, 18.0067216, 189.95],
+            [-76.7477862, 18.0067857, 189.86],
+            [-76.7476918, 18.0067633, 187.94],
+            [-76.7476228, 18.0068295, 189.33],
+            [-76.7475563, 18.0069014, 189.34],
+            [-76.7475055, 18.0069842, 189.67],
+            [-76.7474146, 18.007018, 187.5],
+            [-76.7473451, 18.0069562, 193.41],
+            [-76.7472676, 18.0068986, 189.78],
+            [-76.747227, 18.0068062, 192.71],
+            [-76.7471733, 18.0067314, 194.37],
+            [-76.7472685, 18.0067448, 194.73],
+            [-76.7473267, 18.0068497, 190.06],
+            [-76.7474331, 18.0068419, 189.95],
+            [-76.7475128, 18.0067877, 190.93],
+            [-76.7475416, 18.0066951, 188.7],
+            [-76.7475911, 18.0066179, 190.55],
+            [-76.7476463, 18.0065394, 190.29],
+            [-76.7476542, 18.0064405, 190.7],
+            [-76.7475914, 18.0063644, 191.27],
+            [-76.7475351, 18.006281, 190.74],
+            [-76.7474631, 18.0062035, 190.62],
+            [-76.7473703, 18.0061603, 189.39],
+            [-76.7474179, 18.0060742, 187.72],
+            [-76.747419, 18.0059827, 189.69],
+            [-76.7474944, 18.0059042, 187.91],
+            [-76.7475415, 18.0058204, 189.89],
+            [-76.7475273, 18.0057283, 189.8],
+            [-76.7474427, 18.0056734, 189.57],
+            [-76.7473439, 18.0056417, 188.97],
+            [-76.7472911, 18.0057171, 187.41],
+            [-76.7472272, 18.0057891, 189.34],
+            [-76.7471624, 18.0058589, 188.96],
+            [-76.7471057, 18.0059383, 190.15],
+            [-76.7471386, 18.006024, 190.85],
+            [-76.747168, 18.0061178, 187.44],
+            [-76.7471867, 18.0062118, 187.51],
+            [-76.747146, 18.0062975, 188.71],
+            [-76.7470897, 18.0063707, 187.85],
+            [-76.747029, 18.0064451, 189.1],
+            [-76.7469934, 18.0065354, 190.8],
+            [-76.7469916, 18.0066263, 190.71],
+            [-76.746994, 18.0067219, 191.02],
+            [-76.7470062, 18.006816, 190.79],
+            [-76.7470865, 18.006865, 191.15],
+            [-76.7471597, 18.0069259, 191.19],
+            [-76.7472371, 18.0069791, 191.15],
+            [-76.7473206, 18.0070251, 191.84],
+            [-76.7474131, 18.0070502, 190.67],
+            [-76.747331, 18.0070971, 191.87],
+            [-76.7472628, 18.0071638, 189.53],
+            [-76.7471863, 18.0072249, 189.2]
+          ],
+          [
+            [-76.7474213, 18.0071109, 192.38],
+            [-76.747479, 18.0071848, 192.08],
+            [-76.7475654, 18.0072338, 192.25],
+            [-76.7476433, 18.0072906, 191.8],
+            [-76.7477068, 18.0073605, 192.42],
+            [-76.7477508, 18.0074502, 192.25],
+            [-76.747809, 18.0075245, 192.36],
+            [-76.747865, 18.0076012, 192.38],
+            [-76.747842, 18.0076908, 192.51],
+            [-76.7479118, 18.0077573, 193.42]
+          ],
+          [
+            [-76.7479286, 18.0077852, 193.8],
+            [-76.7479609, 18.0078739, 192.49],
+            [-76.7480437, 18.0079223, 193.11],
+            [-76.748102, 18.0079976, 195.12],
+            [-76.7481793, 18.0080551, 195.78],
+            [-76.7482684, 18.0080958, 194.44]
+          ]
+        ]
+      }
+    }
+  ]
+}

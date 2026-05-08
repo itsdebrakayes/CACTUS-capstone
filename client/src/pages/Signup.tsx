@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,18 +14,9 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const signupMutation = trpc.auth.signup.useMutation({
-    onSuccess: (data) => {
-      // Navigate to email verification page with the email pre-filled
-      navigate(`/verify-email?email=${encodeURIComponent(data.email)}`);
-    },
-    onError: (err) => {
-      toast.error(err.message || "Signup failed");
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) {
       toast.error("Please fill in all fields");
@@ -39,7 +30,42 @@ export default function Signup() {
       toast.error("Password must be at least 8 characters");
       return;
     }
-    signupMutation.mutate({ name, email, password });
+
+    const [firstName, ...rest] = name.trim().split(/\s+/);
+    const lastName = rest.join(" ");
+
+    try {
+      setIsSubmitting(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            full_name: name.trim(),
+            first_name: firstName ?? "",
+            last_name: lastName,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.session) {
+        throw new Error(
+          "Supabase email confirmation is still enabled. Turn off Confirm email in Supabase Auth settings to remove verification."
+        );
+      }
+
+      toast.success("Account created successfully.");
+      window.location.href = "/dashboard";
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Signup failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -132,10 +158,10 @@ export default function Signup() {
 
           <Button
             type="submit"
-            disabled={signupMutation.isPending}
+            disabled={isSubmitting}
             className="w-full h-11 bg-[#00c853] hover:bg-[#00b84a] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-[#00c853]/20 mt-2"
           >
-            {signupMutation.isPending ? (
+            {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Creating account...

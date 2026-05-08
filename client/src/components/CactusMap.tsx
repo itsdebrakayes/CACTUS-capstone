@@ -1,8 +1,9 @@
-import { useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { getCategoryMeta, type PlaceLocation } from "@/lib/campusPlaces";
+import { getPlaceMarkerIcon } from "@/lib/placeMarkerIcons";
 
-// UWI Mona Campus center coordinates
 export const UWI_MONA_CENTER: [number, number] = [-76.7497, 18.0035];
 export const UWI_MONA_ZOOM = 15.5;
 
@@ -15,7 +16,7 @@ export interface Walker {
 }
 
 export interface Hazard {
-  id: number;
+  id: string | number;
   lat: number;
   lng: number;
   severity: number;
@@ -29,7 +30,7 @@ export interface Hazard {
 export interface Footpath {
   id: number;
   name?: string | null;
-  geoJson: any;
+  geoJson: unknown;
 }
 
 export interface CactusMapHandle {
@@ -45,10 +46,12 @@ interface CactusMapProps {
   walkers?: Walker[];
   hazards?: Hazard[];
   footpaths?: Footpath[];
+  places?: PlaceLocation[];
   isSelectingDest?: boolean;
   onDestinationSelected?: (lat: number, lng: number) => void;
   onWalkerClick?: (walker: Walker) => void;
   onHazardClick?: (hazard: Hazard) => void;
+  onPlaceClick?: (place: PlaceLocation) => void;
 }
 
 const SEVERITY_COLORS: Record<number, string> = {
@@ -72,16 +75,6 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-/**
- * Full-featured Mapbox map for CACTUS
- * - UWI Mona Campus as default center
- * - User location (blue dot)
- * - Walker markers with clustering
- * - Hazard pins with severity colors
- * - Footpath overlays
- * - Click-to-select destination mode
- * - Route visualization
- */
 const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
   (
     {
@@ -90,10 +83,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       walkers = [],
       hazards = [],
       footpaths = [],
+      places = [],
       isSelectingDest = false,
       onDestinationSelected,
       onWalkerClick,
       onHazardClick,
+      onPlaceClick,
     },
     ref
   ) => {
@@ -103,17 +98,22 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const walkerMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const placeMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const isSelectingRef = useRef(isSelectingDest);
     const mapReadyRef = useRef(false);
+    const [mapReady, setMapReady] = useState(false);
 
-    // Expose imperative handle
     useImperativeHandle(ref, () => ({
       showRoute: (fromLat, fromLng, toLat, toLng) => {
-        if (!mapRef.current || !mapReadyRef.current) return;
+        if (!mapRef.current || !mapReadyRef.current) {
+          return;
+        }
         showRoute(mapRef.current, fromLat, fromLng, toLat, toLng);
       },
       clearRoute: () => {
-        if (!mapRef.current || !mapReadyRef.current) return;
+        if (!mapRef.current || !mapReadyRef.current) {
+          return;
+        }
         clearRoute(mapRef.current);
       },
       flyTo: (lat, lng, zoom = 16) => {
@@ -122,21 +122,23 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       getMap: () => mapRef.current,
     }));
 
-    // Keep ref in sync
     useEffect(() => {
       isSelectingRef.current = isSelectingDest;
-      if (mapContainer.current) {
-        if (isSelectingDest) {
-          mapContainer.current.classList.add("map-selecting-dest");
-        } else {
-          mapContainer.current.classList.remove("map-selecting-dest");
-        }
+      if (!mapContainer.current) {
+        return;
+      }
+
+      if (isSelectingDest) {
+        mapContainer.current.classList.add("map-selecting-dest");
+      } else {
+        mapContainer.current.classList.remove("map-selecting-dest");
       }
     }, [isSelectingDest]);
 
-    // Initialize map once
     useEffect(() => {
-      if (!mapContainer.current || mapRef.current) return;
+      if (!mapContainer.current || mapRef.current) {
+        return;
+      }
 
       const token = import.meta.env.VITE_MAPBOX_TOKEN;
       if (!token) {
@@ -154,17 +156,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         attributionControl: false,
       });
 
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: true }), "top-right");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
-      map.addControl(new mapboxgl.GeolocateControl({
-        positionOptions: { enableHighAccuracy: true },
-        trackUserLocation: false,
-      }), "top-right");
 
       map.on("load", () => {
         mapReadyRef.current = true;
+        setMapReady(true);
 
-        // Add footpath source and layer
         map.addSource("footpaths", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
@@ -181,7 +178,6 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           },
         });
 
-        // Add route source and layer
         map.addSource("route", {
           type: "geojson",
           data: { type: "FeatureCollection", features: [] },
@@ -201,24 +197,23 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           },
         });
 
-        // Render footpaths if any
         if (footpaths.length > 0) {
           renderFootpaths(map, footpaths);
         }
       });
 
-      // Click handler for destination selection
-      map.on("click", (e) => {
-        if (!isSelectingRef.current) return;
-        const { lng, lat } = e.lngLat;
+      map.on("click", (event) => {
+        if (!isSelectingRef.current) {
+          return;
+        }
 
-        // Place/move destination marker
+        const { lng, lat } = event.lngLat;
         if (destMarkerRef.current) {
           destMarkerRef.current.setLngLat([lng, lat]);
         } else {
-          const el = document.createElement("div");
-          el.className = "cactus-dest-marker";
-          destMarkerRef.current = new mapboxgl.Marker(el)
+          const element = document.createElement("div");
+          element.className = "cactus-dest-marker";
+          destMarkerRef.current = new mapboxgl.Marker(element)
             .setLngLat([lng, lat])
             .addTo(map);
         }
@@ -229,57 +224,67 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       mapRef.current = map;
 
       return () => {
+        placeMarkersRef.current.forEach((marker) => marker.remove());
+        walkerMarkersRef.current.forEach((marker) => marker.remove());
+        hazardMarkersRef.current.forEach((marker) => marker.remove());
+        userMarkerRef.current?.remove();
+        destMarkerRef.current?.remove();
+        placeMarkersRef.current = [];
+        walkerMarkersRef.current = [];
+        hazardMarkersRef.current = [];
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
+        setMapReady(false);
       };
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Update user location marker
     useEffect(() => {
       const map = mapRef.current;
-      if (!map || !mapReadyRef.current || userLat == null || userLng == null) return;
+      if (!map || !mapReady || userLat == null || userLng == null) {
+        return;
+      }
 
       if (userMarkerRef.current) {
         userMarkerRef.current.setLngLat([userLng, userLat]);
       } else {
-        const el = document.createElement("div");
-        el.className = "cactus-user-marker";
-        el.title = "Your location";
-        userMarkerRef.current = new mapboxgl.Marker(el)
+        const element = document.createElement("div");
+        element.className = "cactus-user-marker";
+        element.title = "Your location";
+        userMarkerRef.current = new mapboxgl.Marker(element)
           .setLngLat([userLng, userLat])
           .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML("<strong>You</strong>"))
           .addTo(map);
-        // Fly to user on first fix
         map.flyTo({ center: [userLng, userLat], zoom: UWI_MONA_ZOOM, duration: 1000 });
       }
-    }, [userLat, userLng]);
+    }, [mapReady, userLat, userLng]);
 
-    // Update walker markers with simple clustering
     useEffect(() => {
       const map = mapRef.current;
-      if (!map || !mapReadyRef.current) return;
+      if (!map || !mapReady) {
+        return;
+      }
 
-      // Remove old markers
-      walkerMarkersRef.current.forEach((m) => m.remove());
+      walkerMarkersRef.current.forEach((marker) => marker.remove());
       walkerMarkersRef.current = [];
 
-      if (walkers.length === 0) return;
+      if (walkers.length === 0) {
+        return;
+      }
 
-      // Simple proximity clustering (group walkers within ~50m)
       const clusters = clusterPoints(walkers, 0.0005);
 
       clusters.forEach((cluster) => {
-        const el = document.createElement("div");
+        const element = document.createElement("div");
         if (cluster.count > 1) {
-          el.className = "cactus-cluster-marker";
-          el.style.width = `${Math.min(36, 24 + cluster.count * 2)}px`;
-          el.style.height = `${Math.min(36, 24 + cluster.count * 2)}px`;
-          el.textContent = String(cluster.count);
-          el.title = `${cluster.count} walkers nearby`;
+          element.className = "cactus-cluster-marker";
+          element.style.width = `${Math.min(36, 24 + cluster.count * 2)}px`;
+          element.style.height = `${Math.min(36, 24 + cluster.count * 2)}px`;
+          element.textContent = String(cluster.count);
+          element.title = `${cluster.count} walkers nearby`;
         } else {
-          el.className = "cactus-walker-marker";
-          el.title = `Walker (Trust: ${cluster.items[0].trustScore.toFixed(2)})`;
+          element.className = "cactus-walker-marker";
+          element.title = `Walker (Trust: ${cluster.items[0].trustScore.toFixed(2)})`;
         }
 
         const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(
@@ -287,101 +292,114 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
             ? `<strong>${cluster.count} walkers nearby</strong>`
             : `<strong>Walker available</strong><br/>
                Trust score: ${cluster.items[0].trustScore.toFixed(2)}<br/>
-               <span style="color:#059669">● Available</span>`
+               <span style="color:#059669">Available</span>`
         );
 
-        const marker = new mapboxgl.Marker(el)
+        const marker = new mapboxgl.Marker(element)
           .setLngLat([cluster.lng, cluster.lat])
           .setPopup(popup)
           .addTo(map);
 
         if (cluster.count === 1 && onWalkerClick) {
-          el.addEventListener("click", () => onWalkerClick(cluster.items[0]));
+          element.addEventListener("click", () => onWalkerClick(cluster.items[0]));
         }
 
         walkerMarkersRef.current.push(marker);
       });
-    }, [walkers, onWalkerClick]);
+    }, [mapReady, walkers, onWalkerClick]);
 
-    // Update hazard markers
     useEffect(() => {
       const map = mapRef.current;
-      if (!map || !mapReadyRef.current) return;
+      if (!map || !mapReady) {
+        return;
+      }
 
-      hazardMarkersRef.current.forEach((m) => m.remove());
+      hazardMarkersRef.current.forEach((marker) => marker.remove());
       hazardMarkersRef.current = [];
 
       hazards.forEach((hazard) => {
-        const el = document.createElement("div");
-        el.className = "cactus-hazard-marker";
-        el.style.background = SEVERITY_COLORS[hazard.severity] || "#ef4444";
-        el.title = `${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType} (Severity ${hazard.severity})`;
+        const element = document.createElement("div");
+        element.className = "cactus-hazard-marker";
+        element.style.background = SEVERITY_COLORS[hazard.severity] || "#ef4444";
+        element.title = `${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType} (Severity ${hazard.severity})`;
 
-        const ttlText = hazard.ttlMinutes != null
-          ? `<br/>TTL: ${hazard.ttlMinutes} min remaining`
-          : "";
-        const votesText = hazard.stillThereCount != null
-          ? `<br/>✓ ${hazard.stillThereCount} still there · ✗ ${hazard.notThereCount} not there`
-          : "";
-
-        const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(
-          `<strong>${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType}</strong><br/>
-           Severity: ${hazard.severity}/5${ttlText}${votesText}
-           ${hazard.description ? `<br/><em>${hazard.description}</em>` : ""}`
-        );
-
-        const marker = new mapboxgl.Marker(el)
+        const marker = new mapboxgl.Marker(element)
           .setLngLat([hazard.lng, hazard.lat])
-          .setPopup(popup)
           .addTo(map);
 
         if (onHazardClick) {
-          el.addEventListener("click", () => onHazardClick(hazard));
+          element.addEventListener("click", () => onHazardClick(hazard));
         }
 
         hazardMarkersRef.current.push(marker);
       });
-    }, [hazards, onHazardClick]);
+    }, [mapReady, hazards, onHazardClick]);
 
-    // Update footpaths
     useEffect(() => {
       const map = mapRef.current;
-      if (!map || !mapReadyRef.current) return;
-      renderFootpaths(map, footpaths);
-    }, [footpaths]);
+      if (!map || !mapReady) {
+        return;
+      }
 
-    return (
-      <div ref={mapContainer} className="w-full h-full relative">
-        {/* Destination selection hint */}
-        {isSelectingDest && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-purple-700 text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none">
-            Click on the map to set your destination
-          </div>
-        )}
-      </div>
-    );
+      placeMarkersRef.current.forEach((marker) => marker.remove());
+      placeMarkersRef.current = [];
+
+      places.forEach((place) => {
+        const markerElement = createCampusPlaceMarkerElement(place);
+        const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(
+          createCampusPlacePopupHtml(place)
+        );
+
+        const marker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: "center",
+        })
+          .setLngLat(place.coordinates)
+          .setPopup(popup)
+          .addTo(map);
+
+        markerElement.addEventListener("click", (event) => {
+          event.stopPropagation();
+          marker.togglePopup();
+          onPlaceClick?.(place);
+        });
+
+        placeMarkersRef.current.push(marker);
+      });
+    }, [mapReady, places, onPlaceClick]);
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady) {
+        return;
+      }
+      renderFootpaths(map, footpaths);
+    }, [mapReady, footpaths]);
+
+    return <div ref={mapContainer} className="relative h-full w-full" />;
   }
 );
 
 CactusMap.displayName = "CactusMap";
 export { CactusMap };
 
-// ============================================================
-// Helpers
-// ============================================================
-
 function renderFootpaths(map: mapboxgl.Map, footpaths: Footpath[]) {
   const source = map.getSource("footpaths") as mapboxgl.GeoJSONSource | undefined;
-  if (!source) return;
+  if (!source) {
+    return;
+  }
 
   const features = footpaths
-    .map((fp) => {
+    .map((footpath) => {
       try {
-        const gj = typeof fp.geoJson === "string" ? JSON.parse(fp.geoJson) : fp.geoJson;
+        const geoJson =
+          typeof footpath.geoJson === "string"
+            ? JSON.parse(footpath.geoJson)
+            : footpath.geoJson;
         return {
           type: "Feature" as const,
-          properties: { name: fp.name || "Footpath" },
-          geometry: gj,
+          properties: { name: footpath.name || "Footpath" },
+          geometry: geoJson,
         };
       } catch {
         return null;
@@ -402,25 +420,71 @@ async function showRoute(
   try {
     const token = mapboxgl.accessToken;
     const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${fromLng},${fromLat};${toLng},${toLat}?geometries=geojson&access_token=${token}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    const response = await fetch(url);
+    const data = await response.json();
     const route = data.routes?.[0]?.geometry;
-    if (!route) return;
+    if (!route) {
+      return;
+    }
 
     const source = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
-    if (source) {
-      source.setData({ type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: route }] });
-    }
-  } catch (err) {
-    console.error("[CactusMap] Route fetch failed:", err);
+    source?.setData({
+      type: "FeatureCollection",
+      features: [{ type: "Feature", properties: {}, geometry: route }],
+    });
+  } catch (error) {
+    console.error("[CactusMap] Route fetch failed:", error);
   }
 }
 
 function clearRoute(map: mapboxgl.Map) {
   const source = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
-  if (source) {
-    source.setData({ type: "FeatureCollection", features: [] });
-  }
+  source?.setData({ type: "FeatureCollection", features: [] });
+}
+
+function createCampusPlaceMarkerElement(place: PlaceLocation) {
+  const meta = getCategoryMeta(place.category);
+  const iconSrc = getPlaceMarkerIcon(place.category);
+  const element = document.createElement("button");
+  element.type = "button";
+  element.title = `${place.name} (${meta.label})`;
+  element.setAttribute("aria-label", `${place.name} (${meta.label})`);
+  element.style.cssText = [
+    "width:32px",
+    "height:32px",
+    "border-radius:999px",
+    `border:1.5px solid ${meta.color}33`,
+    "padding:0",
+    "display:flex",
+    "align-items:center",
+    "justify-content:center",
+    "background:#ffffff",
+    "box-shadow:0 4px 12px rgba(15,23,42,0.16)",
+    "cursor:pointer",
+  ].join(";");
+
+  const icon = document.createElement("img");
+  icon.src = iconSrc;
+  icon.alt = meta.label;
+  icon.style.cssText = [
+    "width:18px",
+    "height:18px",
+    "object-fit:contain",
+    "display:block",
+  ].join(";");
+  element.appendChild(icon);
+
+  return element;
+}
+
+function createCampusPlacePopupHtml(place: PlaceLocation) {
+  const meta = getCategoryMeta(place.category);
+  return `
+    <div style="padding:8px 10px;background:#fff;color:#0f172a;border-radius:10px;min-width:150px;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="font-size:13px;font-weight:700;line-height:1.3;color:#0f172a">${place.name}</div>
+      <div style="font-size:11px;color:${meta.color};margin-top:2px">${meta.label}</div>
+    </div>
+  `;
 }
 
 interface Cluster<T extends { lat: number; lng: number }> {
@@ -430,23 +494,37 @@ interface Cluster<T extends { lat: number; lng: number }> {
   items: T[];
 }
 
-function clusterPoints<T extends { lat: number; lng: number }>(points: T[], radius: number): Cluster<T>[] {
+function clusterPoints<T extends { lat: number; lng: number }>(
+  points: T[],
+  radius: number
+): Cluster<T>[] {
   const clusters: Cluster<T>[] = [];
   const used = new Set<number>();
 
-  points.forEach((p, i) => {
-    if (used.has(i)) return;
-    const cluster: Cluster<T> = { lat: p.lat, lng: p.lng, count: 1, items: [p] };
-    used.add(i);
+  points.forEach((point, index) => {
+    if (used.has(index)) {
+      return;
+    }
 
-    points.forEach((q, j) => {
-      if (used.has(j)) return;
-      const dlat = Math.abs(p.lat - q.lat);
-      const dlng = Math.abs(p.lng - q.lng);
-      if (dlat < radius && dlng < radius) {
-        cluster.count++;
-        cluster.items.push(q);
-        used.add(j);
+    const cluster: Cluster<T> = {
+      lat: point.lat,
+      lng: point.lng,
+      count: 1,
+      items: [point],
+    };
+    used.add(index);
+
+    points.forEach((candidate, candidateIndex) => {
+      if (used.has(candidateIndex)) {
+        return;
+      }
+
+      const latDistance = Math.abs(point.lat - candidate.lat);
+      const lngDistance = Math.abs(point.lng - candidate.lng);
+      if (latDistance < radius && lngDistance < radius) {
+        cluster.count += 1;
+        cluster.items.push(candidate);
+        used.add(candidateIndex);
       }
     });
 

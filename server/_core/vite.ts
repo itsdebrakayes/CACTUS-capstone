@@ -23,6 +23,15 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
+    const pathname = new URL(req.originalUrl, "http://localhost").pathname;
+
+    // Chrome DevTools probes this JSON file in development. Returning the SPA
+    // HTML here causes Vite to try to parse HTML as JSON and log a misleading
+    // pre-transform error.
+    if (pathname === "/.well-known/appspecific/com.chrome.devtools.json") {
+      res.status(204).end();
+      return;
+    }
 
     try {
       const clientTemplate = path.resolve(

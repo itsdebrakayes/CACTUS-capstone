@@ -1,724 +1,1398 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
 import AppLayout from "@/components/AppLayout";
-import { CactusMap, type CactusMapHandle, type Hazard } from "@/components/CactusMap";
-import { useSSE, useGeolocation } from "@/hooks/useSSE";
+import {
+  CactusMap,
+  UWI_MONA_CENTER,
+  type CactusMapHandle,
+  type Hazard,
+} from "@/components/CactusMap";
+import {
+  type Coord2,
+  getCategoryMeta,
+  loadCampusPlaceData,
+  normalizeSearchText,
+  type PlaceLocation,
+} from "@/lib/campusPlaces";
+import {
+  findNearestCampusPathSnap,
+  getCampusNodeCoordinates,
+  planCampusRouteBetweenNodes,
+  type CampusDataset,
+} from "@/lib/findWayGeo";
+import {
+  createRouteFeatureCollection,
+  haversineMeters,
+  mergeRouteCoordinates,
+} from "@/lib/fstRouting";
+import {
+  createSupabaseHazard,
+  loadSupabaseHazards,
+  type HazardRecord,
+} from "@/lib/supabaseHazards";
+import MapHazardReportSheet, {
+  type HazardReportOption,
+} from "@/components/MapHazardReportSheet";
 import {
   AlertTriangle,
-  Users,
-  Shield,
-  Navigation,
-  X,
   ChevronRight,
-  ThumbsUp,
-  ThumbsDown,
-  MapPin,
-  Clock,
-  CheckCircle,
-  Zap,
+  Clock3,
+  Construction,
   Droplets,
   Eye,
-  Construction,
   Footprints,
-  Flame,
-  Wind,
-  PersonStanding,
+  Loader2,
+  MapPin,
+  Navigation,
+  Search,
+  Users,
+  X,
+  Zap,
+  type LucideIcon,
 } from "lucide-react";
+import mapboxgl from "mapbox-gl";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import NavigationPanel from "@/components/NavigationPanel";
 
-// ─── Campus hazard categories ─────────────────────────────────────────────────
-const HAZARD_CATEGORIES = [
-  { type: "light_out", label: "Broken Light", icon: Zap, color: "#f59e0b", bg: "#fef3c7", severity: 4, description: "Street or path light not working" },
-  { type: "flooding", label: "Flooding", icon: Droplets, color: "#3b82f6", bg: "#dbeafe", severity: 4, description: "Water on path / flooded area" },
-  { type: "broken_path", label: "Broken Path", icon: Footprints, color: "#ef4444", bg: "#fee2e2", severity: 3, description: "Damaged or unsafe walkway" },
-  { type: "suspicious", label: "Suspicious Activity", icon: Eye, color: "#8b5cf6", bg: "#ede9fe", severity: 4, description: "Suspicious person or behaviour" },
-  { type: "obstruction", label: "Obstruction", icon: Construction, color: "#f97316", bg: "#ffedd5", severity: 2, description: "Path blocked or under work" },
-  { type: "violent_incident", label: "Violent Incident", icon: Flame, color: "#dc2626", bg: "#fee2e2", severity: 5, description: "Fight, assault, or threat" },
-  { type: "slippery", label: "Slippery Surface", icon: Wind, color: "#0ea5e9", bg: "#e0f2fe", severity: 3, description: "Wet or slippery path surface" },
-  { type: "poor_visibility", label: "Poor Visibility", icon: PersonStanding, color: "#6b7280", bg: "#f3f4f6", severity: 3, description: "Dark or obscured area" },
+const RECENT_SEARCHES_KEY = "cactus-map-recents";
+const HAZARD_REFRESH_MS = 15000;
+const TAB_BAR_HEIGHT = 64;
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+type SheetSnap = "collapsed" | "mid" | "full";
+type SearchSheetMode = "search" | "routeSelection" | "navigating";
+type MapRouteType = "quick" | "shortcut" | "scenic";
+
+interface ActiveMapRoute {
+  mode: MapRouteType;
+  destinationId: string;
+  destinationName: string;
+  coordinates: Coord2[];
+  distanceM: number;
+  durationSec: number;
+}
+
+const DEMO_WALKERS = [
+  { id: 101, lat: 18.0038, lng: -76.7492, trustScore: 0.85 },
+  { id: 102, lat: 18.0031, lng: -76.7505, trustScore: 0.72 },
+  { id: 103, lat: 18.0048, lng: -76.748, trustScore: 0.91 },
+  { id: 104, lat: 18.0025, lng: -76.7515, trustScore: 0.6 },
+];
+
+interface MapHazardCategory extends HazardReportOption {
+  severity: number;
+  icon: LucideIcon;
+}
+
+const HAZARD_CATEGORIES: MapHazardCategory[] = [
+  {
+    type: "pothole",
+    label: "Pothole",
+    description: "Road or path surface is damaged",
+    icon: AlertTriangle,
+    color: "#f59e0b",
+    bg: "#fff4db",
+    border: "#fde68a",
+    severity: 3,
+  },
+  {
+    type: "light_out",
+    label: "Broken Light",
+    description: "Street or path light is not working",
+    icon: Zap,
+    color: "#ef4444",
+    bg: "#fde8e8",
+    border: "#fecaca",
+    severity: 4,
+  },
+  {
+    type: "flooding",
+    label: "Flooding",
+    description: "Water is blocking the walkway",
+    icon: Droplets,
+    color: "#0284c7",
+    bg: "#e0f2fe",
+    border: "#bae6fd",
+    severity: 4,
+  },
+  {
+    type: "broken_path",
+    label: "Broken Path",
+    description: "Damaged or unsafe walkway",
+    icon: Footprints,
+    color: "#dc2626",
+    bg: "#fee2e2",
+    border: "#fecdd3",
+    severity: 3,
+  },
+  {
+    type: "obstruction",
+    label: "Obstruction",
+    description: "Path blocked by work or debris",
+    icon: Construction,
+    color: "#f97316",
+    bg: "#ffedd5",
+    border: "#fed7aa",
+    severity: 2,
+  },
+  {
+    type: "suspicious",
+    label: "Suspicious Activity",
+    description: "Something feels unsafe in the area",
+    icon: Eye,
+    color: "#7c3aed",
+    bg: "#f3e8ff",
+    border: "#ddd6fe",
+    severity: 4,
+  },
 ] as const;
 
 type HazardType = (typeof HAZARD_CATEGORIES)[number]["type"];
 
-// ─── Demo data: mock hazards on UWI Mona campus ───────────────────────────────
-const DEMO_HAZARDS: Hazard[] = [
-  { id: 1, reportType: "light_out", lat: 18.0042, lng: -76.7485, severity: 4, ttlMinutes: 45, description: "Lamp post near Engineering broken" },
-  { id: 2, reportType: "flooding", lat: 18.0028, lng: -76.7510, severity: 3, ttlMinutes: 30, description: "Water pooling after rain near Chapel" },
-  { id: 3, reportType: "broken_path", lat: 18.0055, lng: -76.7475, severity: 3, ttlMinutes: 60, description: "Cracked pavement near Mona Bowl" },
-  { id: 4, reportType: "suspicious", lat: 18.0035, lng: -76.7500, severity: 4, ttlMinutes: 20, description: "Suspicious individual near car park" },
-  { id: 5, reportType: "obstruction", lat: 18.0020, lng: -76.7490, severity: 2, ttlMinutes: 90, description: "Construction materials blocking path" },
-];
-
-// ─── Demo walkers ─────────────────────────────────────────────────────────────
-const DEMO_WALKERS = [
-  { id: 101, lat: 18.0038, lng: -76.7492, trustScore: 0.85 },
-  { id: 102, lat: 18.0031, lng: -76.7505, trustScore: 0.72 },
-  { id: 103, lat: 18.0048, lng: -76.7480, trustScore: 0.91 },
-  { id: 104, lat: 18.0025, lng: -76.7515, trustScore: 0.60 },
-];
-
-// ─── Severity label ───────────────────────────────────────────────────────────
-const SEVERITY_LABELS: Record<number, { label: string; color: string }> = {
-  1: { label: "Low", color: "#22c55e" },
-  2: { label: "Minor", color: "#84cc16" },
-  3: { label: "Moderate", color: "#f59e0b" },
-  4: { label: "High", color: "#ef4444" },
-  5: { label: "Critical", color: "#dc2626" },
+const ROUTE_TYPE_META: Record<
+  MapRouteType,
+  { label: string; subtitle: string; disabled?: boolean }
+> = {
+  quick: { label: "Quick", subtitle: "Fastest route" },
+  shortcut: { label: "Shortcut", subtitle: "Footpaths soon", disabled: true },
+  scenic: { label: "Scenic", subtitle: "Via Ring Road" },
 };
 
-function timeAgo(minutes: number) {
-  if (minutes < 60) return `${minutes}m ago`;
-  return `${Math.floor(minutes / 60)}h ago`;
+function clampValue(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
-// ─── Hazard Report Bottom Sheet ───────────────────────────────────────────────
-function HazardReportSheet({
-  onClose,
-  onSubmit,
-  selectedLat,
-  selectedLng,
+function getCampusRouteMode(routeType: MapRouteType) {
+  return routeType === "scenic" ? "scenic" : "shortest";
+}
+
+function formatMetersLabel(distanceM: number) {
+  if (!Number.isFinite(distanceM) || distanceM <= 0) {
+    return "0 m";
+  }
+  if (distanceM < 1000) {
+    return `${Math.round(distanceM)} m`;
+  }
+  return `${(distanceM / 1000).toFixed(1)} km`;
+}
+
+function SearchBottomSheet({
+  mode,
+  searchQuery,
+  onSearchQueryChange,
+  onClearSearch,
+  results,
+  recentPlaces,
+  selectedPlace,
+  selectedPlaceDistanceLabel,
+  routeType,
+  onChooseResult,
+  onRouteTypeChange,
+  onBackToSearch,
+  onStartNavigation,
+  onCancelNavigation,
+  onSearchFocus,
+  onPointerDown,
+  sheetRef,
+  sheetHeight,
+  isPlanningRoute,
 }: {
-  onClose: () => void;
-  onSubmit: (type: HazardType, description: string, lat: number, lng: number) => void;
-  selectedLat?: number;
-  selectedLng?: number;
+  mode: SearchSheetMode;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  onClearSearch: () => void;
+  results: PlaceLocation[];
+  recentPlaces: PlaceLocation[];
+  selectedPlace: PlaceLocation | null;
+  selectedPlaceDistanceLabel: string | null;
+  routeType: MapRouteType;
+  onChooseResult: (place: PlaceLocation) => void;
+  onRouteTypeChange: (value: MapRouteType) => void;
+  onBackToSearch: () => void;
+  onStartNavigation: () => void;
+  onCancelNavigation: () => void;
+  onSearchFocus: () => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => void;
+  sheetRef: React.RefObject<HTMLDivElement | null>;
+  sheetHeight: number;
+  isPlanningRoute: boolean;
 }) {
-  const [step, setStep] = useState<"category" | "details">("category");
-  const [selectedType, setSelectedType] = useState<HazardType | null>(null);
-  const [description, setDescription] = useState("");
-
-  const handleCategorySelect = (type: HazardType) => {
-    setSelectedType(type);
-    setStep("details");
-  };
-
-  const handleSubmit = () => {
-    if (!selectedType) return;
-    const lat = selectedLat ?? 18.0035;
-    const lng = selectedLng ?? -76.7497;
-    onSubmit(selectedType, description, lat, lng);
-  };
-
-  const selectedCat = HAZARD_CATEGORIES.find((c) => c.type === selectedType);
+  const normalizedQuery = normalizeSearchText(searchQuery);
+  const showingResults = normalizedQuery.length > 0;
+  const visiblePlaces = showingResults ? results : recentPlaces;
+  const canDrag = mode !== "navigating";
 
   return (
-    <>
-      {/* Backdrop */}
+    <div className="absolute inset-x-0 bottom-0 z-[45] pointer-events-none">
       <div
-        className="fixed inset-0 bg-black/30 z-30"
-        onClick={onClose}
-      />
-      {/* Sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col">
-        {/* Handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            {step === "details" && (
-              <button
-                onClick={() => setStep("category")}
-                className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center mr-1"
-              >
-                <ChevronRight className="w-4 h-4 text-gray-500 rotate-180" />
-              </button>
-            )}
-            <h2 className="text-base font-bold text-gray-900">Report a Hazard</h2>
+        ref={sheetRef}
+        className="pointer-events-auto flex flex-col rounded-t-3xl border-t border-gray-100 bg-white shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.12)]"
+        style={{ height: sheetHeight }}
+      >
+        <div
+          className={`shrink-0 px-6 pb-3 pt-3 ${
+            canDrag ? "cursor-grab active:cursor-grabbing" : ""
+          }`}
+          onPointerDown={canDrag ? onPointerDown : undefined}
+        >
+          <div className="mb-3 flex justify-center">
+            <div className="h-1 w-10 rounded-full bg-gray-200" />
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
-          >
-            <X className="w-4 h-4 text-gray-500" />
-          </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 px-5 py-4">
-          {step === "category" ? (
-            <>
-              <p className="text-xs text-gray-500 mb-4">
-                What hazard are you reporting on this footpath?
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {HAZARD_CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
+        {mode === "navigating" ? (
+          <div className="px-4 pb-6">
+            <div className="flex items-center gap-2">
+              <div className="flex flex-1 items-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-3">
+                <Search className="mr-2 h-4 w-4 shrink-0 text-gray-400" />
+                <input
+                  value={selectedPlace?.name ?? searchQuery}
+                  readOnly
+                  className="w-full bg-transparent text-sm font-semibold text-gray-900 outline-none"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={onCancelNavigation}
+                className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : mode === "routeSelection" && selectedPlace ? (
+          <div className="flex flex-1 flex-col px-4 pb-6">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  Route Type
+                </p>
+                <h3 className="mt-1 text-base font-bold text-gray-900">
+                  Choose Your Route
+                </h3>
+                <p className="mt-1 text-xs text-gray-400">
+                  Routing stops at the nearest outdoor access point for now.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onBackToSearch}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition hover:bg-gray-200"
+                aria-label="Back to search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-xl bg-blue-600 p-2 text-white">
+                  <MapPin className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold text-gray-900">
+                    {selectedPlace.name}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-blue-600">
+                    {getCategoryMeta(selectedPlace.category).label}
+                    {selectedPlaceDistanceLabel
+                      ? ` · ${selectedPlaceDistanceLabel} away`
+                      : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="grid grid-cols-3 gap-2">
+                {(["quick", "shortcut", "scenic"] as MapRouteType[]).map((nextType) => {
+                  const meta = ROUTE_TYPE_META[nextType];
+                  const isSelected = routeType === nextType;
                   return (
                     <button
-                      key={cat.type}
-                      onClick={() => handleCategorySelect(cat.type)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-2xl border-2 border-transparent hover:border-gray-200 hover:bg-gray-50 transition-all active:scale-95"
+                      key={nextType}
+                      type="button"
+                      disabled={meta.disabled}
+                      onClick={() => {
+                        if (!meta.disabled) {
+                          onRouteTypeChange(nextType);
+                        }
+                      }}
+                      className={`rounded-xl px-2 py-4 text-center transition-all ${
+                        isSelected
+                          ? "bg-blue-600 shadow-md shadow-blue-200"
+                          : meta.disabled
+                            ? "cursor-not-allowed bg-gray-50 opacity-60"
+                            : "border border-gray-100 bg-gray-50 hover:bg-gray-100"
+                      }`}
                     >
-                      <div
-                        className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                        style={{ backgroundColor: cat.bg }}
+                      <span
+                        className={`block text-sm font-bold ${
+                          isSelected ? "text-white" : "text-gray-700"
+                        }`}
                       >
-                        <Icon className="w-6 h-6" style={{ color: cat.color }} />
-                      </div>
-                      <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">
-                        {cat.label}
+                        {meta.label}
                       </span>
+                      <span
+                        className={`mt-0.5 block text-[10px] leading-tight ${
+                          isSelected ? "text-blue-100" : "text-gray-400"
+                        }`}
+                      >
+                        {meta.subtitle}
+                      </span>
+                      {meta.disabled ? (
+                        <span
+                          className={`mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
+                            isSelected
+                              ? "bg-white/20 text-white"
+                              : "bg-gray-200 text-gray-400"
+                          }`}
+                        >
+                          Soon
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
               </div>
-            </>
-          ) : (
-            selectedCat && (
-              <div>
-                {/* Selected category preview */}
-                <div
-                  className="flex items-center gap-3 p-3 rounded-2xl mb-4"
-                  style={{ backgroundColor: selectedCat.bg }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center"
-                    style={{ backgroundColor: selectedCat.bg }}
-                  >
-                    <selectedCat.icon className="w-5 h-5" style={{ color: selectedCat.color }} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: selectedCat.color }}>
-                      {selectedCat.label}
-                    </p>
-                    <p className="text-xs text-gray-500">{selectedCat.description}</p>
-                  </div>
-                </div>
-
-                {/* Severity indicator */}
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="text-xs text-gray-500">Auto-severity:</span>
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: SEVERITY_LABELS[selectedCat.severity]?.color }}
-                  >
-                    {SEVERITY_LABELS[selectedCat.severity]?.label}
-                  </span>
-                </div>
-
-                {/* Location indicator */}
-                <div className="flex items-center gap-2 mb-4 p-2.5 bg-[#f5f7fa] rounded-xl">
-                  <MapPin className="w-4 h-4 text-[#00c853] shrink-0" />
-                  <span className="text-xs text-gray-600">
-                    {selectedLat && selectedLng
-                      ? `${selectedLat.toFixed(5)}, ${selectedLng.toFixed(5)}`
-                      : "Your current location on campus"}
-                  </span>
-                </div>
-
-                {/* Description */}
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={`Describe the ${selectedCat.label.toLowerCase()} (optional)`}
-                  className="w-full p-3 bg-[#f5f7fa] rounded-xl text-sm text-gray-700 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#00c853]/30 mb-4"
-                  rows={3}
-                  maxLength={300}
-                />
-
-                {/* Submit buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={onClose}
-                    className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    className="flex-1 py-3 rounded-2xl text-sm font-bold text-white transition-colors"
-                    style={{ backgroundColor: selectedCat.color }}
-                  >
-                    Report
-                  </button>
-                </div>
-              </div>
-            )
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Hazard Detail Sheet ──────────────────────────────────────────────────────
-function HazardDetailSheet({
-  hazard,
-  onClose,
-  onVote,
-}: {
-  hazard: Hazard;
-  onClose: () => void;
-  onVote: (reportId: number, vote: "still_there" | "not_there") => void;
-}) {
-  const cat = HAZARD_CATEGORIES.find((c) => c.type === hazard.reportType);
-  const Icon = cat?.icon ?? AlertTriangle;
-  const severity = SEVERITY_LABELS[hazard.severity] ?? SEVERITY_LABELS[3];
-  const ttlPct = Math.min(100, ((hazard.ttlMinutes ?? 30) / 60) * 100);
-
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-
-        <div className="px-5 py-4">
-          {/* Header */}
-          <div className="flex items-start gap-3 mb-4">
-            <div
-              className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: cat?.bg ?? "#f3f4f6" }}
-            >
-              <Icon className="w-6 h-6" style={{ color: cat?.color ?? "#6b7280" }} />
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="text-base font-bold text-gray-900">{cat?.label ?? hazard.reportType}</h3>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
-                  style={{ backgroundColor: severity.color }}
+
+            <div className="mt-auto flex gap-2 pb-24">
+              <button
+                type="button"
+                onClick={onBackToSearch}
+                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+                aria-label="Back to search"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={onStartNavigation}
+                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 text-sm font-bold tracking-wide text-white shadow-md shadow-green-200 transition hover:bg-green-600 active:bg-green-700"
+              >
+                {isPlanningRoute ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Navigation className="h-4 w-4 fill-current" />
+                    GO
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="cactus-scrollbar flex-1 overflow-y-auto px-4 pb-6">
+            <div className="relative mb-4">
+              <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
+                <Search className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                value={searchQuery}
+                onFocus={onSearchFocus}
+                onChange={(event) => onSearchQueryChange(event.target.value)}
+                placeholder="Search classrooms, labs, faculty..."
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-9 text-sm font-medium text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15"
+              />
+              {searchQuery ? (
+                <button
+                  onClick={onClearSearch}
+                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
                 >
-                  {severity.label}
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+
+            {normalizedQuery && visiblePlaces.length === 0 ? (
+              <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-900">
+                  No places matched "{searchQuery}".
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Try a building name, room code, or broader keyword.
+                </p>
+              </div>
+            ) : null}
+
+            <div className="pb-24">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+                  {normalizedQuery ? "Results" : "Recent Searches"}
+                </p>
+                <span className="text-[11px] text-gray-400">
+                  {visiblePlaces.length} shown
                 </span>
               </div>
-              {hazard.description && (
-                <p className="text-sm text-gray-600">{hazard.description}</p>
-              )}
-            </div>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0"
-            >
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-
-          {/* TTL bar */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>Expires in ~{hazard.ttlMinutes ?? 30} min</span>
+              <div className="space-y-1.5">
+                {visiblePlaces.length > 0 ? (
+                  visiblePlaces.map((place) => {
+                    const meta = getCategoryMeta(place.category);
+                    const Icon = meta.icon;
+                    const isSelected = searchQuery === place.name;
+                    return (
+                      <button
+                        key={place.id}
+                        onClick={() => onChooseResult(place)}
+                        className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
+                          isSelected
+                            ? "border-blue-100 bg-blue-50"
+                            : "border-gray-100 bg-white hover:bg-gray-50 active:bg-gray-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                            style={{
+                              backgroundColor: isSelected ? "#eff6ff" : "#f8fafc",
+                            }}
+                          >
+                            <Icon
+                              className="h-4 w-4"
+                              style={{ color: isSelected ? "#2563eb" : meta.color }}
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p
+                              className={`truncate text-sm font-semibold ${
+                                isSelected ? "text-blue-700" : "text-gray-900"
+                              }`}
+                            >
+                              {place.name}
+                            </p>
+                            <p
+                              className={`mt-0.5 text-[11px] ${
+                                isSelected ? "text-blue-400" : "text-gray-400"
+                              }`}
+                            >
+                              {meta.label}
+                            </p>
+                          </div>
+                          <ChevronRight
+                            className={`h-4 w-4 shrink-0 ${
+                              isSelected ? "text-blue-400" : "text-gray-300"
+                            }`}
+                          />
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+                    Search for a classroom, lab, faculty, or hall to start.
+                  </div>
+                )}
               </div>
-              <span>{Math.round(ttlPct)}% remaining</span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${ttlPct}%`,
-                  backgroundColor: ttlPct > 50 ? "#22c55e" : ttlPct > 25 ? "#f59e0b" : "#ef4444",
-                }}
-              />
             </div>
           </div>
-
-          {/* Vote buttons */}
-          <p className="text-xs text-gray-500 mb-3 text-center">Is this hazard still there?</p>
-          <div className="flex gap-3">
-            <button
-              onClick={() => onVote(hazard.id, "still_there")}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#fff8e1] border-2 border-[#f59e0b] text-[#b45309] font-bold text-sm hover:bg-[#fef3c7] transition-colors active:scale-95"
-            >
-              <ThumbsUp className="w-4 h-4" />
-              Still There
-            </button>
-            <button
-              onClick={() => onVote(hazard.id, "not_there")}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#f0fdf4] border-2 border-[#22c55e] text-[#15803d] font-bold text-sm hover:bg-[#dcfce7] transition-colors active:scale-95"
-            >
-              <CheckCircle className="w-4 h-4" />
-              It's Gone
-            </button>
-          </div>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 
-// ─── Walking Request Sheet ────────────────────────────────────────────────────
+function HazardInfoCard({
+  hazard,
+  userLat,
+  userLng,
+  onClose,
+}: {
+  hazard: HazardRecord;
+  userLat?: number;
+  userLng?: number;
+  onClose: () => void;
+}) {
+  const category = getHazardCategory(hazard.reportType);
+  const Icon = category.icon;
+  const distance = formatDistanceKm(userLat, userLng, hazard.lat, hazard.lng);
+
+  return (
+    <div className="absolute left-4 right-4 top-4 z-30">
+      <div className="rounded-[32px] bg-[#17181c] px-5 py-5 text-white shadow-2xl">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-light text-white/75">{category.label}</p>
+            <p className="mt-1 text-5xl font-bold leading-none">
+              {distance ?? "Nearby"}
+            </p>
+            <p className="mt-3 text-2xl font-semibold leading-tight">
+              {hazard.description?.trim() || category.description}
+            </p>
+            <div className="mt-5 flex items-center gap-2 text-sm text-white/65">
+              <Clock3 className="h-4 w-4" />
+              <span>{formatRelativeTime(hazard.createdAt)}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/75 transition hover:bg-white/15"
+              aria-label="Close hazard details"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div
+              className="flex h-28 w-28 items-center justify-center rounded-full shadow-lg"
+              style={{ backgroundColor: category.color }}
+            >
+              <Icon className="h-14 w-14 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WalkingSheet({ onClose }: { onClose: () => void }) {
   const [, navigate] = useLocation();
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
+      <div className="fixed inset-0 z-[70] bg-black/30" onClick={onClose} />
+      <div className="fixed bottom-0 left-0 right-0 z-[80] rounded-t-[32px] bg-white shadow-2xl">
+        <div className="flex justify-center pt-3">
+          <div className="h-1.5 w-14 rounded-full bg-gray-300" />
         </div>
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900">Walking Body</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X className="w-4 h-4 text-gray-500" />
+
+        <div className="px-5 py-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Walking buddies</h2>
+              <p className="text-sm text-slate-500">
+                {DEMO_WALKERS.length} students are currently nearby.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
-            {DEMO_WALKERS.length} students available to walk with you near campus right now.
-          </p>
-          <div className="space-y-2 mb-4">
-            {DEMO_WALKERS.map((w) => (
-              <div key={w.id} className="flex items-center gap-3 p-3 bg-[#f5f7fa] rounded-xl">
-                <div className="w-9 h-9 rounded-full bg-[#e8faf0] flex items-center justify-center">
-                  <Users className="w-4 h-4 text-[#00c853]" />
+
+          <div className="mt-5 space-y-3">
+            {DEMO_WALKERS.map((walker) => (
+              <div
+                key={walker.id}
+                className="flex items-center justify-between rounded-[24px] bg-slate-50 px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#e7f8ee] text-[#00c853]">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Student #{walker.id}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Trust score {Math.round(walker.trustScore * 100)}%
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800">Student #{w.id}</p>
-                  <p className="text-xs text-gray-500">Trust: {Math.round(w.trustScore * 100)}%</p>
-                </div>
-                <div className="w-2 h-2 rounded-full bg-[#00c853] animate-pulse" />
+                <div className="h-2.5 w-2.5 rounded-full bg-[#00c853]" />
               </div>
             ))}
           </div>
+
           <button
-            onClick={() => { onClose(); navigate("/walking"); }}
-            className="w-full py-3 bg-[#00c853] text-white font-bold text-sm rounded-2xl hover:bg-[#00b84a] transition-colors"
+            type="button"
+            onClick={() => {
+              onClose();
+              navigate("/walking");
+            }}
+            className="mt-5 w-full rounded-[24px] bg-[#00c853] px-4 py-4 text-sm font-bold text-white transition hover:bg-[#00b74a]"
           >
-            Request Walking Partner
+            Request walking support
           </button>
         </div>
       </div>
     </>
   );
 }
-
-// ─── Check-In Sheet ───────────────────────────────────────────────────────────
-function CheckInSheet({
-  onClose,
-  selectedDest,
-  onSelectDest,
-}: {
-  onClose: () => void;
-  selectedDest: { lat: number; lng: number } | null;
-  onSelectDest: () => void;
-}) {
-  const [, navigate] = useLocation();
-  return (
-    <>
-      <div className="fixed inset-0 bg-black/30 z-30" onClick={onClose} />
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white rounded-t-3xl shadow-2xl">
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-200 rounded-full" />
-        </div>
-        <div className="px-5 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-bold text-gray-900">Safety Check-In</h2>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X className="w-4 h-4 text-gray-500" />
-            </button>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Set your destination. If you don't arrive in time, your emergency contact will be notified.
-          </p>
-
-          {/* Destination picker */}
-          <button
-            onClick={onSelectDest}
-            className={cn(
-              "w-full flex items-center gap-3 p-3 rounded-xl border-2 mb-4 transition-all",
-              selectedDest
-                ? "border-[#00c853] bg-[#f0fdf4]"
-                : "border-dashed border-gray-300 bg-[#f5f7fa] hover:border-[#00c853]"
-            )}
-          >
-            <MapPin className={cn("w-5 h-5 shrink-0", selectedDest ? "text-[#00c853]" : "text-gray-400")} />
-            <span className={cn("text-sm font-medium", selectedDest ? "text-[#00c853]" : "text-gray-500")}>
-              {selectedDest
-                ? `${selectedDest.lat.toFixed(5)}, ${selectedDest.lng.toFixed(5)}`
-                : "Tap map to set destination"}
-            </span>
-          </button>
-
-          <button
-            onClick={() => { onClose(); navigate("/check-in"); }}
-            className="w-full py-3 bg-[#7b1fa2] text-white font-bold text-sm rounded-2xl hover:bg-[#6a1a8f] transition-colors"
-          >
-            Set Up Check-In
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Main MapPage ─────────────────────────────────────────────────────────────
-type ActiveSheet = "none" | "report" | "hazard" | "walking" | "checkin";
 
 export default function MapPage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
-  const [activeSheet, setActiveSheet] = useState<ActiveSheet>("none");
-  const [selectedHazard, setSelectedHazard] = useState<Hazard | null>(null);
-  const [isSelectingDest, setIsSelectingDest] = useState(false);
-  const [selectedDest, setSelectedDest] = useState<{ lat: number; lng: number } | null>(null);
+  const mapRef = useRef<CactusMapHandle>(null);
+  const hazardLoadErrorShownRef = useRef(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const startYRef = useRef(0);
+  const startTranslateYRef = useRef(0);
+  const currentTranslateYRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const activeSnapRef = useRef<SheetSnap>("collapsed");
+
+  const [campusPlaces, setCampusPlaces] = useState<PlaceLocation[]>([]);
+  const [campusData, setCampusData] = useState<CampusDataset | null>(null);
+  const [hazards, setHazards] = useState<HazardRecord[]>([]);
   const [userLat, setUserLat] = useState<number | undefined>();
   const [userLng, setUserLng] = useState<number | undefined>();
-  const [hazards, setHazards] = useState<Hazard[]>(DEMO_HAZARDS);
-  const [reportLat, setReportLat] = useState<number | undefined>();
-  const [reportLng, setReportLng] = useState<number | undefined>();
-   const mapRef = useRef<CactusMapHandle>(null);
-  const hasGps = userLat !== undefined && userLng !== undefined;
-  const createReportMutation = trpc.reports.createReport.useMutation({
-    onSuccess: (data) => {
-      toast.success("Hazard reported! Other students will be notified.");
-      setActiveSheet("none");
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const [viewportHeight, setViewportHeight] = useState(800);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [recentIds, setRecentIds] = useState<string[]>([]);
+  const [routeType, setRouteType] = useState<MapRouteType>("quick");
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [activeRoute, setActiveRoute] = useState<ActiveMapRoute | null>(null);
+  const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(null);
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isPlanningRoute, setIsPlanningRoute] = useState(false);
+  const [isWalkingOpen, setIsWalkingOpen] = useState(false);
 
-  const voteReportMutation = trpc.reports.voteReport.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.newTTL > 0 ? "Thanks for confirming!" : "Report marked as resolved.");
-      setActiveSheet("none");
-      setSelectedHazard(null);
-    },
-    onError: (err) => toast.error(err.message),
-  });
-
-  // SSE for live hazard updates
-  useSSE((event) => {
-    if (event.type === "reports.created") {
-      const d = event.data as { reportId: number; reportType: string; severity: number; lat: number; lng: number };
-      setHazards((prev) => [
-        ...prev,
-        {
-          id: d.reportId,
-          reportType: d.reportType,
-          lat: d.lat,
-          lng: d.lng,
-          severity: d.severity,
-          ttlMinutes: d.severity >= 4 ? 60 : 30,
-        },
-      ]);
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/login");
     }
-  });
+  }, [loading, navigate, user]);
 
-  // Geolocation
-  useGeolocation((lat, lng) => {
-    setUserLat(lat);
-    setUserLng(lng);
-  }, 3000);
+  useEffect(() => {
+    let isCancelled = false;
 
-  // Active hazard count
-  const activeHazardCount = hazards.filter((h) => (h.ttlMinutes ?? 0) > 0).length;
+    async function loadPlaces() {
+      try {
+        const { campusData: nextCampusData, placeData } = await loadCampusPlaceData();
+        if (!isCancelled) {
+          setCampusData(nextCampusData);
+          setCampusPlaces(placeData.locations);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!isCancelled) {
+          toast.error("Unable to load campus places.");
+        }
+      }
+    }
+
+    loadPlaces();
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const stored = readRecentSearches();
+    setRecentIds(stored);
+  }, []);
+
+  useEffect(() => {
+    setViewportHeight(window.innerHeight);
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) {
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLat(position.coords.latitude);
+        setUserLng(position.coords.longitude);
+      },
+      () => undefined,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 12000,
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function refreshHazards() {
+      try {
+        const rows = await loadSupabaseHazards();
+        if (!isCancelled) {
+          hazardLoadErrorShownRef.current = false;
+          setHazards(rows);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!isCancelled && !hazardLoadErrorShownRef.current) {
+          hazardLoadErrorShownRef.current = true;
+          toast.error("Unable to load hazard reports.");
+        }
+      }
+    }
+
+    refreshHazards();
+    const interval = window.setInterval(refreshHazards, HAZARD_REFRESH_MS);
+
+    return () => {
+      isCancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const placesById = useMemo(
+    () => new Map(campusPlaces.map((place) => [place.id, place])),
+    [campusPlaces]
+  );
+
+  const sheetMetrics = useMemo(() => {
+    const frameHeight = viewportHeight - TAB_BAR_HEIGHT;
+    const collapsedVisible = 104;
+    const midVisible = Math.round(frameHeight * 0.45);
+    const fullVisible = Math.round(frameHeight * 0.9);
+    const sheetHeight = fullVisible;
+    return {
+      sheetHeight,
+      snaps: {
+        collapsed: Math.max(0, sheetHeight - collapsedVisible),
+        mid: Math.max(0, sheetHeight - midVisible),
+        full: 0,
+      },
+    };
+  }, [viewportHeight]);
+
+  const normalizedQuery = normalizeSearchText(searchQuery);
+
+  const filteredPlaces = useMemo(() => {
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return campusPlaces
+      .filter((place) => {
+        const haystack = normalizeSearchText(
+          `${place.name} ${place.category} ${place.nearestNodeName}`
+        );
+        return haystack.includes(normalizedQuery);
+      })
+      .slice(0, 8);
+  }, [campusPlaces, normalizedQuery]);
+
+  const recentPlaces = useMemo(
+    () =>
+      recentIds
+        .map((id) => placesById.get(id))
+        .filter((place): place is PlaceLocation => Boolean(place))
+        .slice(0, 6),
+    [placesById, recentIds]
+  );
+
+  const selectedPlace = useMemo(
+    () => (selectedPlaceId ? placesById.get(selectedPlaceId) ?? null : null),
+    [placesById, selectedPlaceId]
+  );
+
+  const selectedPlaceDistanceLabel = useMemo(() => {
+    if (!selectedPlace) {
+      return null;
+    }
+    if (userLat == null || userLng == null) {
+      return formatMetersLabel(selectedPlace.nearestNodeDistanceM);
+    }
+    return formatMetersLabel(
+      haversineMeters([userLng, userLat], selectedPlace.coordinates)
+    );
+  }, [selectedPlace, userLat, userLng]);
+
+  const sheetMode: SearchSheetMode = activeRoute
+    ? "navigating"
+    : selectedPlace
+      ? "routeSelection"
+      : "search";
+
+  const visibleHazards = useMemo<Hazard[]>(
+    () =>
+      hazards.map((hazard) => ({
+        id: hazard.id,
+        reportType: hazard.reportType,
+        lat: hazard.lat,
+        lng: hazard.lng,
+        severity: hazard.severity,
+        description: hazard.description,
+      })),
+    [hazards]
+  );
+
+  const activeHazardCount = visibleHazards.length;
+
+  const snapSheetTo = useCallback(
+    (nextSnap: SheetSnap) => {
+      activeSnapRef.current = nextSnap;
+      const nextY = sheetMetrics.snaps[nextSnap];
+      currentTranslateYRef.current = nextY;
+      if (!sheetRef.current) {
+        return;
+      }
+      sheetRef.current.style.transition =
+        "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)";
+      sheetRef.current.style.transform = `translateY(${nextY}px)`;
+    },
+    [sheetMetrics]
+  );
+
+  useEffect(() => {
+    if (!sheetRef.current) {
+      return;
+    }
+    sheetRef.current.style.height = `${sheetMetrics.sheetHeight}px`;
+    snapSheetTo(activeSnapRef.current);
+  }, [sheetMetrics, snapSheetTo]);
+
+  const fitMapToRoute = useCallback((coordinates: Coord2[]) => {
+    const map = mapRef.current?.getMap();
+    if (!map || coordinates.length < 2) {
+      return;
+    }
+
+    const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
+    coordinates.slice(1).forEach((coordinate) => bounds.extend(coordinate));
+
+    map.fitBounds(bounds, {
+      padding: {
+        top: 120,
+        right: 32,
+        bottom: TAB_BAR_HEIGHT + 120,
+        left: 32,
+      },
+      maxZoom: 18,
+      duration: 900,
+    });
+  }, []);
+
+  const requestWalkingRoute = useCallback(async (waypoints: Coord2[]) => {
+    if (!MAPBOX_TOKEN) {
+      throw new Error("Mapbox token is missing.");
+    }
+    if (waypoints.length < 2) {
+      throw new Error("At least two coordinates are required.");
+    }
+
+    const url = new URL(
+      `https://api.mapbox.com/directions/v5/mapbox/walking/${waypoints
+        .map((point) => `${point[0]},${point[1]}`)
+        .join(";")}`
+    );
+    url.searchParams.set("alternatives", "false");
+    url.searchParams.set("geometries", "geojson");
+    url.searchParams.set("overview", "full");
+    url.searchParams.set("steps", "false");
+    url.searchParams.set("access_token", MAPBOX_TOKEN);
+
+    const response = await fetch(url.toString());
+    if (!response.ok) {
+      throw new Error(`Mapbox directions failed (${response.status}).`);
+    }
+
+    const data = (await response.json()) as {
+      routes?: Array<{
+        distance?: number;
+        duration?: number;
+        geometry?: { coordinates?: number[][] };
+      }>;
+    };
+    const route = data.routes?.[0];
+    const coordinates = Array.isArray(route?.geometry?.coordinates)
+      ? route.geometry.coordinates
+          .filter((value) => Array.isArray(value) && value.length >= 2)
+          .map((value) => [value[0], value[1]] as Coord2)
+      : [];
+
+    if (coordinates.length < 2) {
+      throw new Error("Mapbox directions did not return a usable path.");
+    }
+
+    return {
+      coordinates,
+      distanceM: route?.distance ?? 0,
+      durationSec: route?.duration ?? 0,
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) {
+      return;
+    }
+
+    const source = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
+    source?.setData(createRouteFeatureCollection(activeRoute?.coordinates ?? []));
+
+    if (activeRoute) {
+      fitMapToRoute(activeRoute.coordinates);
+    }
+  }, [activeRoute, fitMapToRoute]);
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!isDraggingRef.current || !sheetRef.current) {
+        return;
+      }
+
+      const delta = event.clientY - startYRef.current;
+      const nextY = clampValue(
+        startTranslateYRef.current + delta,
+        sheetMetrics.snaps.full,
+        sheetMetrics.snaps.collapsed
+      );
+
+      currentTranslateYRef.current = nextY;
+      sheetRef.current.style.transform = `translateY(${nextY}px)`;
+    };
+
+    const handlePointerUp = () => {
+      if (!isDraggingRef.current) {
+        return;
+      }
+
+      isDraggingRef.current = false;
+      const snapEntries: Array<[SheetSnap, number]> = [
+        ["collapsed", sheetMetrics.snaps.collapsed],
+        ["mid", sheetMetrics.snaps.mid],
+        ["full", sheetMetrics.snaps.full],
+      ];
+      const nearest = snapEntries.reduce((closest, candidate) =>
+        Math.abs(candidate[1] - currentTranslateYRef.current) <
+        Math.abs(closest[1] - currentTranslateYRef.current)
+          ? candidate
+          : closest
+      );
+      snapSheetTo(nearest[0]);
+    };
+
+    document.addEventListener("pointermove", handlePointerMove);
+    document.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      document.removeEventListener("pointermove", handlePointerMove);
+      document.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [sheetMetrics, snapSheetTo]);
+
+  const focusPlaceOnMap = useCallback((place: PlaceLocation) => {
+    setSelectedPlaceId(place.id);
+    setSelectedHazard(null);
+    mapRef.current?.flyTo(place.coordinates[1], place.coordinates[0], 17.25);
+  }, []);
+
+  const chooseSearchResult = useCallback(
+    (place: PlaceLocation) => {
+      setActiveRoute(null);
+      focusPlaceOnMap(place);
+      snapSheetTo("full");
+      setRecentIds((current) => {
+        const next = [place.id, ...current.filter((id) => id !== place.id)].slice(0, 8);
+        writeRecentSearches(next);
+        return next;
+      });
+    },
+    [focusPlaceOnMap, snapSheetTo]
+  );
+
+  const handlePlaceClick = useCallback(
+    (place: PlaceLocation) => {
+      if (activeRoute) {
+        return;
+      }
+      focusPlaceOnMap(place);
+      snapSheetTo("full");
+    },
+    [activeRoute, focusPlaceOnMap, snapSheetTo]
+  );
+
+  const handleBackToSearch = useCallback(() => {
+    setSelectedPlaceId(null);
+    setActiveRoute(null);
+    mapRef.current?.clearRoute();
+    snapSheetTo(normalizedQuery ? "full" : "mid");
+  }, [normalizedQuery, snapSheetTo]);
+
+  const handleCancelNavigation = useCallback(() => {
+    setActiveRoute(null);
+    setSelectedPlaceId(null);
+    setSelectedHazard(null);
+    setSearchQuery("");
+    mapRef.current?.clearRoute();
+    if (userLat != null && userLng != null) {
+      mapRef.current?.flyTo(userLat, userLng, 16.4);
+    } else {
+      mapRef.current?.flyTo(UWI_MONA_CENTER[1], UWI_MONA_CENTER[0], 15.5);
+    }
+    snapSheetTo("collapsed");
+  }, [snapSheetTo, userLat, userLng]);
 
   const handleHazardClick = useCallback((hazard: Hazard) => {
-    setSelectedHazard(hazard);
-    setActiveSheet("hazard");
-  }, []);
+    const fullHazard =
+      hazards.find((item) => String(item.id) === String(hazard.id)) ?? null;
+    setSelectedHazard(fullHazard);
+  }, [hazards]);
 
-  const handleDestinationSelected = useCallback((lat: number, lng: number) => {
-    setSelectedDest({ lat, lng });
-    setIsSelectingDest(false);
-    setActiveSheet("checkin");
-  }, []);
+  const handleSheetPointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (sheetMode === "navigating") {
+        return;
+      }
+      startYRef.current = event.clientY;
+      startTranslateYRef.current = currentTranslateYRef.current;
+      isDraggingRef.current = true;
+      if (sheetRef.current) {
+        sheetRef.current.style.transition = "none";
+      }
+    },
+    [sheetMode]
+  );
 
-  const handleReportSubmit = (type: HazardType, description: string, lat: number, lng: number) => {
-    const cat = HAZARD_CATEGORIES.find((c) => c.type === type);
-    if (!cat) return;
+  const handleStartNavigation = useCallback(async () => {
+    if (!selectedPlace) {
+      toast.error("Select a destination first.");
+      return;
+    }
+    if (!campusData) {
+      toast.error("Campus routes are still loading.");
+      return;
+    }
+    if (userLat == null || userLng == null) {
+      toast.error("Your location is needed before routing.");
+      return;
+    }
+    if (routeType === "shortcut") {
+      toast.error("Shortcut mode is coming soon.");
+      return;
+    }
 
-    // Optimistic update for demo
-    const newHazard: Hazard = {
-      id: Date.now(),
-      reportType: type,
-      lat,
-      lng,
-      severity: cat.severity,
-      ttlMinutes: cat.severity >= 4 ? 60 : 30,
-      description,
-    };
-    setHazards((prev) => [...prev, newHazard]);
+    setIsPlanningRoute(true);
+    setSelectedHazard(null);
+    setIsReportOpen(false);
+    setIsWalkingOpen(false);
 
-    // Real API call
-    createReportMutation.mutate({
-      reportType: type as any,
-      severity: cat.severity,
-      lat,
-      lng,
-      description,
-    });
-  };
+    try {
+      const origin: Coord2 = [userLng, userLat];
+      const userSnap = findNearestCampusPathSnap(campusData, origin);
+      if (!userSnap) {
+        throw new Error("Unable to snap the current location to the campus network.");
+      }
 
-  const handleVote = (reportId: number, vote: "still_there" | "not_there") => {
-    // Optimistic TTL update
-    setHazards((prev) =>
-      prev.map((h) => {
-        if (h.id !== reportId) return h;
-        const adj = vote === "still_there" ? (h.severity >= 4 ? 30 : 15) : -(h.severity >= 4 ? 30 : 15);
-        return { ...h, ttlMinutes: Math.max(0, (h.ttlMinutes ?? 30) + adj) };
-      })
-    );
-    voteReportMutation.mutate({ reportId, vote });
-  };
+      const destinationNodeCoordinates =
+        getCampusNodeCoordinates(campusData, selectedPlace.nearestNodeId) ??
+        selectedPlace.coordinates;
+
+      const roadConnectorDistanceM = haversineMeters(origin, userSnap.coordinates);
+      const roadRoute =
+        roadConnectorDistanceM < 3
+          ? {
+              coordinates: mergeRouteCoordinates([origin], [userSnap.coordinates]),
+              distanceM: roadConnectorDistanceM,
+              durationSec: roadConnectorDistanceM / 1.35,
+            }
+          : await requestWalkingRoute([origin, userSnap.coordinates]);
+
+      const startOptions = [
+        {
+          nodeId: userSnap.startNodeId,
+          connectorDistanceM: userSnap.distanceToStartM,
+        },
+        {
+          nodeId: userSnap.endNodeId,
+          connectorDistanceM: userSnap.distanceToEndM,
+        },
+      ].filter(
+        (option, index, options) =>
+          options.findIndex((candidate) => candidate.nodeId === option.nodeId) ===
+          index
+      );
+
+      const routeOptions = startOptions
+        .map((option) => {
+          const campusRoute = planCampusRouteBetweenNodes(
+            campusData,
+            option.nodeId,
+            selectedPlace.nearestNodeId,
+            getCampusRouteMode(routeType)
+          );
+          if (!campusRoute) {
+            return null;
+          }
+
+          return {
+            coordinates: mergeRouteCoordinates(
+              roadRoute.coordinates,
+              [userSnap.coordinates],
+              campusRoute.coordinates,
+              [destinationNodeCoordinates]
+            ),
+            distanceM:
+              roadRoute.distanceM +
+              option.connectorDistanceM +
+              campusRoute.distanceM,
+            durationSec:
+              roadRoute.durationSec +
+              option.connectorDistanceM / 1.35 +
+              campusRoute.walkTimeSec,
+          };
+        })
+        .filter((route): route is NonNullable<typeof route> => route !== null);
+
+      const bestRoute = routeOptions.sort(
+        (left, right) => left.distanceM - right.distanceM
+      )[0];
+      if (!bestRoute) {
+        throw new Error("No route could be built to the selected destination.");
+      }
+
+      setActiveRoute({
+        mode: routeType,
+        destinationId: selectedPlace.id,
+        destinationName: selectedPlace.name,
+        coordinates: bestRoute.coordinates,
+        distanceM: bestRoute.distanceM,
+        durationSec: bestRoute.durationSec,
+      });
+      snapSheetTo("collapsed");
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to build the route right now.");
+    } finally {
+      setIsPlanningRoute(false);
+    }
+  }, [
+    campusData,
+    requestWalkingRoute,
+    routeType,
+    selectedPlace,
+    snapSheetTo,
+    userLat,
+    userLng,
+  ]);
+
+  const handleSubmitHazardWithOption = useCallback(async (nextType: HazardType) => {
+    const category = getHazardCategory(nextType);
+    const mapCenter = mapRef.current?.getMap()?.getCenter();
+    const lat = userLat ?? mapCenter?.lat ?? UWI_MONA_CENTER[1];
+    const lng = userLng ?? mapCenter?.lng ?? UWI_MONA_CENTER[0];
+
+    try {
+      const created = await createSupabaseHazard({
+        reportType: nextType,
+        lat,
+        lng,
+        severity: category.severity,
+        description: undefined,
+      });
+
+      setHazards((current) => [created, ...current.filter((item) => item.id !== created.id)]);
+      setSelectedHazard(created);
+      setIsReportOpen(false);
+      toast.success("Hazard reported on the map.");
+      mapRef.current?.flyTo(created.lat, created.lng, 17.2);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to submit the hazard report.");
+    }
+  }, [userLat, userLng]);
 
   if (!loading && !user) {
-    navigate("/login");
     return null;
   }
 
   return (
     <AppLayout activeTab="map" noScroll>
-      {/* Full-height map container — fills all space above the bottom nav (64px) */}
       <div className="relative" style={{ height: "calc(100vh - 64px)" }}>
-        {/* Map */}
         <CactusMap
           ref={mapRef}
           userLat={userLat}
           userLng={userLng}
           walkers={DEMO_WALKERS}
-          hazards={hazards}
-          isSelectingDest={isSelectingDest}
-          onDestinationSelected={handleDestinationSelected}
+          hazards={visibleHazards}
+          places={campusPlaces}
           onHazardClick={handleHazardClick}
+          onPlaceClick={handlePlaceClick}
         />
 
-        {/* ── Navigation Panel (Apple Maps style) ─────────────────────── */}
-        <NavigationPanel
-          mapRef={mapRef}
-          userLat={userLat}
-          userLng={userLng}
-          hasGps={hasGps}
-        />
+        {selectedHazard ? (
+          <HazardInfoCard
+            hazard={selectedHazard}
+            userLat={userLat}
+            userLng={userLng}
+            onClose={() => setSelectedHazard(null)}
+          />
+        ) : null}
 
-        {/* ── Destination-select hint ─────────────────────────────────────── */}
-        {isSelectingDest && (
-          <div className="absolute top-20 left-4 right-4 z-10">
-            <div className="bg-[#7b1fa2] text-white rounded-2xl px-4 py-3 text-center shadow-lg">
-              <p className="text-sm font-bold">Tap the map to set your destination</p>
-              <p className="text-xs opacity-80 mt-0.5">Your check-in will monitor your journey</p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Right-side FABs ─────────────────────────────────────────────── */}
-        <div className="absolute right-4 bottom-24 z-20 flex flex-col gap-3">
-          {/* Walking Body FAB */}
+        <div className="absolute left-4 top-4 z-20 flex flex-col gap-3">
           <button
-            onClick={() => setActiveSheet("walking")}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#00c853] relative hover:scale-105 transition-transform active:scale-95"
+            type="button"
+            onClick={() => setIsWalkingOpen(true)}
+            className="flex h-14 w-14 items-center justify-center rounded-3xl border-2 border-[#00c853] bg-white text-[#00c853] shadow-xl transition hover:scale-[1.03]"
+            aria-label="Open walking support"
           >
-            <Users className="w-6 h-6 text-[#00c853]" />
-            {DEMO_WALKERS.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#00c853] text-white text-[9px] font-bold flex items-center justify-center">
-                {DEMO_WALKERS.length}
-              </span>
-            )}
+            <Users className="h-6 w-6" />
           </button>
 
-          {/* Check-In FAB */}
           <button
-            onClick={() => setActiveSheet("checkin")}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#7b1fa2] hover:scale-105 transition-transform active:scale-95"
+            type="button"
+            onClick={() => setIsReportOpen(true)}
+            className="relative flex h-14 w-14 items-center justify-center rounded-3xl border-2 border-[#ff9f0a] bg-white text-[#ff9f0a] shadow-xl transition hover:scale-[1.03]"
+            aria-label="Report a hazard"
           >
-            <Shield className="w-6 h-6 text-[#7b1fa2]" />
-          </button>
-
-          {/* Caution / Report FAB — Waze-style yellow triangle */}
-          <button
-            onClick={() => {
-              setReportLat(userLat);
-              setReportLng(userLng);
-              setActiveSheet("report");
-            }}
-            className="w-14 h-14 rounded-full bg-white shadow-xl flex items-center justify-center hover:scale-105 transition-transform active:scale-95 relative"
-            style={{ border: "2.5px solid #f59e0b" }}
-          >
-            {/* Triangle icon matching Waze style */}
-            <svg viewBox="0 0 40 36" className="w-7 h-7" fill="none">
-              <path
-                d="M20 2L38 34H2L20 2Z"
-                fill="#f59e0b"
-                stroke="#f59e0b"
-                strokeWidth="1"
-                strokeLinejoin="round"
-              />
-              <text
-                x="20"
-                y="28"
-                textAnchor="middle"
-                fontSize="18"
-                fontWeight="bold"
-                fill="white"
-              >
-                !
-              </text>
-            </svg>
-            {activeHazardCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#ef4444] text-white text-[9px] font-bold flex items-center justify-center">
+            <AlertTriangle className="h-6 w-6" />
+            {activeHazardCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff5a4f] px-1 text-[10px] font-bold text-white">
                 {activeHazardCount}
               </span>
-            )}
+            ) : null}
           </button>
         </div>
 
-        {/* ── Bottom legend strip ─────────────────────────────────────────── */}
-        {activeSheet === "none" && !isSelectingDest && (
-          <div className="absolute bottom-4 left-4 right-4 z-10">
-            <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {[
-                    { color: "#ef4444", label: "Critical" },
-                    { color: "#f59e0b", label: "High" },
-                    { color: "#22c55e", label: "Low" },
-                  ].map((s) => (
-                    <div key={s.label} className="flex items-center gap-1">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="text-[10px] text-gray-500">{s.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#00c853] animate-pulse" />
-                  <span className="text-[10px] text-gray-500">{DEMO_WALKERS.length} walkers nearby</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SearchBottomSheet
+          mode={sheetMode}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          onClearSearch={() => {
+            setSearchQuery("");
+            if (!activeRoute) {
+              setSelectedPlaceId(null);
+            }
+          }}
+          results={filteredPlaces}
+          recentPlaces={recentPlaces}
+          selectedPlace={selectedPlace}
+          selectedPlaceDistanceLabel={selectedPlaceDistanceLabel}
+          routeType={routeType}
+          onChooseResult={chooseSearchResult}
+          onRouteTypeChange={setRouteType}
+          onBackToSearch={handleBackToSearch}
+          onStartNavigation={() => {
+            void handleStartNavigation();
+          }}
+          onCancelNavigation={handleCancelNavigation}
+          onSearchFocus={() => snapSheetTo("full")}
+          onPointerDown={handleSheetPointerDown}
+          sheetRef={sheetRef}
+          sheetHeight={sheetMetrics.sheetHeight}
+          isPlanningRoute={isPlanningRoute}
+        />
+
       </div>
 
-      {/* ── Sheets ──────────────────────────────────────────────────────────── */}
-      {activeSheet === "report" && (
-        <HazardReportSheet
-          onClose={() => setActiveSheet("none")}
-          onSubmit={handleReportSubmit}
-          selectedLat={reportLat}
-          selectedLng={reportLng}
-        />
-      )}
+      <MapHazardReportSheet
+        open={isReportOpen}
+        title="Report a Path Issue"
+        subtitle="Flag a problem other students should know about."
+        helperText="Pick the issue type first. After that, we will save it to Supabase and show it on the map."
+        options={HAZARD_CATEGORIES}
+        onClose={() => setIsReportOpen(false)}
+        onSelect={(option) => {
+          void handleSubmitHazardWithOption(option.type as HazardType);
+        }}
+      />
 
-      {activeSheet === "hazard" && selectedHazard && (
-        <HazardDetailSheet
-          hazard={selectedHazard}
-          onClose={() => { setActiveSheet("none"); setSelectedHazard(null); }}
-          onVote={handleVote}
-        />
-      )}
-
-      {activeSheet === "walking" && (
-        <WalkingSheet onClose={() => setActiveSheet("none")} />
-      )}
-
-      {activeSheet === "checkin" && (
-        <CheckInSheet
-          onClose={() => setActiveSheet("none")}
-          selectedDest={selectedDest}
-          onSelectDest={() => {
-            setActiveSheet("none");
-            setIsSelectingDest(true);
-          }}
-        />
-      )}
+      {isWalkingOpen ? (
+        <WalkingSheet onClose={() => setIsWalkingOpen(false)} />
+      ) : null}
     </AppLayout>
   );
+}
+
+function getHazardCategory(type: string) {
+  return (
+    HAZARD_CATEGORIES.find((category) => category.type === type) ??
+    {
+      type: "other",
+      label: "Hazard",
+      description: "Campus safety report",
+      icon: AlertTriangle,
+      color: "#ff9f0a",
+      bg: "#fff4db",
+      severity: 3,
+    }
+  );
+}
+
+function readRecentSearches() {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecentSearches(ids: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(ids));
+}
+
+function formatRelativeTime(createdAt?: string) {
+  if (!createdAt) {
+    return "Reported recently";
+  }
+
+  const diffMs = Date.now() - new Date(createdAt).getTime();
+  const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min ago`;
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
+
+function formatDistanceKm(
+  fromLat: number | undefined,
+  fromLng: number | undefined,
+  toLat: number,
+  toLng: number
+) {
+  if (fromLat == null || fromLng == null) {
+    return null;
+  }
+
+  const km = haversineDistanceKm(fromLat, fromLng, toLat, toLng);
+  if (km < 1) {
+    return `${Math.round(km * 1000)} m away`;
+  }
+  return `${km.toFixed(1)} km away`;
+}
+
+function haversineDistanceKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return 6371 * c;
 }

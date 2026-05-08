@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -9,6 +10,15 @@ import { getLoginUrl } from "./const";
 import "./index.css";
 
 const queryClient = new QueryClient();
+let currentSupabaseAccessToken: string | null = null;
+
+void supabase.auth.getSession().then(({ data }) => {
+  currentSupabaseAccessToken = data.session?.access_token ?? null;
+});
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  currentSupabaseAccessToken = session?.access_token ?? null;
+});
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
@@ -42,6 +52,11 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
+      headers() {
+        return currentSupabaseAccessToken
+          ? { Authorization: `Bearer ${currentSupabaseAccessToken}` }
+          : {};
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { trpc } from "@/lib/trpc";
+import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,24 +12,32 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const loginMutation = trpc.auth.login.useMutation({
-    onSuccess: () => {
-      toast.success("Welcome back!");
-      window.location.href = "/dashboard";
-    },
-    onError: (err) => {
-      toast.error(err.message || "Login failed");
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Please fill in all fields");
       return;
     }
-    loginMutation.mutate({ email, password });
+
+    try {
+      setIsSubmitting(true);
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) {
+        throw error;
+      }
+
+      toast.success("Welcome back!");
+      window.location.href = "/dashboard";
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Login failed");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -88,10 +96,10 @@ export default function Login() {
 
           <Button
             type="submit"
-            disabled={loginMutation.isPending}
+            disabled={isSubmitting}
             className="w-full h-11 bg-[#00c853] hover:bg-[#00b84a] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-[#00c853]/20"
           >
-            {loginMutation.isPending ? (
+            {isSubmitting ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Signing in...
