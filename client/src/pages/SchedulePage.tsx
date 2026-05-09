@@ -5,6 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import { Search, CheckCircle, MapPin, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
+  getCachedSupabaseCourses,
   loadSupabaseCourses,
   type SupabaseCourseRecord,
 } from "@/lib/supabaseCourses";
@@ -82,10 +83,11 @@ function ClassCard({ cls }: { cls: RenderedScheduleClass }) {
 export default function SchedulePage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
+  const cachedCourses = getCachedSupabaseCourses();
   const [supabaseCourses, setSupabaseCourses] = useState<
     Awaited<ReturnType<typeof loadSupabaseCourses>>
-  >([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
+  >(cachedCourses ?? []);
+  const [coursesLoading, setCoursesLoading] = useState(!cachedCourses);
   const [coursesError, setCoursesError] = useState<string | null>(null);
   const [selectedDow, setSelectedDow] = useState(
     todayDow === 0 || todayDow === 6 ? 1 : todayDow
@@ -111,7 +113,9 @@ export default function SchedulePage() {
       };
     }
 
-    setCoursesLoading(true);
+    if (!cachedCourses) {
+      setCoursesLoading(true);
+    }
     setCoursesError(null);
 
     void loadSupabaseCourses()
@@ -136,7 +140,7 @@ export default function SchedulePage() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user]);
+  }, [cachedCourses, loading, user]);
 
   const weekDates = getWeekDates();
   const filteredClasses = useMemo(() => {

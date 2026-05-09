@@ -16,6 +16,7 @@ import ClassChatPage from "./pages/ClassChatPage";
 // Legacy full-featured panels (walking body, reports, check-ins)
 import Dashboard from "./pages/Dashboard";
 import FindWayPage from "./pages/FindWayPage";
+import WalkGroupPage from "./pages/WalkGroupPage";
 // Course management pages
 import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
@@ -45,6 +46,7 @@ function Router() {
 
       {/* Find Way - route planner */}
       <Route path="/find-way" component={FindWayPage} />
+      <Route path="/walk-group/:id" component={WalkGroupPage} />
 
       {/* Legacy full-featured panels (walking, reports, check-ins) */}
       <Route path="/walking" component={Dashboard} />

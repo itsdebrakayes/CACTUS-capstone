@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 const SUPABASE_COURSE_TABLE = "courses";
 const COURSE_SELECT =
   "id,courseCode,courseName,description,room,lecturer,department,classSize,room_source_id,room_lat,room_lng,day_of_week,start_time,end_time";
+const COURSE_CACHE_TTL_MS = 60_000;
 
 export interface SupabaseCourseRecord {
   id: number;
@@ -38,32 +39,67 @@ interface SupabaseCourseRow {
   end_time?: string | null;
 }
 
-export async function loadSupabaseCourses() {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+let cachedSupabaseCourses: SupabaseCourseRecord[] | null = null;
+let cachedSupabaseCoursesAt = 0;
+let supabaseCoursesPromise: Promise<SupabaseCourseRecord[]> | null = null;
 
-  if (sessionError) {
-    throw new Error(`Unable to read Supabase session: ${sessionError.message}`);
+export function getCachedSupabaseCourses(): SupabaseCourseRecord[] | null {
+  return cachedSupabaseCourses;
+}
+
+export async function loadSupabaseCourses(
+  options?: { force?: boolean }
+): Promise<SupabaseCourseRecord[]> {
+  const isCacheFresh =
+    cachedSupabaseCourses &&
+    Date.now() - cachedSupabaseCoursesAt < COURSE_CACHE_TTL_MS;
+
+  if (!options?.force && isCacheFresh) {
+    return cachedSupabaseCourses!;
   }
 
-  if (!session?.access_token) {
-    throw new Error("Supabase session not ready.");
+  if (!options?.force && supabaseCoursesPromise) {
+    return supabaseCoursesPromise;
   }
 
-  const { data, error } = await supabase
-    .from(SUPABASE_COURSE_TABLE)
-    .select(COURSE_SELECT)
-    .order("courseCode", { ascending: true });
+  supabaseCoursesPromise = (async () => {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-  if (error) {
-    throw new Error(
-      `Supabase course request failed (${error.code ?? "unknown"}): ${error.message}`
-    );
+    if (sessionError) {
+      throw new Error(`Unable to read Supabase session: ${sessionError.message}`);
+    }
+
+    if (!session?.access_token) {
+      throw new Error("Supabase session not ready.");
+    }
+
+    const { data, error } = await supabase
+      .from(SUPABASE_COURSE_TABLE)
+      .select(COURSE_SELECT)
+      .order("courseCode", { ascending: true });
+
+    if (error) {
+      throw new Error(
+        `Supabase course request failed (${error.code ?? "unknown"}): ${error.message}`
+      );
+    }
+
+    const mapped = (data ?? [])
+      .map(mapCourseRow)
+      .filter(Boolean) as SupabaseCourseRecord[];
+    cachedSupabaseCourses = mapped;
+    cachedSupabaseCoursesAt = Date.now();
+    return mapped;
+  })();
+
+  try {
+    return await supabaseCoursesPromise;
+  } finally {
+    supabaseCoursesPromise = null;
   }
-
-  return (data ?? []).map(mapCourseRow).filter(Boolean) as SupabaseCourseRecord[];
 }
 
 function mapCourseRow(row: SupabaseCourseRow): SupabaseCourseRecord | null {

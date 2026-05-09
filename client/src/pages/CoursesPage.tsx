@@ -14,6 +14,7 @@ import {
   User,
 } from "lucide-react";
 import {
+  getCachedSupabaseCourses,
   loadSupabaseCourses,
   type SupabaseCourseRecord,
 } from "@/lib/supabaseCourses";
@@ -152,12 +153,13 @@ function CatalogCourseSkeleton() {
 export default function CoursesPage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
+  const cachedCourses = getCachedSupabaseCourses();
   const [activeTab, setActiveTab] = useState<Tab>("ongoing");
   const [search, setSearch] = useState("");
   const [catalogCourses, setCatalogCourses] = useState<SupabaseCourseRecord[]>(
-    []
+    cachedCourses ?? []
   );
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogLoading, setCatalogLoading] = useState(!cachedCourses);
   const [catalogError, setCatalogError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -178,7 +180,9 @@ export default function CoursesPage() {
       };
     }
 
-    setCatalogLoading(true);
+    if (!cachedCourses) {
+      setCatalogLoading(true);
+    }
     setCatalogError(null);
 
     void loadSupabaseCourses()
@@ -203,7 +207,7 @@ export default function CoursesPage() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user]);
+  }, [cachedCourses, loading, user]);
 
   const displayCourses = useMemo(() => {
     let list: SupabaseCourseRecord[] =

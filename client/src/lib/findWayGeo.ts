@@ -20,6 +20,7 @@ interface GraphEdge {
 
 interface GraphNode {
   id: string;
+  name?: string | null;
   coordinates: Coord3;
   edges: GraphEdge[];
 }
@@ -46,6 +47,8 @@ export interface CampusDataset {
   graph: Map<string, GraphNode>;
 }
 
+const COMPONENT_CACHE = new WeakMap<CampusDataset, Map<string, number>>();
+
 export function createCampusNodeCollection(
   dataset: CampusDataset
 ): GeoJSON.FeatureCollection<GeoJSON.Point> {
@@ -55,6 +58,7 @@ export function createCampusNodeCollection(
       type: "Feature",
       properties: {
         id: node.id,
+        name: node.name ?? node.id,
       },
       geometry: {
         type: "Point",
@@ -62,6 +66,94 @@ export function createCampusNodeCollection(
       },
     })),
   };
+}
+
+function buildCampusComponentMap(dataset: CampusDataset): Map<string, number> {
+  const cached = COMPONENT_CACHE.get(dataset);
+  if (cached) {
+    return cached;
+  }
+
+  const componentMap = new Map<string, number>();
+  let componentId = 0;
+
+  for (const nodeId of Array.from(dataset.graph.keys())) {
+    if (componentMap.has(nodeId)) {
+      continue;
+    }
+
+    const stack = [nodeId];
+    componentMap.set(nodeId, componentId);
+
+    while (stack.length > 0) {
+      const currentNodeId = stack.pop();
+      if (!currentNodeId) {
+        continue;
+      }
+
+      const node = dataset.graph.get(currentNodeId);
+      if (!node) {
+        continue;
+      }
+
+      for (const edge of node.edges) {
+        if (!dataset.graph.has(edge.to) || componentMap.has(edge.to)) {
+          continue;
+        }
+
+        componentMap.set(edge.to, componentId);
+        stack.push(edge.to);
+      }
+    }
+
+    componentId += 1;
+  }
+
+  COMPONENT_CACHE.set(dataset, componentMap);
+  return componentMap;
+}
+
+export function getCampusNodeComponentId(
+  dataset: CampusDataset,
+  nodeId: string
+): number | null {
+  const componentMap = buildCampusComponentMap(dataset);
+  return componentMap.get(nodeId) ?? null;
+}
+
+export function areCampusNodesConnected(
+  dataset: CampusDataset,
+  fromNodeId: string,
+  toNodeId: string
+): boolean {
+  const fromComponentId = getCampusNodeComponentId(dataset, fromNodeId);
+  const toComponentId = getCampusNodeComponentId(dataset, toNodeId);
+  return (
+    fromComponentId !== null &&
+    toComponentId !== null &&
+    fromComponentId === toComponentId
+  );
+}
+
+export interface CampusComponentNode {
+  nodeId: string;
+  name: string;
+  coordinates: Coord2;
+  edgeCount: number;
+}
+
+export function listCampusComponentNodes(
+  dataset: CampusDataset,
+  componentId: number
+): CampusComponentNode[] {
+  return Array.from(dataset.graph.values())
+    .filter(node => getCampusNodeComponentId(dataset, node.id) === componentId)
+    .map(node => ({
+      nodeId: node.id,
+      name: node.name ?? node.id,
+      coordinates: [node.coordinates[0], node.coordinates[1]],
+      edgeCount: node.edges.length,
+    }));
 }
 
 export interface PlannedRoute {
@@ -95,6 +187,29 @@ type RawCampusGeoJson = GeoJSON.FeatureCollection<
   Partial<LocationProperties>
 >;
 
+interface RawCampusAdjacencyNode {
+  id?: string;
+  name?: string | null;
+  location?: [number, number] | null;
+  lat?: number | null;
+  lng?: number | null;
+}
+
+interface RawCampusAdjacencyEdge {
+  to?: string;
+  name?: string | null;
+  location?: [number, number] | null;
+  distance_m?: number | null;
+}
+
+interface RawCampusAdjacencyGraph {
+  nodes?: RawCampusAdjacencyNode[];
+  adjacency?: Record<
+    string,
+    RawCampusAdjacencyEdge[] | RawCampusAdjacencyEdge | null | undefined
+  >;
+}
+
 const LOCATION_SCENIC_WEIGHT: Record<string, number> = {
   garden: 1.8,
   library: 1.2,
@@ -126,17 +241,29 @@ const WALKING_SPEED_MPS: Record<RouteMode, number> = {
   safe_night: 1.2,
 };
 
-export function buildCampusDataset(raw: unknown): CampusDataset {
-  const data = raw as RawCampusGeoJson;
-  const features = Array.isArray(data?.features) ? data.features : [];
+export function buildCampusDataset(
+  raw: unknown,
+  locationRaw?: unknown
+): CampusDataset {
+  if (isCampusAdjacencyGraph(raw)) {
+    return buildCampusDatasetFromAdjacency(
+      raw,
+      (locationRaw ?? null) as RawCampusGeoJson | null
+    );
+  }
 
-  const pointFeatures = features.filter(
-    (
-      feature
-    ): feature is GeoJSON.Feature<GeoJSON.Point, Partial<LocationProperties>> =>
-      feature?.geometry?.type === "Point"
+  return buildCampusDatasetFromGeoJson(
+    raw as RawCampusGeoJson,
+    (locationRaw ?? raw) as RawCampusGeoJson
   );
+}
 
+function buildCampusDatasetFromGeoJson(
+  data: RawCampusGeoJson,
+  locationSource: RawCampusGeoJson
+): CampusDataset {
+  const features = Array.isArray(data?.features) ? data.features : [];
+  const pointFeatures = extractPointFeatures(locationSource);
   const networkFeatures = features.filter(
     (
       feature
@@ -147,7 +274,7 @@ export function buildCampusDataset(raw: unknown): CampusDataset {
   );
 
   if (networkFeatures.length === 0) {
-    throw new Error("Campus path network is missing from uwipath.json.");
+    throw new Error("Campus path network is missing from the map source.");
   }
 
   const graph = new Map<string, GraphNode>();
@@ -173,28 +300,7 @@ export function buildCampusDataset(raw: unknown): CampusDataset {
   }
 
   connectIsolatedNodes(graph, 35);
-
-  const locations = pointFeatures
-    .map(feature => {
-      const coordinates = toCoord3(feature.geometry.coordinates);
-      const nearestNode = findNearestGraphNode(graph, coordinates);
-      if (!nearestNode) {
-        throw new Error(
-          `Unable to snap ${feature.properties?.name ?? "location"} to the path network.`
-        );
-      }
-
-      return {
-        id: feature.properties?.id ?? coordKey(coordinates),
-        name: feature.properties?.name ?? "Unknown location",
-        category: feature.properties?.category ?? "landmark",
-        coordinates: [coordinates[0], coordinates[1]] as Coord2,
-        elevation: coordinates[2],
-        snapNodeId: nearestNode.id,
-      } satisfies CampusLocation;
-    })
-    .sort((left, right) => left.name.localeCompare(right.name));
-
+  const locations = buildCampusLocations(graph, pointFeatures);
   annotateGraph(graph, locations);
 
   const bounds = createBounds(features);
@@ -226,6 +332,116 @@ export function buildCampusDataset(raw: unknown): CampusDataset {
     network,
     graph,
   };
+}
+
+function buildCampusDatasetFromAdjacency(
+  data: RawCampusAdjacencyGraph,
+  locationSource: RawCampusGeoJson | null
+): CampusDataset {
+  const graph = new Map<string, GraphNode>();
+  const rawNodes = Array.isArray(data.nodes) ? data.nodes : [];
+
+  for (const rawNode of rawNodes) {
+    const normalized = normalizeAdjacencyNode(rawNode);
+    if (!normalized) {
+      continue;
+    }
+
+    graph.set(normalized.id, {
+      id: normalized.id,
+      name: normalized.name,
+      coordinates: normalized.coordinates,
+      edges: [],
+    });
+  }
+
+  if (graph.size === 0) {
+    throw new Error("Campus adjacency graph does not contain any valid nodes.");
+  }
+
+  const adjacencyEntries =
+    data.adjacency && typeof data.adjacency === "object"
+      ? Object.entries(data.adjacency)
+      : [];
+
+  for (const [fromNodeId, rawAdjacency] of adjacencyEntries) {
+    const fromNode = graph.get(fromNodeId);
+    if (!fromNode) {
+      continue;
+    }
+
+    const neighbors = Array.isArray(rawAdjacency)
+      ? rawAdjacency
+      : rawAdjacency
+        ? [rawAdjacency]
+        : [];
+
+    for (const neighbor of neighbors) {
+      if (!neighbor?.to) {
+        continue;
+      }
+
+      const toNode =
+        graph.get(neighbor.to) ?? ensureAdjacencyNodeFromEdge(graph, neighbor);
+      if (!toNode) {
+        continue;
+      }
+
+      const distanceM =
+        typeof neighbor.distance_m === "number" && Number.isFinite(neighbor.distance_m)
+          ? neighbor.distance_m
+          : undefined;
+
+      connectGraphNodes(fromNode, toNode, distanceM);
+      connectGraphNodes(toNode, fromNode, distanceM);
+    }
+  }
+
+  const pointFeatures = locationSource ? extractPointFeatures(locationSource) : [];
+  const locations = buildCampusLocations(graph, pointFeatures);
+  annotateGraph(graph, locations);
+
+  const bounds = createBoundsFromGraphAndLocations(graph, locations);
+  const network = createNetworkFeatureCollection(graph);
+
+  return {
+    center: [
+      (bounds.west + bounds.east) / 2,
+      (bounds.south + bounds.north) / 2,
+    ],
+    bounds,
+    locations,
+    network,
+    graph,
+  };
+}
+
+function buildCampusLocations(
+  graph: Map<string, GraphNode>,
+  pointFeatures: Array<
+    GeoJSON.Feature<GeoJSON.Point, Partial<LocationProperties>>
+  >
+): CampusLocation[] {
+  return pointFeatures
+    .map(feature => {
+      const coordinates = toCoord3(feature.geometry.coordinates);
+      const nearestNode = findNearestGraphNode(graph, coordinates);
+      if (!nearestNode) {
+        throw new Error(
+          `Unable to snap ${feature.properties?.name ?? "location"} to the path network.`
+        );
+      }
+
+      return {
+        id: feature.properties?.id ?? coordKey(coordinates),
+        name: feature.properties?.name ?? "Unknown location",
+        category: feature.properties?.category ?? "landmark",
+        coordinates: [coordinates[0], coordinates[1]] as Coord2,
+        elevation: coordinates[2],
+        snapNodeId: nearestNode.id,
+      } satisfies CampusLocation;
+    })
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function getLocationById(
@@ -562,6 +778,7 @@ function ensureGraphNode(
 
   const node: GraphNode = {
     id: key,
+    name: null,
     coordinates,
     edges: [],
   };
@@ -570,11 +787,19 @@ function ensureGraphNode(
   return node;
 }
 
-function connectGraphNodes(from: GraphNode, to: GraphNode) {
-  const distanceM = haversineMeters(
+function connectGraphNodes(
+  from: GraphNode,
+  to: GraphNode,
+  distanceOverrideM?: number
+) {
+  const computedDistanceM = haversineMeters(
     [from.coordinates[0], from.coordinates[1]],
     [to.coordinates[0], to.coordinates[1]]
   );
+  const distanceM =
+    typeof distanceOverrideM === "number" && Number.isFinite(distanceOverrideM)
+      ? distanceOverrideM
+      : computedDistanceM;
   if (distanceM === 0) {
     return;
   }
@@ -815,6 +1040,169 @@ function findNearestGraphNode(
   }
 
   return bestNode;
+}
+
+function extractPointFeatures(
+  raw: RawCampusGeoJson
+): Array<GeoJSON.Feature<GeoJSON.Point, Partial<LocationProperties>>> {
+  const features = Array.isArray(raw?.features) ? raw.features : [];
+  return features.filter(
+    (
+      feature
+    ): feature is GeoJSON.Feature<GeoJSON.Point, Partial<LocationProperties>> =>
+      feature?.geometry?.type === "Point"
+  );
+}
+
+function isCampusAdjacencyGraph(raw: unknown): raw is RawCampusAdjacencyGraph {
+  return Boolean(
+    raw &&
+      typeof raw === "object" &&
+      Array.isArray((raw as RawCampusAdjacencyGraph).nodes) &&
+      (raw as RawCampusAdjacencyGraph).adjacency &&
+      typeof (raw as RawCampusAdjacencyGraph).adjacency === "object"
+  );
+}
+
+function normalizeAdjacencyNode(
+  rawNode: RawCampusAdjacencyNode
+): { id: string; name: string | null; coordinates: Coord3 } | null {
+  const id = rawNode.id?.trim();
+  const lat =
+    typeof rawNode.lat === "number" && Number.isFinite(rawNode.lat)
+      ? rawNode.lat
+      : Array.isArray(rawNode.location) && rawNode.location.length >= 2
+        ? rawNode.location[0]
+        : null;
+  const lng =
+    typeof rawNode.lng === "number" && Number.isFinite(rawNode.lng)
+      ? rawNode.lng
+      : Array.isArray(rawNode.location) && rawNode.location.length >= 2
+        ? rawNode.location[1]
+        : null;
+
+  if (!id || lat == null || lng == null) {
+    return null;
+  }
+
+  return {
+    id,
+    name: rawNode.name?.trim() ?? null,
+    coordinates: [lng, lat],
+  };
+}
+
+function ensureAdjacencyNodeFromEdge(
+  graph: Map<string, GraphNode>,
+  edge: RawCampusAdjacencyEdge
+): GraphNode | null {
+  const id = edge.to?.trim();
+  const lat =
+    Array.isArray(edge.location) && edge.location.length >= 2
+      ? edge.location[0]
+      : null;
+  const lng =
+    Array.isArray(edge.location) && edge.location.length >= 2
+      ? edge.location[1]
+      : null;
+
+  if (!id || lat == null || lng == null) {
+    return null;
+  }
+
+  const existing = graph.get(id);
+  if (existing) {
+    return existing;
+  }
+
+  const node: GraphNode = {
+    id,
+    name: edge.name?.trim() ?? null,
+    coordinates: [lng, lat],
+    edges: [],
+  };
+  graph.set(id, node);
+  return node;
+}
+
+function createBoundsFromGraphAndLocations(
+  graph: Map<string, GraphNode>,
+  locations: CampusLocation[]
+): {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+} {
+  let west = Number.POSITIVE_INFINITY;
+  let south = Number.POSITIVE_INFINITY;
+  let east = Number.NEGATIVE_INFINITY;
+  let north = Number.NEGATIVE_INFINITY;
+
+  for (const node of Array.from(graph.values())) {
+    west = Math.min(west, node.coordinates[0]);
+    south = Math.min(south, node.coordinates[1]);
+    east = Math.max(east, node.coordinates[0]);
+    north = Math.max(north, node.coordinates[1]);
+  }
+
+  for (const location of locations) {
+    west = Math.min(west, location.coordinates[0]);
+    south = Math.min(south, location.coordinates[1]);
+    east = Math.max(east, location.coordinates[0]);
+    north = Math.max(north, location.coordinates[1]);
+  }
+
+  if (
+    !Number.isFinite(west) ||
+    !Number.isFinite(south) ||
+    !Number.isFinite(east) ||
+    !Number.isFinite(north)
+  ) {
+    throw new Error("Campus map bounds could not be calculated.");
+  }
+
+  return { west, south, east, north };
+}
+
+function createNetworkFeatureCollection(
+  graph: Map<string, GraphNode>
+): GeoJSON.FeatureCollection<GeoJSON.LineString> {
+  const seen = new Set<string>();
+  const features: GeoJSON.Feature<GeoJSON.LineString>[] = [];
+
+  for (const node of Array.from(graph.values())) {
+    for (const edge of node.edges) {
+      const toNode = graph.get(edge.to);
+      if (!toNode) {
+        continue;
+      }
+
+      const key =
+        node.id < toNode.id ? `${node.id}::${toNode.id}` : `${toNode.id}::${node.id}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+
+      features.push({
+        type: "Feature",
+        properties: { id: key },
+        geometry: {
+          type: "LineString",
+          coordinates: [
+            [node.coordinates[0], node.coordinates[1]],
+            [toNode.coordinates[0], toNode.coordinates[1]],
+          ],
+        },
+      });
+    }
+  }
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
 }
 
 function createBounds(features: RawCampusGeoJson["features"]): {

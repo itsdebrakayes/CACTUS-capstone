@@ -2,7 +2,12 @@ import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "re
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { getCategoryMeta, type PlaceLocation } from "@/lib/campusPlaces";
-import { getPlaceMarkerIcon } from "@/lib/placeMarkerIcons";
+import {
+  createCampusPlaceMarkerElement as createCampusPlaceMarkerButton,
+  createCrowdReportMarkerElement,
+  createWalkGroupMeetingMarkerElement,
+} from "@/lib/placeMarkerIcons";
+import { type CampusDataset } from "@/lib/findWayGeo";
 
 export const UWI_MONA_CENTER: [number, number] = [-76.7497, 18.0035];
 export const UWI_MONA_ZOOM = 15.5;
@@ -33,6 +38,16 @@ export interface Footpath {
   geoJson: unknown;
 }
 
+export interface WalkGroupMapMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  destinationName: string;
+  meetingPointName: string;
+  memberCount: number;
+  status: string;
+}
+
 export interface CactusMapHandle {
   showRoute: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
   clearRoute: () => void;
@@ -45,22 +60,17 @@ interface CactusMapProps {
   userLng?: number;
   walkers?: Walker[];
   hazards?: Hazard[];
+  walkGroups?: WalkGroupMapMarker[];
   footpaths?: Footpath[];
   places?: PlaceLocation[];
+  campusData?: CampusDataset | null;
   isSelectingDest?: boolean;
   onDestinationSelected?: (lat: number, lng: number) => void;
   onWalkerClick?: (walker: Walker) => void;
   onHazardClick?: (hazard: Hazard) => void;
+  onWalkGroupClick?: (walkGroup: WalkGroupMapMarker) => void;
   onPlaceClick?: (place: PlaceLocation) => void;
 }
-
-const SEVERITY_COLORS: Record<number, string> = {
-  1: "#fbbf24",
-  2: "#f97316",
-  3: "#ef4444",
-  4: "#dc2626",
-  5: "#7f1d1d",
-};
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
   light_out: "Light Out",
@@ -82,12 +92,15 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       userLng,
       walkers = [],
       hazards = [],
+      walkGroups = [],
       footpaths = [],
       places = [],
+      campusData = null,
       isSelectingDest = false,
       onDestinationSelected,
       onWalkerClick,
       onHazardClick,
+      onWalkGroupClick,
       onPlaceClick,
     },
     ref
@@ -98,6 +111,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const walkerMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const walkGroupMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const placeMarkersRef = useRef<mapboxgl.Marker[]>([]);
     const isSelectingRef = useRef(isSelectingDest);
     const mapReadyRef = useRef(false);
@@ -227,11 +241,13 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         placeMarkersRef.current.forEach((marker) => marker.remove());
         walkerMarkersRef.current.forEach((marker) => marker.remove());
         hazardMarkersRef.current.forEach((marker) => marker.remove());
+        walkGroupMarkersRef.current.forEach((marker) => marker.remove());
         userMarkerRef.current?.remove();
         destMarkerRef.current?.remove();
         placeMarkersRef.current = [];
         walkerMarkersRef.current = [];
         hazardMarkersRef.current = [];
+        walkGroupMarkersRef.current = [];
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
@@ -318,10 +334,11 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       hazardMarkersRef.current = [];
 
       hazards.forEach((hazard) => {
-        const element = document.createElement("div");
-        element.className = "cactus-hazard-marker";
-        element.style.background = SEVERITY_COLORS[hazard.severity] || "#ef4444";
-        element.title = `${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType} (Severity ${hazard.severity})`;
+        const element = createCrowdReportMarkerElement({
+          title: `${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType} (Severity ${hazard.severity})`,
+          reportType: hazard.reportType,
+          severity: hazard.severity,
+        });
 
         const marker = new mapboxgl.Marker(element)
           .setLngLat([hazard.lng, hazard.lat])
@@ -334,6 +351,43 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         hazardMarkersRef.current.push(marker);
       });
     }, [mapReady, hazards, onHazardClick]);
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady) {
+        return;
+      }
+
+      walkGroupMarkersRef.current.forEach((marker) => marker.remove());
+      walkGroupMarkersRef.current = [];
+
+      walkGroups.forEach((walkGroup) => {
+        if (!Number.isFinite(walkGroup.lat) || !Number.isFinite(walkGroup.lng)) {
+          return;
+        }
+
+        const markerElement = createWalkGroupMarkerElement(walkGroup);
+        const popup = new mapboxgl.Popup({ offset: 16 }).setHTML(
+          createWalkGroupPopupHtml(walkGroup)
+        );
+
+        const marker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: "center",
+        })
+          .setLngLat([walkGroup.lng, walkGroup.lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        markerElement.addEventListener("click", (event) => {
+          event.stopPropagation();
+          marker.togglePopup();
+          onWalkGroupClick?.(walkGroup);
+        });
+
+        walkGroupMarkersRef.current.push(marker);
+      });
+    }, [mapReady, onWalkGroupClick, walkGroups]);
 
     useEffect(() => {
       const map = mapRef.current;
@@ -443,38 +497,10 @@ function clearRoute(map: mapboxgl.Map) {
 }
 
 function createCampusPlaceMarkerElement(place: PlaceLocation) {
-  const meta = getCategoryMeta(place.category);
-  const iconSrc = getPlaceMarkerIcon(place.category);
-  const element = document.createElement("button");
-  element.type = "button";
-  element.title = `${place.name} (${meta.label})`;
-  element.setAttribute("aria-label", `${place.name} (${meta.label})`);
-  element.style.cssText = [
-    "width:32px",
-    "height:32px",
-    "border-radius:999px",
-    `border:1.5px solid ${meta.color}33`,
-    "padding:0",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "background:#ffffff",
-    "box-shadow:0 4px 12px rgba(15,23,42,0.16)",
-    "cursor:pointer",
-  ].join(";");
-
-  const icon = document.createElement("img");
-  icon.src = iconSrc;
-  icon.alt = meta.label;
-  icon.style.cssText = [
-    "width:18px",
-    "height:18px",
-    "object-fit:contain",
-    "display:block",
-  ].join(";");
-  element.appendChild(icon);
-
-  return element;
+  return createCampusPlaceMarkerButton({
+    category: place.category,
+    title: place.name,
+  });
 }
 
 function createCampusPlacePopupHtml(place: PlaceLocation) {
@@ -483,6 +509,47 @@ function createCampusPlacePopupHtml(place: PlaceLocation) {
     <div style="padding:8px 10px;background:#fff;color:#0f172a;border-radius:10px;min-width:150px;font-family:system-ui,-apple-system,sans-serif;">
       <div style="font-size:13px;font-weight:700;line-height:1.3;color:#0f172a">${place.name}</div>
       <div style="font-size:11px;color:${meta.color};margin-top:2px">${meta.label}</div>
+    </div>
+  `;
+}
+
+function createWalkGroupMarkerElement(walkGroup: WalkGroupMapMarker) {
+  const element = createWalkGroupMeetingMarkerElement({
+    title: `Walk Group to ${walkGroup.destinationName} meeting at ${walkGroup.meetingPointName}`,
+  });
+
+  if (walkGroup.memberCount > 1) {
+    const badge = document.createElement("span");
+    badge.style.cssText = [
+      "position:absolute",
+      "right:-5px",
+      "top:-5px",
+      "min-width:18px",
+      "height:18px",
+      "border-radius:999px",
+      "padding:0 4px",
+      "display:flex",
+      "align-items:center",
+      "justify-content:center",
+      "background:#0f172a",
+      "border:2px solid #ffffff",
+      "color:#ffffff",
+      "font:800 9px/1 system-ui, sans-serif",
+    ].join(";");
+    badge.textContent = String(walkGroup.memberCount);
+    element.appendChild(badge);
+  }
+
+  return element;
+}
+
+function createWalkGroupPopupHtml(walkGroup: WalkGroupMapMarker) {
+  return `
+    <div style="padding:8px 10px;background:#fff;color:#0f172a;border-radius:10px;min-width:180px;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#00a844">Walk Group</div>
+      <div style="margin-top:4px;font-size:13px;font-weight:700;line-height:1.3;color:#0f172a">${walkGroup.destinationName}</div>
+      <div style="margin-top:3px;font-size:11px;color:#475569">Meet at ${walkGroup.meetingPointName}</div>
+      <div style="margin-top:6px;font-size:11px;color:#64748b">${walkGroup.memberCount} joined</div>
     </div>
   `;
 }

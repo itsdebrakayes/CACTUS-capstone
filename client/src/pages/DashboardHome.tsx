@@ -3,9 +3,15 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import {
+  getCachedSupabaseCourses,
   loadSupabaseCourses,
   type SupabaseCourseRecord,
 } from "@/lib/supabaseCourses";
+import {
+  leaveWalkGroup,
+  loadMyActiveWalkGroup,
+  type WalkGroupRecord,
+} from "@/lib/supabaseWalkGroups";
 import {
   formatCourseScheduleLine,
   mergeCoursesWithSchedule,
@@ -23,6 +29,7 @@ import {
   Clock,
   CheckCircle,
   RefreshCw,
+  Users,
 } from "lucide-react";
 
 type DashboardAlert = {
@@ -69,6 +76,95 @@ function UrgentAlertBanner({ alerts }: { alerts: DashboardAlert[] }) {
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+function formatLeavingTime(value?: string) {
+  if (!value) return "Leaving time not set";
+  const leavingAt = new Date(value);
+  if (Number.isNaN(leavingAt.getTime())) {
+    return "Leaving time not set";
+  }
+  return leavingAt.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function ActiveWalkGroupCard({
+  group,
+  onOpen,
+  onLeave,
+  isLeaving,
+}: {
+  group: WalkGroupRecord;
+  onOpen: () => void;
+  onLeave: () => void;
+  isLeaving: boolean;
+}) {
+  return (
+    <div className="mx-4 mb-4 rounded-2xl border border-[#d2f5df] bg-white shadow-sm overflow-hidden">
+      <div className="bg-gradient-to-r from-[#00c853] to-[#00a844] px-4 py-3 text-white">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em]">
+          {group.isCreator ? "Hosting Walk Group" : "Active Walk Group"}
+        </p>
+        <h2 className="mt-1 text-lg font-bold">{group.destinationName}</h2>
+        <p className="mt-1 text-xs text-white/85">
+          {group.isCreator
+            ? "You are the creator and can manage this group."
+            : "You are currently part of this Walk Group."}
+        </p>
+      </div>
+      <div className="space-y-3 px-4 py-4">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-xl bg-[#f5fff8] px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#00a844]">
+              Meeting
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {group.meetingPointName}
+            </p>
+          </div>
+          <div className="rounded-xl bg-[#f5fff8] px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#00a844]">
+              Leaving
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {formatLeavingTime(group.leavingAt)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-[#f5fff8] px-3 py-2">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-[#00a844]">
+              Members
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gray-900">
+              {group.memberCount} joined
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={onOpen}
+            className="flex flex-1 items-center justify-between rounded-xl bg-[#00c853] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#00b84a]"
+          >
+            <span className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              {group.isCreator ? "Manage Group" : "Open Walk Group"}
+            </span>
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          {!group.isCreator ? (
+            <button
+              onClick={onLeave}
+              disabled={isLeaving}
+              className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+            >
+              {isLeaving ? "Leaving..." : "Leave"}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -284,11 +380,16 @@ function UpNextSection({ classes }: { classes: ScheduledCourse[] }) {
 export default function DashboardHome() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
+  const cachedCourses = getCachedSupabaseCourses();
   const [supabaseCourses, setSupabaseCourses] = useState<
     Awaited<ReturnType<typeof loadSupabaseCourses>>
-  >([]);
-  const [coursesLoading, setCoursesLoading] = useState(true);
+  >(cachedCourses ?? []);
+  const [coursesLoading, setCoursesLoading] = useState(!cachedCourses);
   const [coursesError, setCoursesError] = useState<string | null>(null);
+  const [activeWalkGroup, setActiveWalkGroup] = useState<WalkGroupRecord | null>(
+    null
+  );
+  const [isLeavingWalkGroup, setIsLeavingWalkGroup] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -308,7 +409,9 @@ export default function DashboardHome() {
       };
     }
 
-    setCoursesLoading(true);
+    if (!cachedCourses) {
+      setCoursesLoading(true);
+    }
     setCoursesError(null);
 
     void loadSupabaseCourses()
@@ -332,6 +435,56 @@ export default function DashboardHome() {
 
     return () => {
       cancelled = true;
+    };
+  }, [cachedCourses, loading, user]);
+
+  const handleLeaveWalkGroup = async () => {
+    if (!activeWalkGroup || activeWalkGroup.isCreator) {
+      return;
+    }
+
+    setIsLeavingWalkGroup(true);
+    try {
+      await leaveWalkGroup(activeWalkGroup.id);
+      setActiveWalkGroup(null);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLeavingWalkGroup(false);
+    }
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (loading || !user) {
+      setActiveWalkGroup(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const refresh = async () => {
+      try {
+        const nextGroup = await loadMyActiveWalkGroup();
+        if (!cancelled) {
+          setActiveWalkGroup(nextGroup);
+        }
+      } catch {
+        if (!cancelled) {
+          setActiveWalkGroup(null);
+        }
+      }
+    };
+
+    void refresh();
+    const intervalId = window.setInterval(() => {
+      void refresh();
+    }, 20000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
     };
   }, [loading, user]);
 
@@ -409,7 +562,16 @@ export default function DashboardHome() {
         <p className="text-sm text-gray-500 mt-0.5">{formatDate()}</p>
       </div>
 
-      <UrgentAlertBanner alerts={activeAlerts} />
+      {activeWalkGroup ? (
+        <ActiveWalkGroupCard
+          group={activeWalkGroup}
+          onOpen={() => navigate(`/walk-group/${activeWalkGroup.id}`)}
+          onLeave={() => void handleLeaveWalkGroup()}
+          isLeaving={isLeavingWalkGroup}
+        />
+      ) : (
+        <UrgentAlertBanner alerts={activeAlerts} />
+      )}
 
       {coursesError ? (
         <div className="mx-4 mb-4 rounded-2xl border border-amber-100 bg-amber-50 p-4">

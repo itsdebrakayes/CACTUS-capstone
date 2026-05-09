@@ -7,7 +7,8 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
+import WalkGroupCreateDialog from "@/components/WalkGroupCreateDialog";
+import WalkGroupPreviewCard from "@/components/WalkGroupPreviewCard";
 import MapHazardReportSheet, {
   type HazardReportOption,
 } from "@/components/MapHazardReportSheet";
@@ -18,6 +19,8 @@ import {
 } from "@/lib/fstRouting";
 import {
   findNearestCampusPathSnap,
+  getCampusNodeComponentId,
+  listCampusComponentNodes,
   planCampusRouteBetweenNodes,
   type CampusDataset,
 } from "@/lib/findWayGeo";
@@ -32,31 +35,184 @@ import {
   ChevronRight,
 } from "lucide-react";
 import {
+  getCachedCampusPlaceData,
   getCategoryMeta,
   loadCampusPlaceData,
   normalizeSearchText,
   type PlaceDataset,
   type PlaceLocation,
 } from "@/lib/campusPlaces";
-import { getPlaceMarkerIcon } from "@/lib/placeMarkerIcons";
+import {
+  createWalkGroup,
+  joinWalkGroup,
+  loadActiveWalkGroups,
+  loadMyActiveWalkGroup,
+  type WalkGroupRecord,
+} from "@/lib/supabaseWalkGroups";
+import {
+  createCampusPlaceMarkerElement,
+  createWalkGroupMeetingMarkerElement,
+} from "@/lib/placeMarkerIcons";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowLeft,
-  Crosshair,
-  GripHorizontal,
 } from "lucide-react";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 const DEFAULT_CENTER: [number, number] = [-76.7499, 18.0053];
+const DISCONNECTED_CAMPUS_ROUTE_PREFIX = "Campus graph disconnect:";
+const CROSS_COMPONENT_ENTRY_NODE_LIMIT = 8;
+
+function buildDisconnectedCampusRouteMessage(
+  campusData: CampusDataset,
+  startNodeIds: string[],
+  destinationNodeId: string,
+  destinationName: string
+) {
+  const destinationComponentId = getCampusNodeComponentId(
+    campusData,
+    destinationNodeId
+  );
+  const startComponentIds = Array.from(
+    new Set(
+      startNodeIds
+        .map(nodeId => getCampusNodeComponentId(campusData, nodeId))
+        .filter((componentId): componentId is number => componentId !== null)
+    )
+  );
+
+  if (
+    destinationComponentId === null ||
+    startComponentIds.length === 0 ||
+    startComponentIds.includes(destinationComponentId)
+  ) {
+    return null;
+  }
+
+  return `${DISCONNECTED_CAMPUS_ROUTE_PREFIX} ${destinationName} is on component ${destinationComponentId}, but the start side is on component(s) ${startComponentIds.join(
+    ", "
+  )}.`;
+}
+
+function isDisconnectedCampusRouteError(error: unknown) {
+  return (
+    error instanceof Error &&
+    error.message.startsWith(DISCONNECTED_CAMPUS_ROUTE_PREFIX)
+  );
+}
+
+async function buildDestinationComponentEntryRoute(params: {
+  campusData: CampusDataset;
+  origin: Coord2;
+  destination: PlaceLocation;
+  walkMode: WalkMode;
+  requestWalkingRoute: (waypoints: Coord2[]) => Promise<DirectionsRoute>;
+}) {
+  const {
+    campusData,
+    origin,
+    destination,
+    walkMode,
+    requestWalkingRoute,
+  } = params;
+  const destinationComponentId = getCampusNodeComponentId(
+    campusData,
+    destination.nearestNodeId
+  );
+  if (destinationComponentId === null) {
+    return null;
+  }
+
+  const candidateNodes = listCampusComponentNodes(campusData, destinationComponentId)
+    .map(node => ({
+      ...node,
+      directDistanceM: haversineMeters(origin, node.coordinates),
+    }))
+    .sort(
+      (left, right) =>
+        left.directDistanceM - right.directDistanceM ||
+        left.edgeCount - right.edgeCount
+    )
+    .slice(0, CROSS_COMPONENT_ENTRY_NODE_LIMIT);
+
+  const routeOptions: Array<{
+    combinedCoordinates: Coord2[];
+    campusRoute: NonNullable<ReturnType<typeof planCampusRouteBetweenNodes>>;
+    roadRoute: DirectionsRoute;
+    totalDistanceM: number;
+    totalDurationSec: number;
+  }> = [];
+
+  for (const candidateNode of candidateNodes) {
+    try {
+      const roadConnectorDistanceM = haversineMeters(
+        origin,
+        candidateNode.coordinates
+      );
+      const roadRoute =
+        roadConnectorDistanceM < 3
+          ? {
+              coordinates: mergeRouteCoordinates(
+                [origin],
+                [candidateNode.coordinates]
+              ),
+              distanceM: roadConnectorDistanceM,
+              durationSec: roadConnectorDistanceM / 1.35,
+            }
+          : await requestWalkingRoute([origin, candidateNode.coordinates]);
+
+      const campusRoute = planCampusRouteBetweenNodes(
+        campusData,
+        candidateNode.nodeId,
+        destination.nearestNodeId,
+        getCampusRouteMode(walkMode)
+      );
+      if (!campusRoute) {
+        continue;
+      }
+
+      const lastCampusCoord =
+        campusRoute.coordinates[campusRoute.coordinates.length - 1];
+      const finalConnectorDistanceM = lastCampusCoord
+        ? haversineMeters(lastCampusCoord, destination.coordinates)
+        : 0;
+      const finalConnectorCoordinates =
+        finalConnectorDistanceM > 1 ? [destination.coordinates] : [];
+
+      routeOptions.push({
+        combinedCoordinates: mergeRouteCoordinates(
+          roadRoute.coordinates,
+          campusRoute.coordinates,
+          finalConnectorCoordinates
+        ),
+        campusRoute,
+        roadRoute,
+        totalDistanceM:
+          roadRoute.distanceM + campusRoute.distanceM + finalConnectorDistanceM,
+        totalDurationSec:
+          roadRoute.durationSec +
+          campusRoute.walkTimeSec +
+          finalConnectorDistanceM / 1.2,
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  return (
+    routeOptions.sort((a, b) => a.totalDistanceM - b.totalDistanceM)[0] ?? null
+  );
+}
 
 type Coord2 = [number, number];
 type SheetSnap = "peek" | "mid" | "full";
 type LocationStatus = "locating" | "ready" | "denied" | "unsupported";
 type WalkMode = "quick" | "shortcut" | "longest";
-type WalkingPalStatus = "searching" | "empty";
+type WalkGroupDialogMode = "warning" | "form";
+const WALK_GROUP_REFRESH_MS = 15000;
 
 interface UserLocation {
   coordinates: Coord2;
@@ -78,6 +234,46 @@ interface DirectionsRoute {
   coordinates: Coord2[];
   distanceM: number;
   durationSec: number;
+}
+
+interface SelectedMeetingPoint {
+  name: string;
+  coordinates: Coord2;
+  category?: string;
+  sourceId?: string;
+  nearestNodeId?: string;
+}
+
+function buildWalkGroupMarkerElement(isCurrentUsersGroup: boolean) {
+  return createWalkGroupMeetingMarkerElement({
+    title: "Walk group meeting point",
+    isSelected: isCurrentUsersGroup,
+  });
+}
+
+function buildMeetingPointMarkerElement() {
+  return createWalkGroupMeetingMarkerElement({
+    title: "Meeting point",
+    isSelected: true,
+  });
+}
+
+function findClosestMeetingPoint(
+  places: PlaceLocation[],
+  coordinates: Coord2
+): PlaceLocation | null {
+  let best: PlaceLocation | null = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+
+  for (const place of places) {
+    const distance = haversineMeters(coordinates, place.coordinates);
+    if (distance < bestDistance) {
+      best = place;
+      bestDistance = distance;
+    }
+  }
+
+  return best;
 }
 
 const WALK_MODE_META: Record<
@@ -189,68 +385,13 @@ function createBoundsFromCoordinates(coordinates: Coord2[]) {
   return { west, south, east, north };
 }
 
-function createCampusPlaceCollection(
-  placeData: PlaceDataset,
-  selectedDestinationId: string | null
-): GeoJSON.FeatureCollection<GeoJSON.Point> {
-  return {
-    type: "FeatureCollection",
-    features: placeData.locations.map(location => {
-      const categoryMeta = getCategoryMeta(location.category);
-      return {
-        type: "Feature" as const,
-        properties: {
-          id: location.id,
-          name: location.name,
-          category: categoryMeta.label,
-          rawCategory: location.category,
-          color: categoryMeta.color,
-          isSelected: location.id === selectedDestinationId ? 1 : 0,
-        },
-        geometry: { type: "Point" as const, coordinates: location.coordinates },
-      };
-    }),
-  };
-}
-
-function createClassroomMarkerElement(isSelected: boolean) {
-  const iconSrc = getPlaceMarkerIcon("classroom");
-  const el = document.createElement("button");
-  el.type = "button";
-  el.setAttribute("aria-label", "Classroom");
-  el.style.cssText = [
-    "width:32px",
-    "height:32px",
-    "border-radius:999px",
-    "border:none",
-    "padding:0",
-    "display:flex",
-    "align-items:center",
-    "justify-content:center",
-    "background:#ffffff",
-    `box-shadow:${isSelected ? "0 0 0 3px rgba(37,99,235,0.25), 0 4px 12px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.15)"}`,
-    `outline:${isSelected ? "2px solid #2563eb" : "1.5px solid #e2e8f0"}`,
-    "cursor:pointer",
-  ].join(";");
-  el.innerHTML = `<img src="${iconSrc}" alt="Classroom" style="width:18px;height:18px;object-fit:contain;display:block;" />`;
-  return el;
-}
-
 function ensureMapSources(
   map: mapboxgl.Map,
-  placeData: PlaceDataset,
-  selectedDestinationId: string | null,
+  _campusData: CampusDataset | null,
+  _placeData: PlaceDataset,
+  _selectedDestinationId: string | null,
   activeRoute: ActiveRoute | null
 ) {
-  const nonClassroomFilter: mapboxgl.FilterSpecification = [
-    "!=",
-    ["get", "rawCategory"],
-    "classroom",
-  ];
-  const placeCollection = createCampusPlaceCollection(
-    placeData,
-    selectedDestinationId
-  );
   const routeCollection = createRouteFeatureCollection(
     activeRoute?.coordinates ?? []
   );
@@ -283,52 +424,17 @@ function ensureMapSources(
       paint: { "line-color": "#3b82f6", "line-width": 5, "line-opacity": 0.95 },
     });
   }
-
-  const placeSource = map.getSource("campus-places") as
-    | mapboxgl.GeoJSONSource
-    | undefined;
-  if (placeSource) placeSource.setData(placeCollection);
-  else
-    map.addSource("campus-places", { type: "geojson", data: placeCollection });
-
-  if (!map.getLayer("campus-place-halo")) {
-    map.addLayer({
-      id: "campus-place-halo",
-      type: "circle",
-      source: "campus-places",
-      filter: nonClassroomFilter,
-      paint: {
-        "circle-radius": ["case", ["==", ["get", "isSelected"], 1], 13, 10],
-        "circle-color": "#ffffff",
-        "circle-opacity": 0.95,
-      },
-    });
-  }
-  if (!map.getLayer("campus-place-fill")) {
-    map.addLayer({
-      id: "campus-place-fill",
-      type: "circle",
-      source: "campus-places",
-      filter: nonClassroomFilter,
-      paint: {
-        "circle-radius": ["case", ["==", ["get", "isSelected"], 1], 7, 5],
-        "circle-color": ["get", "color"],
-        "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": 2,
-      },
-    });
-  }
-
-  map.setFilter("campus-place-halo", nonClassroomFilter);
-  map.setFilter("campus-place-fill", nonClassroomFilter);
 }
 
 export default function FindWayPage() {
   const [, navigate] = useLocation();
+  const cachedCampusBundle = getCachedCampusPlaceData();
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const classroomMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const walkGroupMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const meetingPointMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const selectedPopupRef = useRef<mapboxgl.Popup | null>(null);
   const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const geoWatchIdRef = useRef<number | null>(null);
@@ -338,13 +444,24 @@ export default function FindWayPage() {
   const dragStateRef = useRef<{ startY: number; startHeight: number } | null>(
     null
   );
-  const walkingPalTimeoutRef = useRef<number | null>(null);
 
-  const [placeData, setPlaceData] = useState<PlaceDataset | null>(null);
-  const [campusData, setCampusData] = useState<CampusDataset | null>(null);
+  const [placeData, setPlaceData] = useState<PlaceDataset | null>(
+    cachedCampusBundle?.placeData ?? null
+  );
+  const [campusData, setCampusData] = useState<CampusDataset | null>(
+    cachedCampusBundle?.campusData ?? null
+  );
   const [activeRoute, setActiveRoute] = useState<ActiveRoute | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [activeWalkGroups, setActiveWalkGroups] = useState<WalkGroupRecord[]>([]);
+  const [myActiveWalkGroup, setMyActiveWalkGroup] =
+    useState<WalkGroupRecord | null>(null);
+  const [selectedWalkGroupId, setSelectedWalkGroupId] = useState<string | null>(
+    null
+  );
+  const [isLoadingData, setIsLoadingData] = useState(!cachedCampusBundle);
   const [isPlanningRoute, setIsPlanningRoute] = useState(false);
+  const [isCreatingWalkGroup, setIsCreatingWalkGroup] = useState(false);
+  const [isJoiningWalkGroup, setIsJoiningWalkGroup] = useState(false);
   const [locationStatus, setLocationStatus] =
     useState<LocationStatus>("locating");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -353,9 +470,14 @@ export default function FindWayPage() {
     string | null
   >(null);
   const [walkMode, setWalkMode] = useState<WalkMode>("quick");
-  const [isWalkingPalOpen, setIsWalkingPalOpen] = useState(false);
-  const [walkingPalStatus, setWalkingPalStatus] =
-    useState<WalkingPalStatus>("searching");
+  const [isWalkGroupDialogOpen, setIsWalkGroupDialogOpen] = useState(false);
+  const [walkGroupDialogMode, setWalkGroupDialogMode] =
+    useState<WalkGroupDialogMode>("warning");
+  const [isSelectingMeetingPoint, setIsSelectingMeetingPoint] = useState(false);
+  const [selectedMeetingPoint, setSelectedMeetingPoint] =
+    useState<SelectedMeetingPoint | null>(null);
+  const [walkGroupLeavingOffsetMin, setWalkGroupLeavingOffsetMin] = useState(10);
+  const [walkGroupNote, setWalkGroupNote] = useState("");
   const [isReportSheetOpen, setIsReportSheetOpen] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(800);
   const [sheetHeight, setSheetHeight] = useState(240);
@@ -378,6 +500,12 @@ export default function FindWayPage() {
     () =>
       placeData?.locations.find(l => l.id === selectedDestinationId) ?? null,
     [placeData?.locations, selectedDestinationId]
+  );
+
+  const selectedWalkGroup = useMemo(
+    () =>
+      activeWalkGroups.find((group) => group.id === selectedWalkGroupId) ?? null,
+    [activeWalkGroups, selectedWalkGroupId]
   );
 
   const filteredLocations = useMemo(() => {
@@ -410,6 +538,7 @@ export default function FindWayPage() {
       )
       .slice(0, 12);
   }, [normalizedDestinationQuery, placeData?.locations]);
+  const walkGroupDestination = selectedDestination ?? filteredLocations[0] ?? null;
 
   const visibleLocations = useMemo(() => {
     if (normalizedDestinationQuery) return filteredLocations;
@@ -509,12 +638,55 @@ export default function FindWayPage() {
       setSelectedDestinationId(location.id);
       setDestinationQuery(location.name);
       setActiveRoute(null);
-      setIsWalkingPalOpen(false);
+      setSelectedWalkGroupId(null);
       setIsReportSheetOpen(false);
       snapSheetTo("mid");
       focusLocationOnMap(location);
     },
     [focusLocationOnMap, snapSheetTo]
+  );
+
+  const resolveMeetingPointSelection = useCallback(
+    (coordinates: Coord2) => {
+      const nearestPlace =
+        placeData?.locations && placeData.locations.length > 0
+          ? findClosestMeetingPoint(placeData.locations, coordinates)
+          : null;
+      const nearestPlaceDistanceM = nearestPlace
+        ? haversineMeters(nearestPlace.coordinates, coordinates)
+        : Number.POSITIVE_INFINITY;
+      const snap = campusData
+        ? findNearestCampusPathSnap(campusData, coordinates)
+        : null;
+      const nearestNodeId = snap
+        ? snap.distanceToStartM <= snap.distanceToEndM
+          ? snap.startNodeId
+          : snap.endNodeId
+        : undefined;
+
+      setSelectedMeetingPoint({
+        name:
+          nearestPlace && nearestPlaceDistanceM <= 35
+            ? nearestPlace.name
+            : "Custom Meeting Point",
+        coordinates,
+        category:
+          nearestPlace && nearestPlaceDistanceM <= 35
+            ? nearestPlace.category
+            : undefined,
+        sourceId:
+          nearestPlace && nearestPlaceDistanceM <= 35
+            ? nearestPlace.id
+            : undefined,
+        nearestNodeId,
+      });
+      setIsSelectingMeetingPoint(false);
+      setIsWalkGroupDialogOpen(true);
+      setWalkGroupDialogMode("form");
+      snapSheetTo("mid");
+      toast.success("Meeting point selected.");
+    },
+    [campusData, placeData?.locations, snapSheetTo]
   );
 
   const renderSelectedPopup = useCallback((location: PlaceLocation | null) => {
@@ -657,7 +829,7 @@ export default function FindWayPage() {
       setSelectedDestinationId(destination.id);
       setDestinationQuery(destination.name);
     }
-    setIsWalkingPalOpen(false);
+    setSelectedWalkGroupId(null);
     setIsReportSheetOpen(false);
     setIsPlanningRoute(true);
     try {
@@ -665,80 +837,142 @@ export default function FindWayPage() {
         campusData,
         userLocation.coordinates
       );
-      if (!userSnap)
-        throw new Error(
-          "Unable to snap your location to the campus path network."
-        );
-
-      const roadRoute = await requestWalkingRoute([
-        userLocation.coordinates,
-        userSnap.coordinates,
-      ]);
-
-      const startOptions = [
-        {
-          nodeId: userSnap.startNodeId,
-          nodeCoordinates: userSnap.startNodeCoordinates,
-          connectorDistanceM: userSnap.distanceToStartM,
-        },
-        {
-          nodeId: userSnap.endNodeId,
-          nodeCoordinates: userSnap.endNodeCoordinates,
-          connectorDistanceM: userSnap.distanceToEndM,
-        },
-      ].filter(
-        (option, index, options) =>
-          options.findIndex(candidate => candidate.nodeId === option.nodeId) ===
-          index
+      const destinationComponentId = getCampusNodeComponentId(
+        campusData,
+        destination.nearestNodeId
       );
+      const startOptions = userSnap
+        ? [
+            {
+              nodeId: userSnap.startNodeId,
+              nodeCoordinates: userSnap.startNodeCoordinates,
+              connectorDistanceM: userSnap.distanceToStartM,
+            },
+            {
+              nodeId: userSnap.endNodeId,
+              nodeCoordinates: userSnap.endNodeCoordinates,
+              connectorDistanceM: userSnap.distanceToEndM,
+            },
+          ].filter(
+            (option, index, options) =>
+              options.findIndex(
+                candidate => candidate.nodeId === option.nodeId
+              ) === index
+          )
+        : [];
+      const connectedStartOptions =
+        destinationComponentId === null
+          ? []
+          : startOptions.filter(
+              option =>
+                getCampusNodeComponentId(campusData, option.nodeId) ===
+                destinationComponentId
+            );
 
-      const routeOptions = startOptions
-        .map(option => {
-          const campusRoute = planCampusRouteBetweenNodes(
-            campusData,
-            option.nodeId,
-            destination.nearestNodeId,
-            getCampusRouteMode(walkMode)
-          );
-          if (!campusRoute) return null;
+      const routeOptions: Array<{
+        combinedCoordinates: Coord2[];
+        campusRoute: NonNullable<
+          ReturnType<typeof planCampusRouteBetweenNodes>
+        >;
+        roadRoute: DirectionsRoute;
+        totalDistanceM: number;
+        totalDurationSec: number;
+      }> = [];
 
-          const lastCampusCoord =
-            campusRoute.coordinates[campusRoute.coordinates.length - 1];
-          const finalConnectorDistanceM = lastCampusCoord
-            ? haversineMeters(lastCampusCoord, destination.coordinates)
-            : 0;
-          const finalConnectorCoordinates =
-            finalConnectorDistanceM > 1 ? [destination.coordinates] : [];
-          const combinedCoordinates = mergeRouteCoordinates(
-            roadRoute.coordinates,
-            [userSnap.coordinates],
-            campusRoute.coordinates,
-            finalConnectorCoordinates
-          );
+      if (userSnap && connectedStartOptions.length > 0) {
+        const roadConnectorDistanceM = haversineMeters(
+          userLocation.coordinates,
+          userSnap.coordinates
+        );
+        const roadRoute =
+          roadConnectorDistanceM < 3
+            ? {
+                coordinates: mergeRouteCoordinates(
+                  [userLocation.coordinates],
+                  [userSnap.coordinates]
+                ),
+                distanceM: roadConnectorDistanceM,
+                durationSec: roadConnectorDistanceM / 1.35,
+              }
+            : await requestWalkingRoute([
+                userLocation.coordinates,
+                userSnap.coordinates,
+              ]);
 
-          return {
-            combinedCoordinates,
-            campusRoute,
-            roadRoute,
-            totalDistanceM:
-              roadRoute.distanceM +
-              option.connectorDistanceM +
-              campusRoute.distanceM +
-              finalConnectorDistanceM,
-            totalDurationSec:
-              roadRoute.durationSec +
-              option.connectorDistanceM / 1.35 +
-              campusRoute.walkTimeSec +
-              finalConnectorDistanceM / 1.2,
-          };
-        })
-        .filter((route): route is NonNullable<typeof route> => route !== null);
+        routeOptions.push(
+          ...connectedStartOptions
+            .map(option => {
+              const campusRoute = planCampusRouteBetweenNodes(
+                campusData,
+                option.nodeId,
+                destination.nearestNodeId,
+                getCampusRouteMode(walkMode)
+              );
+              if (!campusRoute) return null;
+
+              const lastCampusCoord =
+                campusRoute.coordinates[campusRoute.coordinates.length - 1];
+              const finalConnectorDistanceM = lastCampusCoord
+                ? haversineMeters(lastCampusCoord, destination.coordinates)
+                : 0;
+              const finalConnectorCoordinates =
+                finalConnectorDistanceM > 1 ? [destination.coordinates] : [];
+              const combinedCoordinates = mergeRouteCoordinates(
+                roadRoute.coordinates,
+                [userSnap.coordinates],
+                campusRoute.coordinates,
+                finalConnectorCoordinates
+              );
+
+              return {
+                combinedCoordinates,
+                campusRoute,
+                roadRoute,
+                totalDistanceM:
+                  roadRoute.distanceM +
+                  option.connectorDistanceM +
+                  campusRoute.distanceM +
+                  finalConnectorDistanceM,
+                totalDurationSec:
+                  roadRoute.durationSec +
+                  option.connectorDistanceM / 1.35 +
+                  campusRoute.walkTimeSec +
+                  finalConnectorDistanceM / 1.2,
+              };
+            })
+            .filter((route): route is NonNullable<typeof route> => route !== null)
+        );
+      }
+
+      if (routeOptions.length === 0) {
+        const fallbackRoute = await buildDestinationComponentEntryRoute({
+          campusData,
+          origin: userLocation.coordinates,
+          destination,
+          walkMode,
+          requestWalkingRoute,
+        });
+        if (fallbackRoute) {
+          routeOptions.push(fallbackRoute);
+        }
+      }
 
       const bestRoute = routeOptions.sort(
         (a, b) => a.totalDistanceM - b.totalDistanceM
       )[0];
-      if (!bestRoute)
+      if (!bestRoute) {
+        const disconnectedMessage = buildDisconnectedCampusRouteMessage(
+          campusData,
+          startOptions.map(option => option.nodeId),
+          destination.nearestNodeId,
+          destination.name
+        );
+        if (disconnectedMessage) {
+          throw new Error(disconnectedMessage);
+        }
+
         throw new Error("No route could be built to the selected room.");
+      }
       setActiveRoute({
         mode: walkMode,
         coordinates: bestRoute.combinedCoordinates,
@@ -755,7 +989,11 @@ export default function FindWayPage() {
         fitMapToRoute(mapRef.current, bestRoute.combinedCoordinates);
     } catch (error) {
       console.error(error);
-      toast.error("Unable to build the combined route right now.");
+      toast.error(
+        isDisconnectedCampusRouteError(error)
+          ? "Those nodes are on a disconnected part of the campus graph."
+          : "Unable to build the combined route right now."
+      );
     } finally {
       setIsPlanningRoute(false);
     }
@@ -773,19 +1011,151 @@ export default function FindWayPage() {
     walkMode,
   ]);
 
-  const openWalkingPalSheet = useCallback(() => {
-    const destination = selectedDestination ?? filteredLocations[0] ?? null;
-    if (!destination) {
-      toast.error("Choose a destination before requesting a walking pal.");
+  const refreshWalkGroups = useCallback(async () => {
+    try {
+      const [groups, activeGroup] = await Promise.all([
+        loadActiveWalkGroups(),
+        loadMyActiveWalkGroup().catch(() => null),
+      ]);
+      setActiveWalkGroups(groups);
+      setMyActiveWalkGroup(activeGroup);
+      setSelectedWalkGroupId((current) =>
+        current && !groups.some((group) => group.id === current) ? null : current
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  const openWalkGroupDialog = useCallback(() => {
+    if (myActiveWalkGroup) {
+      navigate(`/walk-group/${myActiveWalkGroup.id}`);
       return;
     }
+
+    const destination = selectedDestination ?? filteredLocations[0] ?? null;
+    if (!destination) {
+      toast.error("Choose a destination before starting a walk group.");
+      return;
+    }
+    setSelectedMeetingPoint(null);
+    setIsSelectingMeetingPoint(false);
+    setWalkGroupLeavingOffsetMin(10);
+    setWalkGroupNote("");
+    setSelectedWalkGroupId(null);
     setIsReportSheetOpen(false);
-    setIsWalkingPalOpen(true);
-    setWalkingPalStatus("searching");
-  }, [filteredLocations, selectedDestination]);
+    setWalkGroupDialogMode("warning");
+    setIsWalkGroupDialogOpen(true);
+  }, [filteredLocations, myActiveWalkGroup, navigate, selectedDestination]);
+
+  const closeWalkGroupDialog = useCallback(() => {
+    setIsWalkGroupDialogOpen(false);
+    setIsSelectingMeetingPoint(false);
+    setWalkGroupDialogMode("warning");
+  }, []);
+
+  const beginMeetingPointSelection = useCallback(() => {
+    setIsWalkGroupDialogOpen(false);
+    setIsReportSheetOpen(false);
+    setSelectedWalkGroupId(null);
+    setIsSelectingMeetingPoint(true);
+    snapSheetTo("peek");
+    toast.message("Tap the map to place the Walk Group meeting marker.");
+  }, [snapSheetTo]);
+
+  const handleCreateWalkGroup = useCallback(async () => {
+    const destination = selectedDestination ?? filteredLocations[0] ?? null;
+    if (!destination) {
+      toast.error("Choose a destination first.");
+      return;
+    }
+    if (!selectedMeetingPoint) {
+      toast.error("Choose a meeting point first.");
+      return;
+    }
+
+    setIsCreatingWalkGroup(true);
+    try {
+      const leavingAt = new Date(
+        Date.now() + walkGroupLeavingOffsetMin * 60_000
+      ).toISOString();
+      const createdGroup = await createWalkGroup({
+        destinationName: destination.name,
+        destinationCategory: destination.category,
+        destinationSourceId: destination.id,
+        destinationNodeId: destination.nearestNodeId,
+        destinationLat: destination.coordinates[1],
+        destinationLng: destination.coordinates[0],
+        meetingPointName: selectedMeetingPoint.name,
+        meetingCategory: selectedMeetingPoint.category,
+        meetingSourceId: selectedMeetingPoint.sourceId,
+        meetingNodeId: selectedMeetingPoint.nearestNodeId,
+        meetingLat: selectedMeetingPoint.coordinates[1],
+        meetingLng: selectedMeetingPoint.coordinates[0],
+        leavingAt,
+        note: walkGroupNote,
+      });
+
+      setMyActiveWalkGroup(createdGroup);
+      setIsWalkGroupDialogOpen(false);
+      setWalkGroupDialogMode("warning");
+      await refreshWalkGroups();
+      toast.success("Walk group created.");
+      navigate(`/walk-group/${createdGroup.id}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to create the walk group right now."
+      );
+    } finally {
+      setIsCreatingWalkGroup(false);
+    }
+  }, [
+    filteredLocations,
+    navigate,
+    refreshWalkGroups,
+    selectedDestination,
+    selectedMeetingPoint,
+    walkGroupLeavingOffsetMin,
+    walkGroupNote,
+  ]);
+
+  const handleJoinWalkGroup = useCallback(async () => {
+    if (!selectedWalkGroup) {
+      return;
+    }
+
+    setIsJoiningWalkGroup(true);
+    try {
+      const joinedGroup = await joinWalkGroup(selectedWalkGroup.id);
+      setMyActiveWalkGroup(joinedGroup);
+      setSelectedWalkGroupId(null);
+      await refreshWalkGroups();
+      toast.success("Joined walk group.");
+      navigate(`/walk-group/${joinedGroup.id}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to join this walk group right now."
+      );
+    } finally {
+      setIsJoiningWalkGroup(false);
+    }
+  }, [navigate, refreshWalkGroups, selectedWalkGroup]);
+
+  const openSelectedWalkGroup = useCallback(() => {
+    if (!selectedWalkGroup) {
+      return;
+    }
+    navigate(`/walk-group/${selectedWalkGroup.id}`);
+  }, [navigate, selectedWalkGroup]);
 
   const openReportSheet = useCallback(() => {
-    setIsWalkingPalOpen(false);
+    setIsWalkGroupDialogOpen(false);
+    setIsSelectingMeetingPoint(false);
+    setSelectedWalkGroupId(null);
     setIsReportSheetOpen(true);
     snapSheetTo("mid");
   }, [snapSheetTo]);
@@ -801,27 +1171,15 @@ export default function FindWayPage() {
   );
 
   useEffect(() => {
-    if (!isWalkingPalOpen) {
-      if (walkingPalTimeoutRef.current != null) {
-        window.clearTimeout(walkingPalTimeoutRef.current);
-        walkingPalTimeoutRef.current = null;
-      }
-      return;
-    }
-    setWalkingPalStatus("searching");
-    if (walkingPalTimeoutRef.current != null)
-      window.clearTimeout(walkingPalTimeoutRef.current);
-    walkingPalTimeoutRef.current = window.setTimeout(() => {
-      setWalkingPalStatus("empty");
-      walkingPalTimeoutRef.current = null;
-    }, 20000);
+    void refreshWalkGroups();
+    const intervalId = window.setInterval(() => {
+      void refreshWalkGroups();
+    }, WALK_GROUP_REFRESH_MS);
+
     return () => {
-      if (walkingPalTimeoutRef.current != null) {
-        window.clearTimeout(walkingPalTimeoutRef.current);
-        walkingPalTimeoutRef.current = null;
-      }
+      window.clearInterval(intervalId);
     };
-  }, [isWalkingPalOpen]);
+  }, [refreshWalkGroups]);
 
   useEffect(() => {
     setViewportHeight(window.innerHeight);
@@ -894,13 +1252,23 @@ export default function FindWayPage() {
     });
     map.on("load", () => {
       if (!placeData) return;
-      ensureMapSources(map, placeData, selectedDestinationId, activeRoute);
+      ensureMapSources(
+        map,
+        campusData,
+        placeData,
+        selectedDestinationId,
+        activeRoute
+      );
       fitMapToCampus(map, placeData);
     });
     mapRef.current = map;
     return () => {
       classroomMarkersRef.current.forEach(m => m.remove());
       classroomMarkersRef.current = [];
+      walkGroupMarkersRef.current.forEach(m => m.remove());
+      walkGroupMarkersRef.current = [];
+      meetingPointMarkerRef.current?.remove();
+      meetingPointMarkerRef.current = null;
       selectedPopupRef.current?.remove();
       userMarkerRef.current?.remove();
       map.remove();
@@ -912,7 +1280,13 @@ export default function FindWayPage() {
     const map = mapRef.current;
     if (!map || !placeData) return;
     const syncMap = () => {
-      ensureMapSources(map, placeData, selectedDestinationId, activeRoute);
+      ensureMapSources(
+        map,
+        campusData,
+        placeData,
+        selectedDestinationId,
+        activeRoute
+      );
       renderSelectedPopup(selectedDestination);
       if (!selectedDestination && !activeRoute) fitMapToCampus(map, placeData);
     };
@@ -921,6 +1295,7 @@ export default function FindWayPage() {
   }, [
     fitMapToCampus,
     activeRoute,
+    campusData,
     placeData,
     renderSelectedPopup,
     selectedDestinationId,
@@ -947,17 +1322,21 @@ export default function FindWayPage() {
       classroomMarkersRef.current.forEach(m => m.remove());
       classroomMarkersRef.current = [];
     };
-    const syncClassroomMarkers = () => {
+    const syncPlaceMarkers = () => {
       resetMarkers();
-      for (const location of placeData.locations.filter(
-        item => item.category === "classroom"
-      )) {
-        const el = createClassroomMarkerElement(
-          selectedDestinationId === location.id
-        );
+      for (const location of placeData.locations) {
+        const el = createCampusPlaceMarkerElement({
+          category: location.category,
+          title: location.name,
+          isSelected: selectedDestinationId === location.id,
+        });
         el.addEventListener("click", event => {
           event.preventDefault();
           event.stopPropagation();
+          if (isSelectingMeetingPoint) {
+            resolveMeetingPointSelection(location.coordinates);
+            return;
+          }
           handlePlaceTap(location.id);
         });
         const marker = new mapboxgl.Marker({ element: el, anchor: "center" })
@@ -966,63 +1345,147 @@ export default function FindWayPage() {
         classroomMarkersRef.current.push(marker);
       }
     };
-    if (map.isStyleLoaded()) syncClassroomMarkers();
-    else map.once("load", syncClassroomMarkers);
+    if (map.isStyleLoaded()) syncPlaceMarkers();
+    else map.once("load", syncPlaceMarkers);
     return () => {
       try {
-        map.off("load", syncClassroomMarkers);
+        map.off("load", syncPlaceMarkers);
       } catch {}
       resetMarkers();
     };
-  }, [handlePlaceTap, placeData, selectedDestinationId]);
+  }, [
+    handlePlaceTap,
+    isSelectingMeetingPoint,
+    placeData,
+    resolveMeetingPointSelection,
+    selectedDestinationId,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
-    const layerId = "campus-place-fill";
-    const handleLayerClick = (event: mapboxgl.MapLayerMouseEvent) => {
-      const locationId = event.features?.[0]?.properties?.id;
-      if (typeof locationId === "string") handlePlaceTap(locationId);
+    if (!map) {
+      return;
+    }
+
+    const resetMarkers = () => {
+      walkGroupMarkersRef.current.forEach((marker) => marker.remove());
+      walkGroupMarkersRef.current = [];
     };
-    const enablePointerCursor = () => {
+
+    const syncWalkGroupMarkers = () => {
+      resetMarkers();
+
+      for (const group of activeWalkGroups) {
+        const markerElement = buildWalkGroupMarkerElement(
+          myActiveWalkGroup?.id === group.id
+        );
+        markerElement.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setSelectedWalkGroupId(group.id);
+          setIsReportSheetOpen(false);
+          setIsWalkGroupDialogOpen(false);
+        });
+
+        const marker = new mapboxgl.Marker({
+          element: markerElement,
+          anchor: "center",
+        })
+          .setLngLat([group.meetingLng, group.meetingLat])
+          .addTo(map);
+
+        walkGroupMarkersRef.current.push(marker);
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      syncWalkGroupMarkers();
+    } else {
+      map.once("load", syncWalkGroupMarkers);
+    }
+
+    return () => {
       try {
-        map.getCanvas().style.cursor = "pointer";
+        map.off("load", syncWalkGroupMarkers);
       } catch {}
+      resetMarkers();
     };
-    const disablePointerCursor = () => {
+  }, [activeWalkGroups, myActiveWalkGroup?.id]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    if (!selectedMeetingPoint) {
+      meetingPointMarkerRef.current?.remove();
+      meetingPointMarkerRef.current = null;
+      return;
+    }
+
+    const [meetingLng, meetingLat] = selectedMeetingPoint.coordinates;
+    if (!Number.isFinite(meetingLng) || !Number.isFinite(meetingLat)) {
+      meetingPointMarkerRef.current?.remove();
+      meetingPointMarkerRef.current = null;
+      return;
+    }
+
+    if (!meetingPointMarkerRef.current) {
+      meetingPointMarkerRef.current = new mapboxgl.Marker({
+        element: buildMeetingPointMarkerElement(),
+        anchor: "center",
+      })
+        .setLngLat([meetingLng, meetingLat])
+        .addTo(map);
+    }
+
+    meetingPointMarkerRef.current
+      .setLngLat([meetingLng, meetingLat])
+      .setPopup(
+        new mapboxgl.Popup({ offset: 16 }).setHTML(
+          `<div style="font:600 12px/1.4 system-ui,sans-serif"><div>Meeting Point</div><div style="font-weight:400;color:#475569">${selectedMeetingPoint.name}</div></div>`
+        )
+      );
+  }, [selectedMeetingPoint]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    const handleMapClick = (event: mapboxgl.MapMouseEvent) => {
+      if (!isSelectingMeetingPoint) {
+        return;
+      }
+
+      resolveMeetingPointSelection([event.lngLat.lng, event.lngLat.lat]);
+    };
+
+    map.on("click", handleMapClick);
+
+    return () => {
+      map.off("click", handleMapClick);
+    };
+  }, [isSelectingMeetingPoint, resolveMeetingPointSelection]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) {
+      return;
+    }
+
+    try {
+      map.getCanvas().style.cursor = isSelectingMeetingPoint ? "crosshair" : "";
+    } catch {}
+
+    return () => {
       try {
         map.getCanvas().style.cursor = "";
       } catch {}
     };
-    const hasPlaceLayer = () => {
-      try {
-        return Boolean(map.getLayer(layerId));
-      } catch {
-        return false;
-      }
-    };
-    const bindLayerEvents = () => {
-      if (!hasPlaceLayer()) return;
-      map.on("click", layerId, handleLayerClick);
-      map.on("mouseenter", layerId, enablePointerCursor);
-      map.on("mouseleave", layerId, disablePointerCursor);
-    };
-    if (map.isStyleLoaded()) bindLayerEvents();
-    else map.once("load", bindLayerEvents);
-    return () => {
-      try {
-        map.off("load", bindLayerEvents);
-      } catch {}
-      if (hasPlaceLayer()) {
-        try {
-          map.off("click", layerId, handleLayerClick);
-          map.off("mouseenter", layerId, enablePointerCursor);
-          map.off("mouseleave", layerId, disablePointerCursor);
-        } catch {}
-      }
-      disablePointerCursor();
-    };
-  }, [handlePlaceTap]);
+  }, [isSelectingMeetingPoint]);
 
   useEffect(() => {
     renderSelectedPopup(selectedDestination);
@@ -1083,17 +1546,24 @@ export default function FindWayPage() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans">
       {/* ── Floating Map Controls ── */}
-      <div className="absolute top-0 inset-x-0 z-20 pointer-events-none p-4 flex justify-between items-start pt-8">
-        {/* Top Left: Walking Requests pill */}
+      <div className="absolute top-0 right-0 z-20 pointer-events-none flex flex-col items-end gap-3 p-4 pt-8">
+        {/* Walk Group entry point */}
         <button
-          onClick={openWalkingPalSheet}
-          disabled={!selectedDestination && !destinationQuery}
-          className="pointer-events-auto flex items-center gap-2 bg-blue-600 text-white font-bold rounded-full pl-2 pr-4 py-1.5 shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all disabled:opacity-0"
+          onClick={openWalkGroupDialog}
+          disabled={!myActiveWalkGroup && !selectedDestination && !destinationQuery}
+          className={`pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all active:scale-95 disabled:opacity-40 ${
+            myActiveWalkGroup
+              ? "bg-[#00c853] text-white border-[#00c853] shadow-[#00c853]/30"
+              : "bg-white text-[#00c853] border-gray-100 hover:bg-[#e8faf0]"
+          }`}
+          aria-label={myActiveWalkGroup ? "Open active walk group" : "Start walk group"}
         >
-          <div className="bg-white text-blue-600 p-1.5 rounded-full">
-            <Users className="w-4 h-4" />
-          </div>
-          <span className="text-sm tracking-wide">Walking Requests</span>
+          <Users className="w-5 h-5" />
+          {myActiveWalkGroup ? (
+            <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#0f172a] px-1 text-[10px] font-bold text-white">
+              {myActiveWalkGroup.memberCount}
+            </span>
+          ) : null}
         </button>
 
         {/* Top Right: Back, Locate, Report — stacked column */}
@@ -1200,7 +1670,7 @@ export default function FindWayPage() {
                       setActiveRoute(null);
                       setSelectedDestinationId(null);
                       setDestinationQuery("");
-                      setIsWalkingPalOpen(false);
+                      setSelectedWalkGroupId(null);
                       setIsReportSheetOpen(false);
                       if (mapRef.current && placeData)
                         fitMapToCampus(mapRef.current, placeData);
@@ -1231,7 +1701,7 @@ export default function FindWayPage() {
                     ) {
                       setSelectedDestinationId(null);
                       setActiveRoute(null);
-                      setIsWalkingPalOpen(false);
+                      setSelectedWalkGroupId(null);
                       setIsReportSheetOpen(false);
                     }
                   }}
@@ -1247,7 +1717,7 @@ export default function FindWayPage() {
                       setDestinationQuery("");
                       setSelectedDestinationId(null);
                       setActiveRoute(null);
-                      setIsWalkingPalOpen(false);
+                      setSelectedWalkGroupId(null);
                       setIsReportSheetOpen(false);
                     }}
                     className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
@@ -1296,7 +1766,7 @@ export default function FindWayPage() {
                             if (meta.disabled) return;
                             setWalkMode(mode);
                             setActiveRoute(null);
-                            setIsWalkingPalOpen(false);
+                            setSelectedWalkGroupId(null);
                             setIsReportSheetOpen(false);
                           }}
                           disabled={meta.disabled}
@@ -1467,7 +1937,7 @@ export default function FindWayPage() {
                   setActiveRoute(null);
                   setSelectedDestinationId(null);
                   setDestinationQuery("");
-                  setIsWalkingPalOpen(false);
+                  setSelectedWalkGroupId(null);
                   setIsReportSheetOpen(false);
                   fitMapToCampus(mapRef.current, placeData);
                 }}
@@ -1497,63 +1967,68 @@ export default function FindWayPage() {
           </div>
         </div>
 
-        {/* ── Walking Pal Floating Sheet ── */}
-        {isWalkingPalOpen && (
+        {/* Walk Group preview */}
+        {selectedWalkGroup && (
           <div
             className="absolute inset-x-0 z-40 px-4 pointer-events-none"
             style={{ bottom: Math.min(sheetHeight + 12, viewportHeight - 260) }}
           >
-            <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border border-gray-100 bg-white shadow-xl overflow-hidden">
-              <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-50">
-                <div>
-                  <p className="text-sm font-bold text-gray-900">
-                    Walking Requests
-                  </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {selectedDestination?.name ?? destinationQuery}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsWalkingPalOpen(false)}
-                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-400 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="px-4 py-5">
-                {walkingPalStatus === "searching" ? (
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                      <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">
-                        Scanning network…
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                        Looking for students headed to the same location.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                      <Users className="w-4 h-4 text-gray-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-900">
-                        No requests right now
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                        Nobody is going your way. Check back later.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <WalkGroupPreviewCard
+              group={selectedWalkGroup}
+              isJoining={isJoiningWalkGroup}
+              hasOtherActiveGroup={Boolean(
+                myActiveWalkGroup && myActiveWalkGroup.id !== selectedWalkGroup.id
+              )}
+              onClose={() => setSelectedWalkGroupId(null)}
+              onJoin={() => void handleJoinWalkGroup()}
+              onOpen={openSelectedWalkGroup}
+            />
+          </div>
+        )}
+
+        {isSelectingMeetingPoint && (
+          <div className="absolute left-1/2 top-24 z-40 w-[min(420px,calc(100%-2rem))] -translate-x-1/2 pointer-events-none">
+            <div className="rounded-2xl border border-[#d2f5df] bg-white/95 px-4 py-3 shadow-xl backdrop-blur">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00a844]">
+                Pick Meeting Point
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                Tap the map to drop the meeting marker.
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                The latitude and longitude of that marker will be saved with the
+                Walk Group.
+              </p>
             </div>
           </div>
         )}
+
+        <WalkGroupCreateDialog
+          open={isWalkGroupDialogOpen}
+          mode={walkGroupDialogMode}
+          destinationName={walkGroupDestination?.name ?? "Selected destination"}
+          selectedMeetingPoint={
+            selectedMeetingPoint
+              ? {
+                  name: selectedMeetingPoint.name,
+                  coordinates: selectedMeetingPoint.coordinates,
+                }
+              : null
+          }
+          isPickingMeetingPoint={isSelectingMeetingPoint}
+          leavingOffsetMin={walkGroupLeavingOffsetMin}
+          note={walkGroupNote}
+          isSubmitting={isCreatingWalkGroup}
+          onOpenChange={(open) => {
+            if (!open) closeWalkGroupDialog();
+          }}
+          onPickMeetingPoint={beginMeetingPointSelection}
+          onLeavingOffsetChange={setWalkGroupLeavingOffsetMin}
+          onNoteChange={setWalkGroupNote}
+          onCancel={closeWalkGroupDialog}
+          onContinue={() => setWalkGroupDialogMode("form")}
+          onCreate={() => void handleCreateWalkGroup()}
+        />
 
         <MapHazardReportSheet
           open={isReportSheetOpen}

@@ -10,12 +10,15 @@ type UseAuthOptions = {
   redirectPath?: string;
 };
 
+let cachedSession: Session | null = null;
+let hasResolvedInitialSession = false;
+
 export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
     options ?? {};
   const utils = trpc.useUtils();
-  const [session, setSession] = useState<Session | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [session, setSession] = useState<Session | null>(cachedSession);
+  const [authLoading, setAuthLoading] = useState(!hasResolvedInitialSession);
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
     enabled: !!session,
@@ -28,6 +31,8 @@ export function useAuth(options?: UseAuthOptions) {
 
     void supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
+      cachedSession = data.session;
+      hasResolvedInitialSession = true;
       setSession(data.session);
       setAuthLoading(false);
     });
@@ -35,6 +40,8 @@ export function useAuth(options?: UseAuthOptions) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      cachedSession = nextSession;
+      hasResolvedInitialSession = true;
       setSession(nextSession);
       setAuthLoading(false);
       void utils.auth.me.invalidate();
@@ -58,6 +65,8 @@ export function useAuth(options?: UseAuthOptions) {
       }
       throw error;
     } finally {
+      cachedSession = null;
+      hasResolvedInitialSession = true;
       setSession(null);
       utils.auth.me.setData(undefined, null);
       await utils.auth.me.invalidate();
@@ -91,13 +100,16 @@ export function useAuth(options?: UseAuthOptions) {
       : null;
     const resolvedUser = meQuery.data ?? fallbackUser;
 
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(resolvedUser)
-    );
+    if (typeof window !== "undefined") {
+      localStorage.setItem(
+        "manus-runtime-user-info",
+        JSON.stringify(resolvedUser)
+      );
+    }
     return {
       user: resolvedUser,
-      loading: authLoading || (Boolean(session) && meQuery.isLoading),
+      loading:
+        authLoading || (Boolean(session) && !resolvedUser && meQuery.isLoading),
       error: meQuery.error ?? null,
       isAuthenticated: Boolean(session),
     };

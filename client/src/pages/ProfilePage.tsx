@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { loadSupabaseCourses, type SupabaseCourseRecord } from "@/lib/supabaseCourses";
+import {
+  getCachedSupabaseCourses,
+  loadSupabaseCourses,
+  type SupabaseCourseRecord,
+} from "@/lib/supabaseCourses";
 import AppLayout from "@/components/AppLayout";
 import {
   AlertCircle,
@@ -23,8 +27,11 @@ export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { user, loading, logout } = useAuth();
   const trustQuery = trpc.walking.getTrustScore.useQuery(undefined, { enabled: !!user });
-  const [supabaseCourses, setSupabaseCourses] = useState<SupabaseCourseRecord[]>([]);
-  const [loadingSupabaseCourses, setLoadingSupabaseCourses] = useState(true);
+  const cachedCourses = getCachedSupabaseCourses();
+  const [supabaseCourses, setSupabaseCourses] = useState<SupabaseCourseRecord[]>(
+    cachedCourses ?? []
+  );
+  const [loadingSupabaseCourses, setLoadingSupabaseCourses] = useState(!cachedCourses);
   const [supabaseCoursesError, setSupabaseCoursesError] = useState<string | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
@@ -51,7 +58,9 @@ export default function ProfilePage() {
 
     async function fetchCourses() {
       try {
-        setLoadingSupabaseCourses(true);
+        if (!cachedCourses) {
+          setLoadingSupabaseCourses(true);
+        }
         setSupabaseCoursesError(null);
         const courses = await loadSupabaseCourses();
         if (!cancelled) {
@@ -90,7 +99,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, [loading, user]);
+  }, [cachedCourses, loading, user]);
 
   const menuSections = [
     {

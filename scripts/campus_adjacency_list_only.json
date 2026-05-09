@@ -1,0 +1,3603 @@
+{
+  "metadata": {
+    "source_file": "Untitled map (7).geojson",
+    "node_count": 86,
+    "edge_rule": "Connect each node to up to its 3 nearest nodes, only when distance <= 35 meters. Edges are undirected and weighted by Haversine distance in meters.",
+    "k_nearest": 3,
+    "max_distance_m": 35,
+    "connected_components": 2,
+    "component_sizes": [
+      53,
+      33
+    ],
+    "warning": "This is an auto-suggested graph. Manually remove edges that cross walls, fences, locked doors, or non-walkable spaces."
+  },
+  "nodes": [
+    {
+      "id": "cross_walk_node",
+      "name": "Cross walk node",
+      "location": [
+        18.0055711,
+        -76.7484577
+      ],
+      "lat": 18.0055711,
+      "lng": -76.7484577,
+      "source_index": 0
+    },
+    {
+      "id": "lawn_node_1",
+      "name": "lawn node 1",
+      "location": [
+        18.0056234,
+        -76.7481331
+      ],
+      "lat": 18.0056234,
+      "lng": -76.7481331,
+      "source_index": 1
+    },
+    {
+      "id": "lawn_node_2",
+      "name": "lawn node 2",
+      "location": [
+        18.0056766,
+        -76.7478467
+      ],
+      "lat": 18.0056766,
+      "lng": -76.7478467,
+      "source_index": 2
+    },
+    {
+      "id": "lawn_node_3",
+      "name": "lawn node 3",
+      "location": [
+        18.0058645,
+        -76.7479446
+      ],
+      "lat": 18.0058645,
+      "lng": -76.7479446,
+      "source_index": 3
+    },
+    {
+      "id": "point_5",
+      "name": "Point 5",
+      "location": [
+        18.0060766,
+        -76.7480023
+      ],
+      "lat": 18.0060766,
+      "lng": -76.7480023,
+      "source_index": 4
+    },
+    {
+      "id": "point_6",
+      "name": "Point 6",
+      "location": [
+        18.0062024,
+        -76.7478166
+      ],
+      "lat": 18.0062024,
+      "lng": -76.7478166,
+      "source_index": 5
+    },
+    {
+      "id": "ab1",
+      "name": "ab1",
+      "location": [
+        18.0057088,
+        -76.7475323
+      ],
+      "lat": 18.0057088,
+      "lng": -76.7475323,
+      "source_index": 6
+    },
+    {
+      "id": "ab2",
+      "name": "ab2",
+      "location": [
+        18.005932,
+        -76.747433
+      ],
+      "lat": 18.005932,
+      "lng": -76.747433,
+      "source_index": 7
+    },
+    {
+      "id": "ab3",
+      "name": "ab3",
+      "location": [
+        18.006049,
+        -76.7473348
+      ],
+      "lat": 18.006049,
+      "lng": -76.7473348,
+      "source_index": 8
+    },
+    {
+      "id": "ab4",
+      "name": "ab4",
+      "location": [
+        18.0060094,
+        -76.7471511
+      ],
+      "lat": 18.0060094,
+      "lng": -76.7471511,
+      "source_index": 9
+    },
+    {
+      "id": "ab5",
+      "name": "ab5",
+      "location": [
+        18.0059444,
+        -76.7469017
+      ],
+      "lat": 18.0059444,
+      "lng": -76.7469017,
+      "source_index": 10
+    },
+    {
+      "id": "ab6",
+      "name": "ab6",
+      "location": [
+        18.0060089,
+        -76.7466483
+      ],
+      "lat": 18.0060089,
+      "lng": -76.7466483,
+      "source_index": 11
+    },
+    {
+      "id": "ab7",
+      "name": "ab7",
+      "location": [
+        18.0060854,
+        -76.7464251
+      ],
+      "lat": 18.0060854,
+      "lng": -76.7464251,
+      "source_index": 12
+    },
+    {
+      "id": "ab8",
+      "name": "ab8",
+      "location": [
+        18.0061288,
+        -76.7462288
+      ],
+      "lat": 18.0061288,
+      "lng": -76.7462288,
+      "source_index": 13
+    },
+    {
+      "id": "ab9",
+      "name": "ab9",
+      "location": [
+        18.0060548,
+        -76.7460598
+      ],
+      "lat": 18.0060548,
+      "lng": -76.7460598,
+      "source_index": 14
+    },
+    {
+      "id": "ab10",
+      "name": "ab10",
+      "location": [
+        18.0059732,
+        -76.7458868
+      ],
+      "lat": 18.0059732,
+      "lng": -76.7458868,
+      "source_index": 15
+    },
+    {
+      "id": "ab11",
+      "name": "ab11",
+      "location": [
+        18.0059158,
+        -76.7457473
+      ],
+      "lat": 18.0059158,
+      "lng": -76.7457473,
+      "source_index": 16
+    },
+    {
+      "id": "ab12",
+      "name": "ab12",
+      "location": [
+        18.005815,
+        -76.7455435
+      ],
+      "lat": 18.005815,
+      "lng": -76.7455435,
+      "source_index": 17
+    },
+    {
+      "id": "ab13",
+      "name": "ab13",
+      "location": [
+        18.0057003,
+        -76.7454013
+      ],
+      "lat": 18.0057003,
+      "lng": -76.7454013,
+      "source_index": 18
+    },
+    {
+      "id": "ab14",
+      "name": "ab14",
+      "location": [
+        18.0055689,
+        -76.7452297
+      ],
+      "lat": 18.0055689,
+      "lng": -76.7452297,
+      "source_index": 19
+    },
+    {
+      "id": "ab16",
+      "name": "ab16",
+      "location": [
+        18.0054847,
+        -76.7451032
+      ],
+      "lat": 18.0054847,
+      "lng": -76.7451032,
+      "source_index": 20
+    },
+    {
+      "id": "point_23",
+      "name": "Point 23",
+      "location": [
+        18.0063579,
+        -76.7478124
+      ],
+      "lat": 18.0063579,
+      "lng": -76.7478124,
+      "source_index": 21
+    },
+    {
+      "id": "point_24",
+      "name": "Point 24",
+      "location": [
+        18.0064816,
+        -76.747677
+      ],
+      "lat": 18.0064816,
+      "lng": -76.747677,
+      "source_index": 22
+    },
+    {
+      "id": "point_25",
+      "name": "Point 25",
+      "location": [
+        18.0066219,
+        -76.7476904
+      ],
+      "lat": 18.0066219,
+      "lng": -76.7476904,
+      "source_index": 23
+    },
+    {
+      "id": "point_26",
+      "name": "Point 26",
+      "location": [
+        18.0066716,
+        -76.7477521
+      ],
+      "lat": 18.0066716,
+      "lng": -76.7477521,
+      "source_index": 24
+    },
+    {
+      "id": "point_27",
+      "name": "Point 27",
+      "location": [
+        18.0064382,
+        -76.7474814
+      ],
+      "lat": 18.0064382,
+      "lng": -76.7474814,
+      "source_index": 25
+    },
+    {
+      "id": "point_28",
+      "name": "Point 28",
+      "location": [
+        18.0065186,
+        -76.7472575
+      ],
+      "lat": 18.0065186,
+      "lng": -76.7472575,
+      "source_index": 26
+    },
+    {
+      "id": "point_29",
+      "name": "Point 29",
+      "location": [
+        18.0066716,
+        -76.7472735
+      ],
+      "lat": 18.0066716,
+      "lng": -76.7472735,
+      "source_index": 27
+    },
+    {
+      "id": "point_30",
+      "name": "Point 30",
+      "location": [
+        18.0053746,
+        -76.7490142
+      ],
+      "lat": 18.0053746,
+      "lng": -76.7490142,
+      "source_index": 28
+    },
+    {
+      "id": "point_31",
+      "name": "Point 31",
+      "location": [
+        18.0053169,
+        -76.7492238
+      ],
+      "lat": 18.0053169,
+      "lng": -76.7492238,
+      "source_index": 29
+    },
+    {
+      "id": "point_32",
+      "name": "Point 32",
+      "location": [
+        18.0052098,
+        -76.74913
+      ],
+      "lat": 18.0052098,
+      "lng": -76.74913,
+      "source_index": 30
+    },
+    {
+      "id": "point_33",
+      "name": "Point 33",
+      "location": [
+        18.0051396,
+        -76.7490629
+      ],
+      "lat": 18.0051396,
+      "lng": -76.7490629,
+      "source_index": 31
+    },
+    {
+      "id": "point_34",
+      "name": "Point 34",
+      "location": [
+        18.0050593,
+        -76.7490187
+      ],
+      "lat": 18.0050593,
+      "lng": -76.7490187,
+      "source_index": 32
+    },
+    {
+      "id": "point_35",
+      "name": "Point 35",
+      "location": [
+        18.0049598,
+        -76.7489221
+      ],
+      "lat": 18.0049598,
+      "lng": -76.7489221,
+      "source_index": 33
+    },
+    {
+      "id": "point_36",
+      "name": "Point 36",
+      "location": [
+        18.0048983,
+        -76.7488575
+      ],
+      "lat": 18.0048983,
+      "lng": -76.7488575,
+      "source_index": 34
+    },
+    {
+      "id": "point_37",
+      "name": "Point 37",
+      "location": [
+        18.0047465,
+        -76.7487637
+      ],
+      "lat": 18.0047465,
+      "lng": -76.7487637,
+      "source_index": 35
+    },
+    {
+      "id": "point_38",
+      "name": "Point 38",
+      "location": [
+        18.0046572,
+        -76.7488173
+      ],
+      "lat": 18.0046572,
+      "lng": -76.7488173,
+      "source_index": 36
+    },
+    {
+      "id": "point_39",
+      "name": "Point 39",
+      "location": [
+        18.0048167,
+        -76.7489447
+      ],
+      "lat": 18.0048167,
+      "lng": -76.7489447,
+      "source_index": 37
+    },
+    {
+      "id": "point_40",
+      "name": "Point 40",
+      "location": [
+        18.0047312,
+        -76.7490574
+      ],
+      "lat": 18.0047312,
+      "lng": -76.7490574,
+      "source_index": 38
+    },
+    {
+      "id": "point_41",
+      "name": "Point 41",
+      "location": [
+        18.0046445,
+        -76.7491928
+      ],
+      "lat": 18.0046445,
+      "lng": -76.7491928,
+      "source_index": 39
+    },
+    {
+      "id": "point_42",
+      "name": "Point 42",
+      "location": [
+        18.0046018,
+        -76.7492794
+      ],
+      "lat": 18.0046018,
+      "lng": -76.7492794,
+      "source_index": 40
+    },
+    {
+      "id": "point_43",
+      "name": "Point 43",
+      "location": [
+        18.0045113,
+        -76.7493867
+      ],
+      "lat": 18.0045113,
+      "lng": -76.7493867,
+      "source_index": 41
+    },
+    {
+      "id": "point_44",
+      "name": "Point 44",
+      "location": [
+        18.0044448,
+        -76.7493196
+      ],
+      "lat": 18.0044448,
+      "lng": -76.7493196,
+      "source_index": 42
+    },
+    {
+      "id": "point_45",
+      "name": "Point 45",
+      "location": [
+        18.0043823,
+        -76.7492485
+      ],
+      "lat": 18.0043823,
+      "lng": -76.7492485,
+      "source_index": 43
+    },
+    {
+      "id": "point_46",
+      "name": "Point 46",
+      "location": [
+        18.0043083,
+        -76.7491774
+      ],
+      "lat": 18.0043083,
+      "lng": -76.7491774,
+      "source_index": 44
+    },
+    {
+      "id": "point_47",
+      "name": "Point 47",
+      "location": [
+        18.0042318,
+        -76.7491318
+      ],
+      "lat": 18.0042318,
+      "lng": -76.7491318,
+      "source_index": 45
+    },
+    {
+      "id": "point_48",
+      "name": "Point 48",
+      "location": [
+        18.004604,
+        -76.7494717
+      ],
+      "lat": 18.004604,
+      "lng": -76.7494717,
+      "source_index": 46
+    },
+    {
+      "id": "point_49",
+      "name": "Point 49",
+      "location": [
+        18.0047162,
+        -76.7495683
+      ],
+      "lat": 18.0047162,
+      "lng": -76.7495683,
+      "source_index": 47
+    },
+    {
+      "id": "point_50",
+      "name": "Point 50",
+      "location": [
+        18.0048655,
+        -76.7496554
+      ],
+      "lat": 18.0048655,
+      "lng": -76.7496554,
+      "source_index": 48
+    },
+    {
+      "id": "point_51",
+      "name": "Point 51",
+      "location": [
+        18.0048925,
+        -76.7494951
+      ],
+      "lat": 18.0048925,
+      "lng": -76.7494951,
+      "source_index": 49
+    },
+    {
+      "id": "point_52",
+      "name": "Point 52",
+      "location": [
+        18.0049876,
+        -76.749752
+      ],
+      "lat": 18.0049876,
+      "lng": -76.749752,
+      "source_index": 50
+    },
+    {
+      "id": "point_53",
+      "name": "Point 53",
+      "location": [
+        18.0051789,
+        -76.7498378
+      ],
+      "lat": 18.0051789,
+      "lng": -76.7498378,
+      "source_index": 51
+    },
+    {
+      "id": "point_56",
+      "name": "Point 56",
+      "location": [
+        18.0053125,
+        -76.7499355
+      ],
+      "lat": 18.0053125,
+      "lng": -76.7499355,
+      "source_index": 52
+    },
+    {
+      "id": "point_57",
+      "name": "Point 57",
+      "location": [
+        18.005463,
+        -76.7500052
+      ],
+      "lat": 18.005463,
+      "lng": -76.7500052,
+      "source_index": 53
+    },
+    {
+      "id": "point_58",
+      "name": "Point 58",
+      "location": [
+        18.0054171,
+        -76.7501168
+      ],
+      "lat": 18.0054171,
+      "lng": -76.7501168,
+      "source_index": 54
+    },
+    {
+      "id": "point_59",
+      "name": "Point 59",
+      "location": [
+        18.0053648,
+        -76.7502416
+      ],
+      "lat": 18.0053648,
+      "lng": -76.7502416,
+      "source_index": 55
+    },
+    {
+      "id": "point_60",
+      "name": "Point 60",
+      "location": [
+        18.0052181,
+        -76.7501571
+      ],
+      "lat": 18.0052181,
+      "lng": -76.7501571,
+      "source_index": 56
+    },
+    {
+      "id": "point_61",
+      "name": "Point 61",
+      "location": [
+        18.0051187,
+        -76.7501048
+      ],
+      "lat": 18.0051187,
+      "lng": -76.7501048,
+      "source_index": 57
+    },
+    {
+      "id": "point_62",
+      "name": "Point 62",
+      "location": [
+        18.0051952,
+        -76.7503274
+      ],
+      "lat": 18.0051952,
+      "lng": -76.7503274,
+      "source_index": 58
+    },
+    {
+      "id": "point_63",
+      "name": "Point 63",
+      "location": [
+        18.0051582,
+        -76.7504441
+      ],
+      "lat": 18.0051582,
+      "lng": -76.7504441,
+      "source_index": 59
+    },
+    {
+      "id": "point_64",
+      "name": "Point 64",
+      "location": [
+        18.0051046,
+        -76.7503314
+      ],
+      "lat": 18.0051046,
+      "lng": -76.7503314,
+      "source_index": 60
+    },
+    {
+      "id": "point_65",
+      "name": "Point 65",
+      "location": [
+        18.0050077,
+        -76.7503877
+      ],
+      "lat": 18.0050077,
+      "lng": -76.7503877,
+      "source_index": 61
+    },
+    {
+      "id": "point_66",
+      "name": "Point 66",
+      "location": [
+        18.0049184,
+        -76.7505125
+      ],
+      "lat": 18.0049184,
+      "lng": -76.7505125,
+      "source_index": 62
+    },
+    {
+      "id": "point_67",
+      "name": "Point 67",
+      "location": [
+        18.0048916,
+        -76.7505809
+      ],
+      "lat": 18.0048916,
+      "lng": -76.7505809,
+      "source_index": 63
+    },
+    {
+      "id": "point_68",
+      "name": "Point 68",
+      "location": [
+        18.0048674,
+        -76.7499117
+      ],
+      "lat": 18.0048674,
+      "lng": -76.7499117,
+      "source_index": 64
+    },
+    {
+      "id": "point_69",
+      "name": "Point 69",
+      "location": [
+        18.0047692,
+        -76.7501557
+      ],
+      "lat": 18.0047692,
+      "lng": -76.7501557,
+      "source_index": 65
+    },
+    {
+      "id": "point_70",
+      "name": "Point 70",
+      "location": [
+        18.0047144,
+        -76.7502885
+      ],
+      "lat": 18.0047144,
+      "lng": -76.7502885,
+      "source_index": 66
+    },
+    {
+      "id": "point_71",
+      "name": "Point 71",
+      "location": [
+        18.004648,
+        -76.750424
+      ],
+      "lat": 18.004648,
+      "lng": -76.750424,
+      "source_index": 67
+    },
+    {
+      "id": "point_72",
+      "name": "Point 72",
+      "location": [
+        18.0046302,
+        -76.7496783
+      ],
+      "lat": 18.0046302,
+      "lng": -76.7496783,
+      "source_index": 68
+    },
+    {
+      "id": "point_73",
+      "name": "Point 73",
+      "location": [
+        18.0045383,
+        -76.74985
+      ],
+      "lat": 18.0045383,
+      "lng": -76.74985,
+      "source_index": 69
+    },
+    {
+      "id": "point_74",
+      "name": "Point 74",
+      "location": [
+        18.0044988,
+        -76.7499613
+      ],
+      "lat": 18.0044988,
+      "lng": -76.7499613,
+      "source_index": 70
+    },
+    {
+      "id": "point_76",
+      "name": "Point 76",
+      "location": [
+        18.0044465,
+        -76.7500565
+      ],
+      "lat": 18.0044465,
+      "lng": -76.7500565,
+      "source_index": 71
+    },
+    {
+      "id": "point_77",
+      "name": "Point 77",
+      "location": [
+        18.005536,
+        -76.7493516
+      ],
+      "lat": 18.005536,
+      "lng": -76.7493516,
+      "source_index": 72
+    },
+    {
+      "id": "point_78",
+      "name": "Point 78",
+      "location": [
+        18.0057401,
+        -76.7493825
+      ],
+      "lat": 18.0057401,
+      "lng": -76.7493825,
+      "source_index": 73
+    },
+    {
+      "id": "point_79",
+      "name": "Point 79",
+      "location": [
+        18.005969,
+        -76.7494854
+      ],
+      "lat": 18.005969,
+      "lng": -76.7494854,
+      "source_index": 74
+    },
+    {
+      "id": "point_80",
+      "name": "Point 80",
+      "location": [
+        18.006043,
+        -76.7495297
+      ],
+      "lat": 18.006043,
+      "lng": -76.7495297,
+      "source_index": 75
+    },
+    {
+      "id": "point_81",
+      "name": "Point 81",
+      "location": [
+        18.0060659,
+        -76.7497094
+      ],
+      "lat": 18.0060659,
+      "lng": -76.7497094,
+      "source_index": 76
+    },
+    {
+      "id": "point_82",
+      "name": "Point 82",
+      "location": [
+        18.0059575,
+        -76.7498328
+      ],
+      "lat": 18.0059575,
+      "lng": -76.7498328,
+      "source_index": 77
+    },
+    {
+      "id": "point_83",
+      "name": "Point 83",
+      "location": [
+        18.0059677,
+        -76.7496933
+      ],
+      "lat": 18.0059677,
+      "lng": -76.7496933,
+      "source_index": 78
+    },
+    {
+      "id": "point_84",
+      "name": "Point 84",
+      "location": [
+        18.0058721,
+        -76.749932
+      ],
+      "lat": 18.0058721,
+      "lng": -76.749932,
+      "source_index": 79
+    },
+    {
+      "id": "point_86",
+      "name": "Point 86",
+      "location": [
+        18.0058185,
+        -76.7501332
+      ],
+      "lat": 18.0058185,
+      "lng": -76.7501332,
+      "source_index": 80
+    },
+    {
+      "id": "point_93",
+      "name": "Point 93",
+      "location": [
+        18.0065528,
+        -76.7470041
+      ],
+      "lat": 18.0065528,
+      "lng": -76.7470041,
+      "source_index": 81
+    },
+    {
+      "id": "point_94",
+      "name": "Point 94",
+      "location": [
+        18.0064354,
+        -76.7467251
+      ],
+      "lat": 18.0064354,
+      "lng": -76.7467251,
+      "source_index": 82
+    },
+    {
+      "id": "point_95",
+      "name": "Point 95",
+      "location": [
+        18.006385,
+        -76.7466447
+      ],
+      "lat": 18.006385,
+      "lng": -76.7466447,
+      "source_index": 83
+    },
+    {
+      "id": "point_96",
+      "name": "Point 96",
+      "location": [
+        18.0063302,
+        -76.7465494
+      ],
+      "lat": 18.0063302,
+      "lng": -76.7465494,
+      "source_index": 84
+    },
+    {
+      "id": "point_97",
+      "name": "Point 97",
+      "location": [
+        18.0062766,
+        -76.7464341
+      ],
+      "lat": 18.0062766,
+      "lng": -76.7464341,
+      "source_index": 85
+    }
+  ],
+  "adjacency": {
+    "cross_walk_node": [
+      {
+        "to": "lawn_node_1",
+        "name": "lawn node 1",
+        "location": [
+          18.0056234,
+          -76.7481331
+        ],
+        "distance_m": 34.82
+      }
+    ],
+    "lawn_node_1": [
+      {
+        "to": "lawn_node_2",
+        "name": "lawn node 2",
+        "location": [
+          18.0056766,
+          -76.7478467
+        ],
+        "distance_m": 30.86
+      },
+      {
+        "to": "lawn_node_3",
+        "name": "lawn node 3",
+        "location": [
+          18.0058645,
+          -76.7479446
+        ],
+        "distance_m": 33.41
+      },
+      {
+        "to": "cross_walk_node",
+        "name": "Cross walk node",
+        "location": [
+          18.0055711,
+          -76.7484577
+        ],
+        "distance_m": 34.82
+      }
+    ],
+    "lawn_node_2": [
+      {
+        "to": "lawn_node_3",
+        "name": "lawn node 3",
+        "location": [
+          18.0058645,
+          -76.7479446
+        ],
+        "distance_m": 23.32
+      },
+      {
+        "to": "lawn_node_1",
+        "name": "lawn node 1",
+        "location": [
+          18.0056234,
+          -76.7481331
+        ],
+        "distance_m": 30.86
+      },
+      {
+        "to": "ab1",
+        "name": "ab1",
+        "location": [
+          18.0057088,
+          -76.7475323
+        ],
+        "distance_m": 33.44
+      }
+    ],
+    "lawn_node_3": [
+      {
+        "to": "lawn_node_2",
+        "name": "lawn node 2",
+        "location": [
+          18.0056766,
+          -76.7478467
+        ],
+        "distance_m": 23.32
+      },
+      {
+        "to": "point_5",
+        "name": "Point 5",
+        "location": [
+          18.0060766,
+          -76.7480023
+        ],
+        "distance_m": 24.36
+      },
+      {
+        "to": "lawn_node_1",
+        "name": "lawn node 1",
+        "location": [
+          18.0056234,
+          -76.7481331
+        ],
+        "distance_m": 33.41
+      }
+    ],
+    "point_5": [
+      {
+        "to": "point_6",
+        "name": "Point 6",
+        "location": [
+          18.0062024,
+          -76.7478166
+        ],
+        "distance_m": 24.11
+      },
+      {
+        "to": "lawn_node_3",
+        "name": "lawn node 3",
+        "location": [
+          18.0058645,
+          -76.7479446
+        ],
+        "distance_m": 24.36
+      }
+    ],
+    "point_6": [
+      {
+        "to": "point_23",
+        "name": "Point 23",
+        "location": [
+          18.0063579,
+          -76.7478124
+        ],
+        "distance_m": 17.3
+      },
+      {
+        "to": "point_5",
+        "name": "Point 5",
+        "location": [
+          18.0060766,
+          -76.7480023
+        ],
+        "distance_m": 24.11
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 34.38
+      }
+    ],
+    "ab1": [
+      {
+        "to": "ab2",
+        "name": "ab2",
+        "location": [
+          18.005932,
+          -76.747433
+        ],
+        "distance_m": 26.95
+      },
+      {
+        "to": "lawn_node_2",
+        "name": "lawn node 2",
+        "location": [
+          18.0056766,
+          -76.7478467
+        ],
+        "distance_m": 33.44
+      }
+    ],
+    "ab2": [
+      {
+        "to": "ab3",
+        "name": "ab3",
+        "location": [
+          18.006049,
+          -76.7473348
+        ],
+        "distance_m": 16.65
+      },
+      {
+        "to": "ab1",
+        "name": "ab1",
+        "location": [
+          18.0057088,
+          -76.7475323
+        ],
+        "distance_m": 26.95
+      },
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 31.03
+      }
+    ],
+    "ab3": [
+      {
+        "to": "ab2",
+        "name": "ab2",
+        "location": [
+          18.005932,
+          -76.747433
+        ],
+        "distance_m": 16.65
+      },
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 19.92
+      }
+    ],
+    "ab4": [
+      {
+        "to": "ab3",
+        "name": "ab3",
+        "location": [
+          18.006049,
+          -76.7473348
+        ],
+        "distance_m": 19.92
+      },
+      {
+        "to": "ab5",
+        "name": "ab5",
+        "location": [
+          18.0059444,
+          -76.7469017
+        ],
+        "distance_m": 27.35
+      },
+      {
+        "to": "ab2",
+        "name": "ab2",
+        "location": [
+          18.005932,
+          -76.747433
+        ],
+        "distance_m": 31.03
+      }
+    ],
+    "ab5": [
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 27.35
+      },
+      {
+        "to": "ab6",
+        "name": "ab6",
+        "location": [
+          18.0060089,
+          -76.7466483
+        ],
+        "distance_m": 27.74
+      }
+    ],
+    "ab6": [
+      {
+        "to": "ab7",
+        "name": "ab7",
+        "location": [
+          18.0060854,
+          -76.7464251
+        ],
+        "distance_m": 25.09
+      },
+      {
+        "to": "ab5",
+        "name": "ab5",
+        "location": [
+          18.0059444,
+          -76.7469017
+        ],
+        "distance_m": 27.74
+      }
+    ],
+    "ab7": [
+      {
+        "to": "point_97",
+        "name": "Point 97",
+        "location": [
+          18.0062766,
+          -76.7464341
+        ],
+        "distance_m": 21.28
+      },
+      {
+        "to": "ab8",
+        "name": "ab8",
+        "location": [
+          18.0061288,
+          -76.7462288
+        ],
+        "distance_m": 21.31
+      },
+      {
+        "to": "ab6",
+        "name": "ab6",
+        "location": [
+          18.0060089,
+          -76.7466483
+        ],
+        "distance_m": 25.09
+      }
+    ],
+    "ab8": [
+      {
+        "to": "ab9",
+        "name": "ab9",
+        "location": [
+          18.0060548,
+          -76.7460598
+        ],
+        "distance_m": 19.67
+      },
+      {
+        "to": "ab7",
+        "name": "ab7",
+        "location": [
+          18.0060854,
+          -76.7464251
+        ],
+        "distance_m": 21.31
+      },
+      {
+        "to": "point_97",
+        "name": "Point 97",
+        "location": [
+          18.0062766,
+          -76.7464341
+        ],
+        "distance_m": 27.23
+      }
+    ],
+    "ab9": [
+      {
+        "to": "ab8",
+        "name": "ab8",
+        "location": [
+          18.0061288,
+          -76.7462288
+        ],
+        "distance_m": 19.67
+      },
+      {
+        "to": "ab10",
+        "name": "ab10",
+        "location": [
+          18.0059732,
+          -76.7458868
+        ],
+        "distance_m": 20.42
+      }
+    ],
+    "ab10": [
+      {
+        "to": "ab11",
+        "name": "ab11",
+        "location": [
+          18.0059158,
+          -76.7457473
+        ],
+        "distance_m": 16.07
+      },
+      {
+        "to": "ab9",
+        "name": "ab9",
+        "location": [
+          18.0060548,
+          -76.7460598
+        ],
+        "distance_m": 20.42
+      }
+    ],
+    "ab11": [
+      {
+        "to": "ab10",
+        "name": "ab10",
+        "location": [
+          18.0059732,
+          -76.7458868
+        ],
+        "distance_m": 16.07
+      },
+      {
+        "to": "ab12",
+        "name": "ab12",
+        "location": [
+          18.005815,
+          -76.7455435
+        ],
+        "distance_m": 24.29
+      }
+    ],
+    "ab12": [
+      {
+        "to": "ab13",
+        "name": "ab13",
+        "location": [
+          18.0057003,
+          -76.7454013
+        ],
+        "distance_m": 19.72
+      },
+      {
+        "to": "ab11",
+        "name": "ab11",
+        "location": [
+          18.0059158,
+          -76.7457473
+        ],
+        "distance_m": 24.29
+      }
+    ],
+    "ab13": [
+      {
+        "to": "ab12",
+        "name": "ab12",
+        "location": [
+          18.005815,
+          -76.7455435
+        ],
+        "distance_m": 19.72
+      },
+      {
+        "to": "ab14",
+        "name": "ab14",
+        "location": [
+          18.0055689,
+          -76.7452297
+        ],
+        "distance_m": 23.3
+      }
+    ],
+    "ab14": [
+      {
+        "to": "ab16",
+        "name": "ab16",
+        "location": [
+          18.0054847,
+          -76.7451032
+        ],
+        "distance_m": 16.33
+      },
+      {
+        "to": "ab13",
+        "name": "ab13",
+        "location": [
+          18.0057003,
+          -76.7454013
+        ],
+        "distance_m": 23.3
+      }
+    ],
+    "ab16": [
+      {
+        "to": "ab14",
+        "name": "ab14",
+        "location": [
+          18.0055689,
+          -76.7452297
+        ],
+        "distance_m": 16.33
+      }
+    ],
+    "point_23": [
+      {
+        "to": "point_6",
+        "name": "Point 6",
+        "location": [
+          18.0062024,
+          -76.7478166
+        ],
+        "distance_m": 17.3
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 19.85
+      },
+      {
+        "to": "point_25",
+        "name": "Point 25",
+        "location": [
+          18.0066219,
+          -76.7476904
+        ],
+        "distance_m": 32.07
+      }
+    ],
+    "point_24": [
+      {
+        "to": "point_25",
+        "name": "Point 25",
+        "location": [
+          18.0066219,
+          -76.7476904
+        ],
+        "distance_m": 15.66
+      },
+      {
+        "to": "point_23",
+        "name": "Point 23",
+        "location": [
+          18.0063579,
+          -76.7478124
+        ],
+        "distance_m": 19.85
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 21.24
+      },
+      {
+        "to": "point_26",
+        "name": "Point 26",
+        "location": [
+          18.0066716,
+          -76.7477521
+        ],
+        "distance_m": 22.57
+      },
+      {
+        "to": "point_6",
+        "name": "Point 6",
+        "location": [
+          18.0062024,
+          -76.7478166
+        ],
+        "distance_m": 34.38
+      }
+    ],
+    "point_25": [
+      {
+        "to": "point_26",
+        "name": "Point 26",
+        "location": [
+          18.0066716,
+          -76.7477521
+        ],
+        "distance_m": 8.55
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 15.66
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 30.1
+      },
+      {
+        "to": "point_23",
+        "name": "Point 23",
+        "location": [
+          18.0063579,
+          -76.7478124
+        ],
+        "distance_m": 32.07
+      }
+    ],
+    "point_26": [
+      {
+        "to": "point_25",
+        "name": "Point 25",
+        "location": [
+          18.0066219,
+          -76.7476904
+        ],
+        "distance_m": 8.55
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 22.57
+      }
+    ],
+    "point_27": [
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 21.24
+      },
+      {
+        "to": "point_28",
+        "name": "Point 28",
+        "location": [
+          18.0065186,
+          -76.7472575
+        ],
+        "distance_m": 25.31
+      },
+      {
+        "to": "point_25",
+        "name": "Point 25",
+        "location": [
+          18.0066219,
+          -76.7476904
+        ],
+        "distance_m": 30.1
+      },
+      {
+        "to": "point_29",
+        "name": "Point 29",
+        "location": [
+          18.0066716,
+          -76.7472735
+        ],
+        "distance_m": 34.01
+      }
+    ],
+    "point_28": [
+      {
+        "to": "point_29",
+        "name": "Point 29",
+        "location": [
+          18.0066716,
+          -76.7472735
+        ],
+        "distance_m": 17.1
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 25.31
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 27.07
+      }
+    ],
+    "point_29": [
+      {
+        "to": "point_28",
+        "name": "Point 28",
+        "location": [
+          18.0065186,
+          -76.7472575
+        ],
+        "distance_m": 17.1
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 31.4
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 34.01
+      }
+    ],
+    "point_30": [
+      {
+        "to": "point_32",
+        "name": "Point 32",
+        "location": [
+          18.0052098,
+          -76.74913
+        ],
+        "distance_m": 22.04
+      },
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 23.07
+      },
+      {
+        "to": "point_33",
+        "name": "Point 33",
+        "location": [
+          18.0051396,
+          -76.7490629
+        ],
+        "distance_m": 26.63
+      }
+    ],
+    "point_31": [
+      {
+        "to": "point_32",
+        "name": "Point 32",
+        "location": [
+          18.0052098,
+          -76.74913
+        ],
+        "distance_m": 15.5
+      },
+      {
+        "to": "point_30",
+        "name": "Point 30",
+        "location": [
+          18.0053746,
+          -76.7490142
+        ],
+        "distance_m": 23.07
+      },
+      {
+        "to": "point_33",
+        "name": "Point 33",
+        "location": [
+          18.0051396,
+          -76.7490629
+        ],
+        "distance_m": 26.04
+      },
+      {
+        "to": "point_77",
+        "name": "Point 77",
+        "location": [
+          18.005536,
+          -76.7493516
+        ],
+        "distance_m": 27.86
+      }
+    ],
+    "point_32": [
+      {
+        "to": "point_33",
+        "name": "Point 33",
+        "location": [
+          18.0051396,
+          -76.7490629
+        ],
+        "distance_m": 10.55
+      },
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 15.5
+      },
+      {
+        "to": "point_34",
+        "name": "Point 34",
+        "location": [
+          18.0050593,
+          -76.7490187
+        ],
+        "distance_m": 20.46
+      },
+      {
+        "to": "point_30",
+        "name": "Point 30",
+        "location": [
+          18.0053746,
+          -76.7490142
+        ],
+        "distance_m": 22.04
+      }
+    ],
+    "point_33": [
+      {
+        "to": "point_34",
+        "name": "Point 34",
+        "location": [
+          18.0050593,
+          -76.7490187
+        ],
+        "distance_m": 10.08
+      },
+      {
+        "to": "point_32",
+        "name": "Point 32",
+        "location": [
+          18.0052098,
+          -76.74913
+        ],
+        "distance_m": 10.55
+      },
+      {
+        "to": "point_35",
+        "name": "Point 35",
+        "location": [
+          18.0049598,
+          -76.7489221
+        ],
+        "distance_m": 24.93
+      },
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 26.04
+      },
+      {
+        "to": "point_30",
+        "name": "Point 30",
+        "location": [
+          18.0053746,
+          -76.7490142
+        ],
+        "distance_m": 26.63
+      }
+    ],
+    "point_34": [
+      {
+        "to": "point_33",
+        "name": "Point 33",
+        "location": [
+          18.0051396,
+          -76.7490629
+        ],
+        "distance_m": 10.08
+      },
+      {
+        "to": "point_35",
+        "name": "Point 35",
+        "location": [
+          18.0049598,
+          -76.7489221
+        ],
+        "distance_m": 15.06
+      },
+      {
+        "to": "point_32",
+        "name": "Point 32",
+        "location": [
+          18.0052098,
+          -76.74913
+        ],
+        "distance_m": 20.46
+      }
+    ],
+    "point_35": [
+      {
+        "to": "point_36",
+        "name": "Point 36",
+        "location": [
+          18.0048983,
+          -76.7488575
+        ],
+        "distance_m": 9.67
+      },
+      {
+        "to": "point_34",
+        "name": "Point 34",
+        "location": [
+          18.0050593,
+          -76.7490187
+        ],
+        "distance_m": 15.06
+      },
+      {
+        "to": "point_39",
+        "name": "Point 39",
+        "location": [
+          18.0048167,
+          -76.7489447
+        ],
+        "distance_m": 16.09
+      },
+      {
+        "to": "point_33",
+        "name": "Point 33",
+        "location": [
+          18.0051396,
+          -76.7490629
+        ],
+        "distance_m": 24.93
+      }
+    ],
+    "point_36": [
+      {
+        "to": "point_35",
+        "name": "Point 35",
+        "location": [
+          18.0049598,
+          -76.7489221
+        ],
+        "distance_m": 9.67
+      },
+      {
+        "to": "point_39",
+        "name": "Point 39",
+        "location": [
+          18.0048167,
+          -76.7489447
+        ],
+        "distance_m": 12.94
+      },
+      {
+        "to": "point_37",
+        "name": "Point 37",
+        "location": [
+          18.0047465,
+          -76.7487637
+        ],
+        "distance_m": 19.58
+      }
+    ],
+    "point_37": [
+      {
+        "to": "point_38",
+        "name": "Point 38",
+        "location": [
+          18.0046572,
+          -76.7488173
+        ],
+        "distance_m": 11.43
+      },
+      {
+        "to": "point_36",
+        "name": "Point 36",
+        "location": [
+          18.0048983,
+          -76.7488575
+        ],
+        "distance_m": 19.58
+      },
+      {
+        "to": "point_39",
+        "name": "Point 39",
+        "location": [
+          18.0048167,
+          -76.7489447
+        ],
+        "distance_m": 20.67
+      }
+    ],
+    "point_38": [
+      {
+        "to": "point_37",
+        "name": "Point 37",
+        "location": [
+          18.0047465,
+          -76.7487637
+        ],
+        "distance_m": 11.43
+      },
+      {
+        "to": "point_39",
+        "name": "Point 39",
+        "location": [
+          18.0048167,
+          -76.7489447
+        ],
+        "distance_m": 22.27
+      },
+      {
+        "to": "point_40",
+        "name": "Point 40",
+        "location": [
+          18.0047312,
+          -76.7490574
+        ],
+        "distance_m": 26.69
+      }
+    ],
+    "point_39": [
+      {
+        "to": "point_36",
+        "name": "Point 36",
+        "location": [
+          18.0048983,
+          -76.7488575
+        ],
+        "distance_m": 12.94
+      },
+      {
+        "to": "point_40",
+        "name": "Point 40",
+        "location": [
+          18.0047312,
+          -76.7490574
+        ],
+        "distance_m": 15.25
+      },
+      {
+        "to": "point_35",
+        "name": "Point 35",
+        "location": [
+          18.0049598,
+          -76.7489221
+        ],
+        "distance_m": 16.09
+      },
+      {
+        "to": "point_37",
+        "name": "Point 37",
+        "location": [
+          18.0047465,
+          -76.7487637
+        ],
+        "distance_m": 20.67
+      },
+      {
+        "to": "point_38",
+        "name": "Point 38",
+        "location": [
+          18.0046572,
+          -76.7488173
+        ],
+        "distance_m": 22.27
+      }
+    ],
+    "point_40": [
+      {
+        "to": "point_39",
+        "name": "Point 39",
+        "location": [
+          18.0048167,
+          -76.7489447
+        ],
+        "distance_m": 15.25
+      },
+      {
+        "to": "point_41",
+        "name": "Point 41",
+        "location": [
+          18.0046445,
+          -76.7491928
+        ],
+        "distance_m": 17.26
+      },
+      {
+        "to": "point_38",
+        "name": "Point 38",
+        "location": [
+          18.0046572,
+          -76.7488173
+        ],
+        "distance_m": 26.69
+      }
+    ],
+    "point_41": [
+      {
+        "to": "point_42",
+        "name": "Point 42",
+        "location": [
+          18.0046018,
+          -76.7492794
+        ],
+        "distance_m": 10.32
+      },
+      {
+        "to": "point_40",
+        "name": "Point 40",
+        "location": [
+          18.0047312,
+          -76.7490574
+        ],
+        "distance_m": 17.26
+      },
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 25.29
+      }
+    ],
+    "point_42": [
+      {
+        "to": "point_41",
+        "name": "Point 41",
+        "location": [
+          18.0046445,
+          -76.7491928
+        ],
+        "distance_m": 10.32
+      },
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 15.17
+      },
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 17.97
+      },
+      {
+        "to": "point_48",
+        "name": "Point 48",
+        "location": [
+          18.004604,
+          -76.7494717
+        ],
+        "distance_m": 20.34
+      }
+    ],
+    "point_43": [
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 10.25
+      },
+      {
+        "to": "point_48",
+        "name": "Point 48",
+        "location": [
+          18.004604,
+          -76.7494717
+        ],
+        "distance_m": 13.68
+      },
+      {
+        "to": "point_42",
+        "name": "Point 42",
+        "location": [
+          18.0046018,
+          -76.7492794
+        ],
+        "distance_m": 15.17
+      },
+      {
+        "to": "point_45",
+        "name": "Point 45",
+        "location": [
+          18.0043823,
+          -76.7492485
+        ],
+        "distance_m": 20.48
+      },
+      {
+        "to": "point_41",
+        "name": "Point 41",
+        "location": [
+          18.0046445,
+          -76.7491928
+        ],
+        "distance_m": 25.29
+      }
+    ],
+    "point_44": [
+      {
+        "to": "point_45",
+        "name": "Point 45",
+        "location": [
+          18.0043823,
+          -76.7492485
+        ],
+        "distance_m": 10.24
+      },
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 10.25
+      },
+      {
+        "to": "point_42",
+        "name": "Point 42",
+        "location": [
+          18.0046018,
+          -76.7492794
+        ],
+        "distance_m": 17.97
+      },
+      {
+        "to": "point_46",
+        "name": "Point 46",
+        "location": [
+          18.0043083,
+          -76.7491774
+        ],
+        "distance_m": 21.37
+      },
+      {
+        "to": "point_47",
+        "name": "Point 47",
+        "location": [
+          18.0042318,
+          -76.7491318
+        ],
+        "distance_m": 30.91
+      }
+    ],
+    "point_45": [
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 10.24
+      },
+      {
+        "to": "point_46",
+        "name": "Point 46",
+        "location": [
+          18.0043083,
+          -76.7491774
+        ],
+        "distance_m": 11.15
+      },
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 20.48
+      },
+      {
+        "to": "point_47",
+        "name": "Point 47",
+        "location": [
+          18.0042318,
+          -76.7491318
+        ],
+        "distance_m": 20.79
+      }
+    ],
+    "point_46": [
+      {
+        "to": "point_47",
+        "name": "Point 47",
+        "location": [
+          18.0042318,
+          -76.7491318
+        ],
+        "distance_m": 9.78
+      },
+      {
+        "to": "point_45",
+        "name": "Point 45",
+        "location": [
+          18.0043823,
+          -76.7492485
+        ],
+        "distance_m": 11.15
+      },
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 21.37
+      }
+    ],
+    "point_47": [
+      {
+        "to": "point_46",
+        "name": "Point 46",
+        "location": [
+          18.0043083,
+          -76.7491774
+        ],
+        "distance_m": 9.78
+      },
+      {
+        "to": "point_45",
+        "name": "Point 45",
+        "location": [
+          18.0043823,
+          -76.7492485
+        ],
+        "distance_m": 20.79
+      },
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 30.91
+      }
+    ],
+    "point_48": [
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 13.68
+      },
+      {
+        "to": "point_49",
+        "name": "Point 49",
+        "location": [
+          18.0047162,
+          -76.7495683
+        ],
+        "distance_m": 16.12
+      },
+      {
+        "to": "point_42",
+        "name": "Point 42",
+        "location": [
+          18.0046018,
+          -76.7492794
+        ],
+        "distance_m": 20.34
+      },
+      {
+        "to": "point_72",
+        "name": "Point 72",
+        "location": [
+          18.0046302,
+          -76.7496783
+        ],
+        "distance_m": 22.04
+      }
+    ],
+    "point_49": [
+      {
+        "to": "point_72",
+        "name": "Point 72",
+        "location": [
+          18.0046302,
+          -76.7496783
+        ],
+        "distance_m": 15.06
+      },
+      {
+        "to": "point_48",
+        "name": "Point 48",
+        "location": [
+          18.004604,
+          -76.7494717
+        ],
+        "distance_m": 16.12
+      },
+      {
+        "to": "point_50",
+        "name": "Point 50",
+        "location": [
+          18.0048655,
+          -76.7496554
+        ],
+        "distance_m": 18.99
+      },
+      {
+        "to": "point_51",
+        "name": "Point 51",
+        "location": [
+          18.0048925,
+          -76.7494951
+        ],
+        "distance_m": 21.08
+      }
+    ],
+    "point_50": [
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 16.99
+      },
+      {
+        "to": "point_51",
+        "name": "Point 51",
+        "location": [
+          18.0048925,
+          -76.7494951
+        ],
+        "distance_m": 17.22
+      },
+      {
+        "to": "point_49",
+        "name": "Point 49",
+        "location": [
+          18.0047162,
+          -76.7495683
+        ],
+        "distance_m": 18.99
+      },
+      {
+        "to": "point_68",
+        "name": "Point 68",
+        "location": [
+          18.0048674,
+          -76.7499117
+        ],
+        "distance_m": 27.1
+      }
+    ],
+    "point_51": [
+      {
+        "to": "point_50",
+        "name": "Point 50",
+        "location": [
+          18.0048655,
+          -76.7496554
+        ],
+        "distance_m": 17.22
+      },
+      {
+        "to": "point_49",
+        "name": "Point 49",
+        "location": [
+          18.0047162,
+          -76.7495683
+        ],
+        "distance_m": 21.08
+      },
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 29.15
+      }
+    ],
+    "point_52": [
+      {
+        "to": "point_50",
+        "name": "Point 50",
+        "location": [
+          18.0048655,
+          -76.7496554
+        ],
+        "distance_m": 16.99
+      },
+      {
+        "to": "point_68",
+        "name": "Point 68",
+        "location": [
+          18.0048674,
+          -76.7499117
+        ],
+        "distance_m": 21.54
+      },
+      {
+        "to": "point_53",
+        "name": "Point 53",
+        "location": [
+          18.0051789,
+          -76.7498378
+        ],
+        "distance_m": 23.13
+      },
+      {
+        "to": "point_51",
+        "name": "Point 51",
+        "location": [
+          18.0048925,
+          -76.7494951
+        ],
+        "distance_m": 29.15
+      }
+    ],
+    "point_53": [
+      {
+        "to": "point_56",
+        "name": "Point 56",
+        "location": [
+          18.0053125,
+          -76.7499355
+        ],
+        "distance_m": 18.1
+      },
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 23.13
+      },
+      {
+        "to": "point_61",
+        "name": "Point 61",
+        "location": [
+          18.0051187,
+          -76.7501048
+        ],
+        "distance_m": 29.02
+      }
+    ],
+    "point_56": [
+      {
+        "to": "point_53",
+        "name": "Point 53",
+        "location": [
+          18.0051789,
+          -76.7498378
+        ],
+        "distance_m": 18.1
+      },
+      {
+        "to": "point_57",
+        "name": "Point 57",
+        "location": [
+          18.005463,
+          -76.7500052
+        ],
+        "distance_m": 18.29
+      },
+      {
+        "to": "point_58",
+        "name": "Point 58",
+        "location": [
+          18.0054171,
+          -76.7501168
+        ],
+        "distance_m": 22.42
+      }
+    ],
+    "point_57": [
+      {
+        "to": "point_58",
+        "name": "Point 58",
+        "location": [
+          18.0054171,
+          -76.7501168
+        ],
+        "distance_m": 12.86
+      },
+      {
+        "to": "point_56",
+        "name": "Point 56",
+        "location": [
+          18.0053125,
+          -76.7499355
+        ],
+        "distance_m": 18.29
+      },
+      {
+        "to": "point_59",
+        "name": "Point 59",
+        "location": [
+          18.0053648,
+          -76.7502416
+        ],
+        "distance_m": 27.28
+      }
+    ],
+    "point_58": [
+      {
+        "to": "point_57",
+        "name": "Point 57",
+        "location": [
+          18.005463,
+          -76.7500052
+        ],
+        "distance_m": 12.86
+      },
+      {
+        "to": "point_59",
+        "name": "Point 59",
+        "location": [
+          18.0053648,
+          -76.7502416
+        ],
+        "distance_m": 14.42
+      },
+      {
+        "to": "point_56",
+        "name": "Point 56",
+        "location": [
+          18.0053125,
+          -76.7499355
+        ],
+        "distance_m": 22.42
+      }
+    ],
+    "point_59": [
+      {
+        "to": "point_58",
+        "name": "Point 58",
+        "location": [
+          18.0054171,
+          -76.7501168
+        ],
+        "distance_m": 14.42
+      },
+      {
+        "to": "point_60",
+        "name": "Point 60",
+        "location": [
+          18.0052181,
+          -76.7501571
+        ],
+        "distance_m": 18.6
+      },
+      {
+        "to": "point_62",
+        "name": "Point 62",
+        "location": [
+          18.0051952,
+          -76.7503274
+        ],
+        "distance_m": 20.93
+      },
+      {
+        "to": "point_57",
+        "name": "Point 57",
+        "location": [
+          18.005463,
+          -76.7500052
+        ],
+        "distance_m": 27.28
+      }
+    ],
+    "point_60": [
+      {
+        "to": "point_61",
+        "name": "Point 61",
+        "location": [
+          18.0051187,
+          -76.7501048
+        ],
+        "distance_m": 12.36
+      },
+      {
+        "to": "point_62",
+        "name": "Point 62",
+        "location": [
+          18.0051952,
+          -76.7503274
+        ],
+        "distance_m": 18.19
+      },
+      {
+        "to": "point_59",
+        "name": "Point 59",
+        "location": [
+          18.0053648,
+          -76.7502416
+        ],
+        "distance_m": 18.6
+      }
+    ],
+    "point_61": [
+      {
+        "to": "point_60",
+        "name": "Point 60",
+        "location": [
+          18.0052181,
+          -76.7501571
+        ],
+        "distance_m": 12.36
+      },
+      {
+        "to": "point_64",
+        "name": "Point 64",
+        "location": [
+          18.0051046,
+          -76.7503314
+        ],
+        "distance_m": 24.01
+      },
+      {
+        "to": "point_62",
+        "name": "Point 62",
+        "location": [
+          18.0051952,
+          -76.7503274
+        ],
+        "distance_m": 25.03
+      },
+      {
+        "to": "point_53",
+        "name": "Point 53",
+        "location": [
+          18.0051789,
+          -76.7498378
+        ],
+        "distance_m": 29.02
+      }
+    ],
+    "point_62": [
+      {
+        "to": "point_64",
+        "name": "Point 64",
+        "location": [
+          18.0051046,
+          -76.7503314
+        ],
+        "distance_m": 10.08
+      },
+      {
+        "to": "point_63",
+        "name": "Point 63",
+        "location": [
+          18.0051582,
+          -76.7504441
+        ],
+        "distance_m": 13.01
+      },
+      {
+        "to": "point_60",
+        "name": "Point 60",
+        "location": [
+          18.0052181,
+          -76.7501571
+        ],
+        "distance_m": 18.19
+      },
+      {
+        "to": "point_59",
+        "name": "Point 59",
+        "location": [
+          18.0053648,
+          -76.7502416
+        ],
+        "distance_m": 20.93
+      },
+      {
+        "to": "point_61",
+        "name": "Point 61",
+        "location": [
+          18.0051187,
+          -76.7501048
+        ],
+        "distance_m": 25.03
+      }
+    ],
+    "point_63": [
+      {
+        "to": "point_62",
+        "name": "Point 62",
+        "location": [
+          18.0051952,
+          -76.7503274
+        ],
+        "distance_m": 13.01
+      },
+      {
+        "to": "point_64",
+        "name": "Point 64",
+        "location": [
+          18.0051046,
+          -76.7503314
+        ],
+        "distance_m": 13.33
+      },
+      {
+        "to": "point_65",
+        "name": "Point 65",
+        "location": [
+          18.0050077,
+          -76.7503877
+        ],
+        "distance_m": 17.77
+      },
+      {
+        "to": "point_66",
+        "name": "Point 66",
+        "location": [
+          18.0049184,
+          -76.7505125
+        ],
+        "distance_m": 27.63
+      }
+    ],
+    "point_64": [
+      {
+        "to": "point_62",
+        "name": "Point 62",
+        "location": [
+          18.0051952,
+          -76.7503274
+        ],
+        "distance_m": 10.08
+      },
+      {
+        "to": "point_65",
+        "name": "Point 65",
+        "location": [
+          18.0050077,
+          -76.7503877
+        ],
+        "distance_m": 12.31
+      },
+      {
+        "to": "point_63",
+        "name": "Point 63",
+        "location": [
+          18.0051582,
+          -76.7504441
+        ],
+        "distance_m": 13.33
+      },
+      {
+        "to": "point_61",
+        "name": "Point 61",
+        "location": [
+          18.0051187,
+          -76.7501048
+        ],
+        "distance_m": 24.01
+      }
+    ],
+    "point_65": [
+      {
+        "to": "point_64",
+        "name": "Point 64",
+        "location": [
+          18.0051046,
+          -76.7503314
+        ],
+        "distance_m": 12.31
+      },
+      {
+        "to": "point_66",
+        "name": "Point 66",
+        "location": [
+          18.0049184,
+          -76.7505125
+        ],
+        "distance_m": 16.52
+      },
+      {
+        "to": "point_63",
+        "name": "Point 63",
+        "location": [
+          18.0051582,
+          -76.7504441
+        ],
+        "distance_m": 17.77
+      },
+      {
+        "to": "point_67",
+        "name": "Point 67",
+        "location": [
+          18.0048916,
+          -76.7505809
+        ],
+        "distance_m": 24.17
+      }
+    ],
+    "point_66": [
+      {
+        "to": "point_67",
+        "name": "Point 67",
+        "location": [
+          18.0048916,
+          -76.7505809
+        ],
+        "distance_m": 7.82
+      },
+      {
+        "to": "point_65",
+        "name": "Point 65",
+        "location": [
+          18.0050077,
+          -76.7503877
+        ],
+        "distance_m": 16.52
+      },
+      {
+        "to": "point_63",
+        "name": "Point 63",
+        "location": [
+          18.0051582,
+          -76.7504441
+        ],
+        "distance_m": 27.63
+      },
+      {
+        "to": "point_71",
+        "name": "Point 71",
+        "location": [
+          18.004648,
+          -76.750424
+        ],
+        "distance_m": 31.49
+      },
+      {
+        "to": "point_70",
+        "name": "Point 70",
+        "location": [
+          18.0047144,
+          -76.7502885
+        ],
+        "distance_m": 32.8
+      }
+    ],
+    "point_67": [
+      {
+        "to": "point_66",
+        "name": "Point 66",
+        "location": [
+          18.0049184,
+          -76.7505125
+        ],
+        "distance_m": 7.82
+      },
+      {
+        "to": "point_65",
+        "name": "Point 65",
+        "location": [
+          18.0050077,
+          -76.7503877
+        ],
+        "distance_m": 24.17
+      },
+      {
+        "to": "point_71",
+        "name": "Point 71",
+        "location": [
+          18.004648,
+          -76.750424
+        ],
+        "distance_m": 31.76
+      }
+    ],
+    "point_68": [
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 21.54
+      },
+      {
+        "to": "point_50",
+        "name": "Point 50",
+        "location": [
+          18.0048655,
+          -76.7496554
+        ],
+        "distance_m": 27.1
+      },
+      {
+        "to": "point_69",
+        "name": "Point 69",
+        "location": [
+          18.0047692,
+          -76.7501557
+        ],
+        "distance_m": 28.02
+      }
+    ],
+    "point_69": [
+      {
+        "to": "point_70",
+        "name": "Point 70",
+        "location": [
+          18.0047144,
+          -76.7502885
+        ],
+        "distance_m": 15.31
+      },
+      {
+        "to": "point_68",
+        "name": "Point 68",
+        "location": [
+          18.0048674,
+          -76.7499117
+        ],
+        "distance_m": 28.02
+      },
+      {
+        "to": "point_71",
+        "name": "Point 71",
+        "location": [
+          18.004648,
+          -76.750424
+        ],
+        "distance_m": 31.41
+      }
+    ],
+    "point_70": [
+      {
+        "to": "point_69",
+        "name": "Point 69",
+        "location": [
+          18.0047692,
+          -76.7501557
+        ],
+        "distance_m": 15.31
+      },
+      {
+        "to": "point_71",
+        "name": "Point 71",
+        "location": [
+          18.004648,
+          -76.750424
+        ],
+        "distance_m": 16.12
+      },
+      {
+        "to": "point_66",
+        "name": "Point 66",
+        "location": [
+          18.0049184,
+          -76.7505125
+        ],
+        "distance_m": 32.8
+      }
+    ],
+    "point_71": [
+      {
+        "to": "point_70",
+        "name": "Point 70",
+        "location": [
+          18.0047144,
+          -76.7502885
+        ],
+        "distance_m": 16.12
+      },
+      {
+        "to": "point_69",
+        "name": "Point 69",
+        "location": [
+          18.0047692,
+          -76.7501557
+        ],
+        "distance_m": 31.41
+      },
+      {
+        "to": "point_66",
+        "name": "Point 66",
+        "location": [
+          18.0049184,
+          -76.7505125
+        ],
+        "distance_m": 31.49
+      },
+      {
+        "to": "point_67",
+        "name": "Point 67",
+        "location": [
+          18.0048916,
+          -76.7505809
+        ],
+        "distance_m": 31.76
+      }
+    ],
+    "point_72": [
+      {
+        "to": "point_49",
+        "name": "Point 49",
+        "location": [
+          18.0047162,
+          -76.7495683
+        ],
+        "distance_m": 15.06
+      },
+      {
+        "to": "point_73",
+        "name": "Point 73",
+        "location": [
+          18.0045383,
+          -76.74985
+        ],
+        "distance_m": 20.84
+      },
+      {
+        "to": "point_48",
+        "name": "Point 48",
+        "location": [
+          18.004604,
+          -76.7494717
+        ],
+        "distance_m": 22.04
+      },
+      {
+        "to": "point_74",
+        "name": "Point 74",
+        "location": [
+          18.0044988,
+          -76.7499613
+        ],
+        "distance_m": 33.3
+      }
+    ],
+    "point_73": [
+      {
+        "to": "point_74",
+        "name": "Point 74",
+        "location": [
+          18.0044988,
+          -76.7499613
+        ],
+        "distance_m": 12.56
+      },
+      {
+        "to": "point_72",
+        "name": "Point 72",
+        "location": [
+          18.0046302,
+          -76.7496783
+        ],
+        "distance_m": 20.84
+      },
+      {
+        "to": "point_76",
+        "name": "Point 76",
+        "location": [
+          18.0044465,
+          -76.7500565
+        ],
+        "distance_m": 24.11
+      }
+    ],
+    "point_74": [
+      {
+        "to": "point_76",
+        "name": "Point 76",
+        "location": [
+          18.0044465,
+          -76.7500565
+        ],
+        "distance_m": 11.63
+      },
+      {
+        "to": "point_73",
+        "name": "Point 73",
+        "location": [
+          18.0045383,
+          -76.74985
+        ],
+        "distance_m": 12.56
+      },
+      {
+        "to": "point_72",
+        "name": "Point 72",
+        "location": [
+          18.0046302,
+          -76.7496783
+        ],
+        "distance_m": 33.3
+      }
+    ],
+    "point_76": [
+      {
+        "to": "point_74",
+        "name": "Point 74",
+        "location": [
+          18.0044988,
+          -76.7499613
+        ],
+        "distance_m": 11.63
+      },
+      {
+        "to": "point_73",
+        "name": "Point 73",
+        "location": [
+          18.0045383,
+          -76.74985
+        ],
+        "distance_m": 24.11
+      }
+    ],
+    "point_77": [
+      {
+        "to": "point_78",
+        "name": "Point 78",
+        "location": [
+          18.0057401,
+          -76.7493825
+        ],
+        "distance_m": 22.93
+      },
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 27.86
+      }
+    ],
+    "point_78": [
+      {
+        "to": "point_77",
+        "name": "Point 77",
+        "location": [
+          18.005536,
+          -76.7493516
+        ],
+        "distance_m": 22.93
+      },
+      {
+        "to": "point_79",
+        "name": "Point 79",
+        "location": [
+          18.005969,
+          -76.7494854
+        ],
+        "distance_m": 27.68
+      }
+    ],
+    "point_79": [
+      {
+        "to": "point_80",
+        "name": "Point 80",
+        "location": [
+          18.006043,
+          -76.7495297
+        ],
+        "distance_m": 9.47
+      },
+      {
+        "to": "point_83",
+        "name": "Point 83",
+        "location": [
+          18.0059677,
+          -76.7496933
+        ],
+        "distance_m": 21.99
+      },
+      {
+        "to": "point_81",
+        "name": "Point 81",
+        "location": [
+          18.0060659,
+          -76.7497094
+        ],
+        "distance_m": 26.02
+      },
+      {
+        "to": "point_78",
+        "name": "Point 78",
+        "location": [
+          18.0057401,
+          -76.7493825
+        ],
+        "distance_m": 27.68
+      }
+    ],
+    "point_80": [
+      {
+        "to": "point_79",
+        "name": "Point 79",
+        "location": [
+          18.005969,
+          -76.7494854
+        ],
+        "distance_m": 9.47
+      },
+      {
+        "to": "point_81",
+        "name": "Point 81",
+        "location": [
+          18.0060659,
+          -76.7497094
+        ],
+        "distance_m": 19.17
+      },
+      {
+        "to": "point_83",
+        "name": "Point 83",
+        "location": [
+          18.0059677,
+          -76.7496933
+        ],
+        "distance_m": 19.22
+      }
+    ],
+    "point_81": [
+      {
+        "to": "point_83",
+        "name": "Point 83",
+        "location": [
+          18.0059677,
+          -76.7496933
+        ],
+        "distance_m": 11.05
+      },
+      {
+        "to": "point_82",
+        "name": "Point 82",
+        "location": [
+          18.0059575,
+          -76.7498328
+        ],
+        "distance_m": 17.76
+      },
+      {
+        "to": "point_80",
+        "name": "Point 80",
+        "location": [
+          18.006043,
+          -76.7495297
+        ],
+        "distance_m": 19.17
+      },
+      {
+        "to": "point_79",
+        "name": "Point 79",
+        "location": [
+          18.005969,
+          -76.7494854
+        ],
+        "distance_m": 26.02
+      }
+    ],
+    "point_82": [
+      {
+        "to": "point_84",
+        "name": "Point 84",
+        "location": [
+          18.0058721,
+          -76.749932
+        ],
+        "distance_m": 14.15
+      },
+      {
+        "to": "point_83",
+        "name": "Point 83",
+        "location": [
+          18.0059677,
+          -76.7496933
+        ],
+        "distance_m": 14.8
+      },
+      {
+        "to": "point_81",
+        "name": "Point 81",
+        "location": [
+          18.0060659,
+          -76.7497094
+        ],
+        "distance_m": 17.76
+      }
+    ],
+    "point_83": [
+      {
+        "to": "point_81",
+        "name": "Point 81",
+        "location": [
+          18.0060659,
+          -76.7497094
+        ],
+        "distance_m": 11.05
+      },
+      {
+        "to": "point_82",
+        "name": "Point 82",
+        "location": [
+          18.0059575,
+          -76.7498328
+        ],
+        "distance_m": 14.8
+      },
+      {
+        "to": "point_80",
+        "name": "Point 80",
+        "location": [
+          18.006043,
+          -76.7495297
+        ],
+        "distance_m": 19.22
+      },
+      {
+        "to": "point_79",
+        "name": "Point 79",
+        "location": [
+          18.005969,
+          -76.7494854
+        ],
+        "distance_m": 21.99
+      },
+      {
+        "to": "point_84",
+        "name": "Point 84",
+        "location": [
+          18.0058721,
+          -76.749932
+        ],
+        "distance_m": 27.39
+      }
+    ],
+    "point_84": [
+      {
+        "to": "point_82",
+        "name": "Point 82",
+        "location": [
+          18.0059575,
+          -76.7498328
+        ],
+        "distance_m": 14.15
+      },
+      {
+        "to": "point_86",
+        "name": "Point 86",
+        "location": [
+          18.0058185,
+          -76.7501332
+        ],
+        "distance_m": 22.1
+      },
+      {
+        "to": "point_83",
+        "name": "Point 83",
+        "location": [
+          18.0059677,
+          -76.7496933
+        ],
+        "distance_m": 27.39
+      }
+    ],
+    "point_86": [
+      {
+        "to": "point_84",
+        "name": "Point 84",
+        "location": [
+          18.0058721,
+          -76.749932
+        ],
+        "distance_m": 22.1
+      }
+    ],
+    "point_93": [
+      {
+        "to": "point_28",
+        "name": "Point 28",
+        "location": [
+          18.0065186,
+          -76.7472575
+        ],
+        "distance_m": 27.07
+      },
+      {
+        "to": "point_29",
+        "name": "Point 29",
+        "location": [
+          18.0066716,
+          -76.7472735
+        ],
+        "distance_m": 31.4
+      },
+      {
+        "to": "point_94",
+        "name": "Point 94",
+        "location": [
+          18.0064354,
+          -76.7467251
+        ],
+        "distance_m": 32.26
+      }
+    ],
+    "point_94": [
+      {
+        "to": "point_95",
+        "name": "Point 95",
+        "location": [
+          18.006385,
+          -76.7466447
+        ],
+        "distance_m": 10.18
+      },
+      {
+        "to": "point_96",
+        "name": "Point 96",
+        "location": [
+          18.0063302,
+          -76.7465494
+        ],
+        "distance_m": 21.96
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 32.26
+      }
+    ],
+    "point_95": [
+      {
+        "to": "point_94",
+        "name": "Point 94",
+        "location": [
+          18.0064354,
+          -76.7467251
+        ],
+        "distance_m": 10.18
+      },
+      {
+        "to": "point_96",
+        "name": "Point 96",
+        "location": [
+          18.0063302,
+          -76.7465494
+        ],
+        "distance_m": 11.78
+      },
+      {
+        "to": "point_97",
+        "name": "Point 97",
+        "location": [
+          18.0062766,
+          -76.7464341
+        ],
+        "distance_m": 25.32
+      }
+    ],
+    "point_96": [
+      {
+        "to": "point_95",
+        "name": "Point 95",
+        "location": [
+          18.006385,
+          -76.7466447
+        ],
+        "distance_m": 11.78
+      },
+      {
+        "to": "point_97",
+        "name": "Point 97",
+        "location": [
+          18.0062766,
+          -76.7464341
+        ],
+        "distance_m": 13.57
+      },
+      {
+        "to": "point_94",
+        "name": "Point 94",
+        "location": [
+          18.0064354,
+          -76.7467251
+        ],
+        "distance_m": 21.96
+      }
+    ],
+    "point_97": [
+      {
+        "to": "point_96",
+        "name": "Point 96",
+        "location": [
+          18.0063302,
+          -76.7465494
+        ],
+        "distance_m": 13.57
+      },
+      {
+        "to": "ab7",
+        "name": "ab7",
+        "location": [
+          18.0060854,
+          -76.7464251
+        ],
+        "distance_m": 21.28
+      },
+      {
+        "to": "point_95",
+        "name": "Point 95",
+        "location": [
+          18.006385,
+          -76.7466447
+        ],
+        "distance_m": 25.32
+      },
+      {
+        "to": "ab8",
+        "name": "ab8",
+        "location": [
+          18.0061288,
+          -76.7462288
+        ],
+        "distance_m": 27.23
+      }
+    ]
+  }
+}

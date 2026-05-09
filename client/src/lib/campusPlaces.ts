@@ -18,6 +18,10 @@ import {
 
 export const PLACE_DATA_URL = new URL("../contexts/uwipath.json", import.meta.url)
   .href;
+export const CAMPUS_GRAPH_DATA_URL = new URL(
+  "../../../scripts/campus_adjacency_list_only.json",
+  import.meta.url
+).href;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as
   | string
@@ -55,6 +59,12 @@ export interface NavigationDestination {
   category: string;
 }
 
+export interface CampusPlaceDataBundle {
+  raw: unknown;
+  campusData: CampusDataset;
+  placeData: PlaceDataset;
+}
+
 interface SupabaseMapPlaceRow {
   id?: string;
   source_id?: string | null;
@@ -83,6 +93,9 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
   parking: { label: "Parking", color: "#64748b", icon: CarFront },
   restroom: { label: "Restroom", color: "#94a3b8", icon: Bath },
 };
+
+let cachedCampusPlaceData: CampusPlaceDataBundle | null = null;
+let campusPlaceDataPromise: Promise<CampusPlaceDataBundle> | null = null;
 
 export function normalizeSearchText(value: string): string {
   return value
@@ -147,22 +160,49 @@ export function buildPlaceDataset(
   };
 }
 
-export async function loadCampusPlaceData() {
-  const raw = await loadCampusGeoJson();
-  const campusData = buildCampusDataset(raw);
-  let placeData: PlaceDataset;
+export function getCachedCampusPlaceData() {
+  return cachedCampusPlaceData;
+}
 
-  try {
-    const supabasePlaces = await loadSupabasePlaces(campusData);
-    placeData =
-      supabasePlaces.locations.length > 0
-        ? supabasePlaces
-        : buildPlaceDataset(raw, campusData);
-  } catch {
-    placeData = buildPlaceDataset(raw, campusData);
+export async function loadCampusPlaceData(options?: { force?: boolean }) {
+  if (!options?.force && cachedCampusPlaceData) {
+    return cachedCampusPlaceData;
   }
 
-  return { raw, campusData, placeData };
+  if (!options?.force && campusPlaceDataPromise) {
+    return campusPlaceDataPromise;
+  }
+
+  campusPlaceDataPromise = (async () => {
+    const [raw, graphRaw] = await Promise.all([
+      loadCampusGeoJson(),
+      loadCampusAdjacencyJson().catch(() => null),
+    ]);
+    const campusData = graphRaw
+      ? buildCampusDataset(graphRaw, raw)
+      : buildCampusDataset(raw);
+    let placeData: PlaceDataset;
+
+    try {
+      const supabasePlaces = await loadSupabasePlaces(campusData);
+      placeData =
+        supabasePlaces.locations.length > 0
+          ? supabasePlaces
+          : buildPlaceDataset(raw, campusData);
+    } catch {
+      placeData = buildPlaceDataset(raw, campusData);
+    }
+
+    const bundle = { raw, campusData, placeData };
+    cachedCampusPlaceData = bundle;
+    return bundle;
+  })();
+
+  try {
+    return await campusPlaceDataPromise;
+  } finally {
+    campusPlaceDataPromise = null;
+  }
 }
 
 export function buildNavigationDestinations(
@@ -206,6 +246,16 @@ async function loadCampusGeoJson() {
   const response = await fetch(PLACE_DATA_URL);
   if (!response.ok) {
     throw new Error(`Failed to load uwipath.json (${response.status})`);
+  }
+  return response.json();
+}
+
+async function loadCampusAdjacencyJson() {
+  const response = await fetch(CAMPUS_GRAPH_DATA_URL);
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load campus_adjacency_list_only.json (${response.status})`
+    );
   }
   return response.json();
 }
