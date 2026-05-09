@@ -80,16 +80,86 @@
 - [x] Menu sections: Academic, Safety, Settings
 - [x] Logout button
 
+## Phase 23: Class Reporting System & Trust Score Integration
+
+### Database Schema
+- [x] `course_sessions` table: recurring weekly schedule slots per course
+- [x] `course_session_overrides` table: one-off calendar changes from verified reports
+- [x] `class_reports` table: richer student course reports with session linkage, room/time fields, verification score, and thresholds
+- [x] `class_report_votes` table: weighted votes by role (student=1, class_rep=2, year_rep=2, guild_admin=3, lecturer=5)
+- [x] `trust_score_events` table: audit log for all trust score changes
+- [x] `class_report_comments` table: discussion thread per report (class chat)
+- [x] `push_subscriptions` table: PWA Web Push subscription endpoints
+- [x] `user_notifications` table: in-app notifications on report verification
+- [x] `users.trustScore` field: integer 0–100, default 50
+- [x] `users.suspensionStatus` + `users.suspendedUntil` fields: reporting suspension
+- [x] Drizzle migration: `0008_cactus_reporting_system.sql`
+
+### Backend — DB Functions
+- [x] Course session CRUD: `createCourseSession`, `getCourseSessionsByCourse`, `getCourseSession`, `getCourseSessionsByUser`
+- [x] Session override CRUD: `getSessionOverridesByDate`, `createSessionOverride`
+- [x] Class report CRUD: `createClassReport`, `getClassReport`, `getClassReportsByCourse`, `updateClassReportStatus`, `updateClassReportScore`, `getPendingExpiredClassReports`
+- [x] Report vote CRUD: `createOrUpdateClassReportVote`, `getClassReportVotes`, `getUserVoteOnReport`
+- [x] Trust score: `getUserTrustScore`, `updateUserTrustScore`, `logTrustScoreEvent`, `getTrustScoreHistory`, `applyTrustScoreChange`
+- [x] Suspension: `getUserSuspensionStatus`, `applyReportingSuspension`, `clearUserSuspension`, `getExpiredSuspensions`, `countRejectedReportsInWindow`
+- [x] Class chat: `createClassReportComment`, `getClassReportComments`, `deleteClassReportComment`
+- [x] Push subscriptions: `upsertPushSubscription`, `deletePushSubscription`, `getPushSubscriptionsByUser`, `getPushSubscriptionsForCourse`, `deleteInvalidPushSubscription`
+- [x] Notifications: `createUserNotification`, `getUserNotifications`, `markNotificationRead`, `createCourseNotificationsForVerifiedReport`
+- [x] Permission helpers: `isUserRegisteredForCourse`, `isUserSuspendedFromReporting`, `getVoteWeightForUser`, `getRequiredThresholdForReport`
+
+### Backend — tRPC Routers
+- [x] `timetable.getMyTimetable`: returns enrolled sessions with today's overrides
+- [x] `timetable.getCourseSessions`: returns sessions for a course
+- [x] `timetable.createCourseSession`: class rep / lecturer / admin only
+- [x] `classReports.submitReport`: membership + suspension check, threshold calculation, auto-verify for lecturers/admins
+- [x] `classReports.getReportsByCourse`: pending or all reports with vote counts
+- [x] `classReports.getReport`: single report with all votes
+- [x] `classReports.voteOnReport`: weighted vote, score recalculation, auto-resolve, trust score updates
+- [x] `classReports.getMyTrustScore`: own trust score and history
+- [x] `classReports.getMySuspensionStatus`: own suspension status
+- [x] `classChat.getCourseChat`: all reports + comments for a course
+- [x] `classChat.addComment` / `getComments` / `deleteComment`
+- [x] `push.subscribe` / `unsubscribe` / `getNotifications` / `markRead`
+
+### Backend — Report Lifecycle Helpers
+- [x] `handleReportVerified`: creates calendar override, updates trust scores, creates notifications, emits SSE event
+- [x] `handleReportRejected`: penalises reporter, rewards correct downvoters, checks suspension threshold
+- [x] Notification title/message builders for all report types
+
+### Background Jobs
+- [x] `handleClassReportExpiry` (every 10 min): expires pending reports, applies −2 trust penalty
+- [x] `clearExpiredSuspensions` (every 30 min): lifts expired reporting suspensions
+- [x] `cleanupExpiredWalkingRequests` (every 15 min): implemented (was placeholder)
+- [x] `cleanupExpiredClaims`: implemented (was placeholder)
+
+### Tests
+- [x] 63 new Vitest tests in `server/classReporting.test.ts`
+  - Vote weight by role (7 tests)
+  - Verification score calculation (5 tests)
+  - Report status determination (6 tests)
+  - Required threshold calculation (7 tests)
+  - Trust score deltas for reporter and voter (7 tests)
+  - Trust score clamping (4 tests)
+  - Suspension threshold logic (5 tests)
+  - Notification title generation (6 tests)
+  - Calendar override type mapping (6 tests)
+  - End-to-end scenarios: verification and rejection (10 tests)
+
+### Documentation
+- [x] `docs/class-reporting-system.md`: full system documentation
+
 ## Pending / Future Work
 
 - [ ] Admin footpath drawing tool (Mapbox Draw, admin-only)
 - [ ] User-suggested alternate routes (submit GeoJSON LineString)
 - [ ] Course management UI (search courses by code, not just ID)
-- [ ] Push notifications for check-in failures
+- [ ] Push notifications for check-in failures (VAPID key pair setup)
 - [ ] Satellite map style toggle
 - [ ] Configurable campus center (admin settings panel)
 - [ ] Real course/schedule data from backend (currently mock data)
 - [ ] End-to-end testing with two real devices
+- [ ] Frontend UI for classReports, classChat, push, and timetable routers
+- [ ] VAPID key pair configuration for Web Push delivery
 
 ## Phase 16-19: Map UI Rebuild, Algorithm Hardening, Demo Mode
 

@@ -20,6 +20,14 @@ import {
   footpaths,
   courseAnnouncements,
   savedCourses,
+  courseSessions,
+  courseSessionOverrides,
+  classReports,
+  classReportVotes,
+  trustScoreEvents,
+  classReportComments,
+  pushSubscriptions,
+  userNotifications,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -1257,4 +1265,577 @@ export async function upsertCourse(data: {
   });
   const result = await db.select().from(courses).where(eq(courses.courseCode, data.courseCode)).limit(1);
   return result.length > 0 ? result[0] : null;
+}
+
+// ============================================================================
+// COURSE SESSIONS QUERIES
+// ============================================================================
+
+export async function createCourseSession(data: {
+  courseId: number;
+  sessionType?: "lecture" | "tutorial" | "lab" | "seminar" | "other";
+  dayOfWeek: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  startTime: string;
+  endTime: string;
+  locationId?: number;
+  roomCode?: string;
+  lecturerId?: number;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(courseSessions).values(data as any);
+  const result = await db
+    .select()
+    .from(courseSessions)
+    .where(eq(courseSessions.courseId, data.courseId))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getCourseSessionsByCourse(courseId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(courseSessions).where(eq(courseSessions.courseId, courseId));
+}
+
+export async function getCourseSession(sessionId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(courseSessions).where(eq(courseSessions.id, sessionId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getCourseSessionsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get user's enrolled course IDs
+  const memberships = await db
+    .select({ courseId: courseMemberships.courseId })
+    .from(courseMemberships)
+    .where(eq(courseMemberships.userId, userId));
+  if (memberships.length === 0) return [];
+  const courseIds = memberships.map((m) => m.courseId);
+  return db.select().from(courseSessions).where(inArray(courseSessions.courseId, courseIds));
+}
+
+export async function getSessionOverridesByDate(courseSessionId: number, overrideDate: string) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(courseSessionOverrides)
+    .where(
+      and(
+        eq(courseSessionOverrides.courseSessionId, courseSessionId),
+        eq(courseSessionOverrides.overrideDate, overrideDate)
+      )
+    );
+}
+
+export async function createSessionOverride(data: {
+  courseSessionId: number;
+  classReportId: number;
+  overrideDate: string;
+  overrideType: "cancelled" | "room_changed" | "time_changed" | "lecturer_late" | "class_confirmed";
+  originalRoom?: string;
+  newRoom?: string;
+  originalStartTime?: string;
+  newStartTime?: string;
+  originalEndTime?: string;
+  newEndTime?: string;
+  isCancelled?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(courseSessionOverrides).values(data as any);
+  const result = await db
+    .select()
+    .from(courseSessionOverrides)
+    .where(eq(courseSessionOverrides.classReportId, data.classReportId))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// ============================================================================
+// CLASS REPORTS QUERIES
+// ============================================================================
+
+export async function createClassReport(data: {
+  courseId: number;
+  courseSessionId?: number;
+  reporterUserId: number;
+  reportType: "class_cancelled" | "lecturer_late" | "room_changed" | "time_changed" | "class_confirmed" | "other";
+  title: string;
+  description?: string;
+  originalRoom?: string;
+  newRoom?: string;
+  originalStartTime?: string;
+  newStartTime?: string;
+  originalEndTime?: string;
+  newEndTime?: string;
+  reportDate: string;
+  requiredThreshold: number;
+  rejectionThreshold: number;
+  expiresAt: Date;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(classReports).values(data as any);
+  const result = await db
+    .select()
+    .from(classReports)
+    .where(eq(classReports.reporterUserId, data.reporterUserId))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getClassReport(reportId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(classReports).where(eq(classReports.id, reportId)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getClassReportsByCourse(courseId: number, includeAll = false) {
+  const db = await getDb();
+  if (!db) return [];
+  if (includeAll) {
+    return db
+      .select()
+      .from(classReports)
+      .where(eq(classReports.courseId, courseId))
+      .orderBy(sql`id DESC`);
+  }
+  return db
+    .select()
+    .from(classReports)
+    .where(
+      and(
+        eq(classReports.courseId, courseId),
+        eq(classReports.status, "pending")
+      )
+    )
+    .orderBy(sql`id DESC`);
+}
+
+export async function updateClassReportStatus(
+  reportId: number,
+  status: "pending" | "verified" | "rejected" | "expired" | "superseded"
+) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(classReports).set({ status }).where(eq(classReports.id, reportId));
+}
+
+export async function updateClassReportScore(reportId: number, verificationScore: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(classReports).set({ verificationScore }).where(eq(classReports.id, reportId));
+}
+
+export async function getPendingExpiredClassReports() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  return db
+    .select()
+    .from(classReports)
+    .where(and(eq(classReports.status, "pending"), lt(classReports.expiresAt, now)));
+}
+
+// ============================================================================
+// CLASS REPORT VOTES QUERIES
+// ============================================================================
+
+export async function createOrUpdateClassReportVote(
+  reportId: number,
+  userId: number,
+  voteType: "upvote" | "downvote",
+  voteWeight: number
+) {
+  const db = await getDb();
+  if (!db) return null;
+  await db
+    .insert(classReportVotes)
+    .values({ reportId, userId, voteType, voteWeight })
+    .onDuplicateKeyUpdate({ set: { voteType, voteWeight, updatedAt: new Date() } });
+  const result = await db
+    .select()
+    .from(classReportVotes)
+    .where(and(eq(classReportVotes.reportId, reportId), eq(classReportVotes.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getClassReportVotes(reportId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(classReportVotes).where(eq(classReportVotes.reportId, reportId));
+}
+
+export async function getUserVoteOnReport(reportId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db
+    .select()
+    .from(classReportVotes)
+    .where(and(eq(classReportVotes.reportId, reportId), eq(classReportVotes.userId, userId)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+// ============================================================================
+// TRUST SCORE QUERIES
+// ============================================================================
+
+export async function getUserTrustScore(userId: number) {
+  const db = await getDb();
+  if (!db) return 50;
+  const result = await db.select({ trustScore: users.trustScore }).from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0].trustScore : 50;
+}
+
+export async function updateUserTrustScore(userId: number, newScore: number) {
+  const db = await getDb();
+  if (!db) return;
+  const clamped = Math.min(100, Math.max(0, newScore));
+  await db.update(users).set({ trustScore: clamped }).where(eq(users.id, userId));
+}
+
+export async function logTrustScoreEvent(data: {
+  userId: number;
+  relatedReportId?: number;
+  eventType: "verified_report" | "rejected_report" | "correct_vote" | "incorrect_vote" | "expired_report" | "manual_adjustment";
+  scoreChange: number;
+  previousScore: number;
+  newScore: number;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(trustScoreEvents).values(data as any);
+  return { success: true };
+}
+
+export async function getTrustScoreHistory(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(trustScoreEvents)
+    .where(eq(trustScoreEvents.userId, userId))
+    .orderBy(sql`id DESC`)
+    .limit(50);
+}
+
+/**
+ * Apply a trust score change to a user and log the event.
+ * Returns the new score.
+ */
+export async function applyTrustScoreChange(
+  userId: number,
+  scoreChange: number,
+  eventType: "verified_report" | "rejected_report" | "correct_vote" | "incorrect_vote" | "expired_report" | "manual_adjustment",
+  relatedReportId?: number
+): Promise<number> {
+  const previousScore = await getUserTrustScore(userId);
+  const newScore = Math.min(100, Math.max(0, previousScore + scoreChange));
+  await updateUserTrustScore(userId, newScore);
+  await logTrustScoreEvent({
+    userId,
+    relatedReportId,
+    eventType,
+    scoreChange,
+    previousScore,
+    newScore,
+  });
+  return newScore;
+}
+
+// ============================================================================
+// SUSPENSION QUERIES
+// ============================================================================
+
+export async function getUserSuspensionStatus(userId: number) {
+  const db = await getDb();
+  if (!db) return { suspensionStatus: "none" as const, suspendedUntil: null };
+  const result = await db
+    .select({ suspensionStatus: users.suspensionStatus, suspendedUntil: users.suspendedUntil })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  if (result.length === 0) return { suspensionStatus: "none" as const, suspendedUntil: null };
+  return result[0];
+}
+
+export async function applyReportingSuspension(userId: number, suspendedUntil: Date) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ suspensionStatus: "active", suspendedUntil }).where(eq(users.id, userId));
+}
+
+export async function clearUserSuspension(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(users).set({ suspensionStatus: "none", suspendedUntil: null }).where(eq(users.id, userId));
+}
+
+export async function getExpiredSuspensions() {
+  const db = await getDb();
+  if (!db) return [];
+  const now = new Date();
+  return db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.suspensionStatus, "active"), lt(users.suspendedUntil, now)));
+}
+
+export async function countRejectedReportsInWindow(userId: number, windowDays: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(classReports)
+    .where(
+      and(
+        eq(classReports.reporterUserId, userId),
+        eq(classReports.status, "rejected"),
+        gte(classReports.updatedAt, since)
+      )
+    );
+  return Number(result[0]?.count ?? 0);
+}
+
+// ============================================================================
+// CLASS REPORT COMMENTS QUERIES
+// ============================================================================
+
+export async function createClassReportComment(reportId: number, userId: number, message: string) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(classReportComments).values({ reportId, userId, message });
+  const result = await db
+    .select()
+    .from(classReportComments)
+    .where(and(eq(classReportComments.reportId, reportId), eq(classReportComments.userId, userId)))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getClassReportComments(reportId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(classReportComments)
+    .where(eq(classReportComments.reportId, reportId))
+    .orderBy(sql`id ASC`);
+}
+
+export async function deleteClassReportComment(commentId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(classReportComments)
+    .where(and(eq(classReportComments.id, commentId), eq(classReportComments.userId, userId)));
+}
+
+// ============================================================================
+// PUSH SUBSCRIPTIONS QUERIES
+// ============================================================================
+
+export async function upsertPushSubscription(data: {
+  userId: number;
+  endpoint: string;
+  p256dhKey: string;
+  authKey: string;
+  userAgent?: string;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db
+    .insert(pushSubscriptions)
+    .values(data as any)
+    .onDuplicateKeyUpdate({ set: { p256dhKey: data.p256dhKey, authKey: data.authKey, updatedAt: new Date() } });
+  const result = await db
+    .select()
+    .from(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.userId, data.userId), eq(pushSubscriptions.endpoint, data.endpoint)))
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function deletePushSubscription(userId: number, endpoint: string) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .delete(pushSubscriptions)
+    .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
+}
+
+export async function getPushSubscriptionsByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+}
+
+export async function getPushSubscriptionsForCourse(courseId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get all users enrolled in the course
+  const memberships = await db
+    .select({ userId: courseMemberships.userId })
+    .from(courseMemberships)
+    .where(eq(courseMemberships.courseId, courseId));
+  if (memberships.length === 0) return [];
+  const userIds = memberships.map((m) => m.userId);
+  return db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, userIds));
+}
+
+export async function deleteInvalidPushSubscription(subscriptionId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscriptionId));
+}
+
+// ============================================================================
+// USER NOTIFICATIONS QUERIES
+// ============================================================================
+
+export async function createUserNotification(data: {
+  userId: number;
+  courseId?: number;
+  classReportId?: number;
+  title: string;
+  message: string;
+  notificationType: string;
+}) {
+  const db = await getDb();
+  if (!db) return null;
+  await db.insert(userNotifications).values(data as any);
+  const result = await db
+    .select()
+    .from(userNotifications)
+    .where(eq(userNotifications.userId, data.userId))
+    .orderBy(sql`id DESC`)
+    .limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getUserNotifications(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(userNotifications)
+    .where(eq(userNotifications.userId, userId))
+    .orderBy(sql`id DESC`)
+    .limit(50);
+}
+
+export async function markNotificationRead(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(userNotifications)
+    .set({ readStatus: true })
+    .where(and(eq(userNotifications.id, notificationId), eq(userNotifications.userId, userId)));
+}
+
+export async function createCourseNotificationsForVerifiedReport(
+  courseId: number,
+  classReportId: number,
+  title: string,
+  message: string,
+  notificationType: string
+) {
+  const db = await getDb();
+  if (!db) return;
+  // Get all users enrolled in the course
+  const memberships = await db
+    .select({ userId: courseMemberships.userId })
+    .from(courseMemberships)
+    .where(eq(courseMemberships.courseId, courseId));
+  for (const m of memberships) {
+    await db.insert(userNotifications).values({
+      userId: m.userId,
+      courseId,
+      classReportId,
+      title,
+      message,
+      notificationType,
+    });
+  }
+}
+
+// ============================================================================
+// PERMISSION HELPERS
+// ============================================================================
+
+export async function isUserRegisteredForCourse(userId: number, courseId: number): Promise<boolean> {
+  const membership = await getCourseMembership(courseId, userId);
+  return membership !== null;
+}
+
+export async function isUserSuspendedFromReporting(userId: number): Promise<boolean> {
+  const status = await getUserSuspensionStatus(userId);
+  if (status.suspensionStatus !== "active") return false;
+  if (!status.suspendedUntil) return false;
+  // Auto-clear if expired
+  if (new Date() > status.suspendedUntil) {
+    await clearUserSuspension(userId);
+    return false;
+  }
+  return true;
+}
+
+export async function getVoteWeightForUser(
+  userId: number,
+  courseId: number
+): Promise<number> {
+  const db = await getDb();
+  if (!db) return 1;
+  // Check user's global role
+  const userResult = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  const globalRole = userResult[0]?.role ?? "student";
+  if (globalRole === "guild_admin") return 3;
+  if (globalRole === "lecturer") return 5; // instant-like authority
+  if (globalRole === "year_rep") return 2;
+  // Check course membership role
+  const membership = await getCourseMembership(courseId, userId);
+  if (membership?.membershipRole === "class_rep") return 2;
+  if (membership?.membershipRole === "lecturer") return 5;
+  return 1;
+}
+
+export async function getRequiredThresholdForReport(
+  courseId: number,
+  reporterUserId: number
+): Promise<{ required: number; rejection: number }> {
+  const db = await getDb();
+  if (!db) return { required: 3, rejection: -3 };
+  const course = await getCourse(courseId);
+  if (!course) return { required: 3, rejection: -3 };
+  const membership = await getCourseMembership(courseId, reporterUserId);
+  const isRep = membership?.membershipRole === "class_rep";
+  const userResult = await db.select({ role: users.role }).from(users).where(eq(users.id, reporterUserId)).limit(1);
+  const globalRole = userResult[0]?.role ?? "student";
+  // Lecturers and admins get instant verification (threshold 0)
+  if (globalRole === "lecturer" || globalRole === "guild_admin") {
+    return { required: 0, rejection: -999 };
+  }
+  const trustScore = await getUserTrustScore(reporterUserId);
+  // Reuse existing formula from algorithms.ts (normalised to 0-1)
+  const normalisedTrust = trustScore / 100;
+  const alpha = isRep ? 0.1 : 0.3;
+  const roleMultiplier = isRep ? 0.5 : 1.0;
+  const beta = 0.5;
+  const raw = alpha * course.classSize * roleMultiplier * (1 - beta * normalisedTrust);
+  const required = Math.max(1, Math.ceil(raw));
+  const rejection = -Math.max(2, Math.ceil(0.25 * course.classSize));
+  return { required, rejection };
 }

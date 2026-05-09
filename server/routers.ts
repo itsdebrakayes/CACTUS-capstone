@@ -1047,6 +1047,504 @@ const coursesRouter = router({
     }),
 });
 
+// ============================================================================
+// TIMETABLE ROUTER
+// ============================================================================
+
+const timetableRouter = router({
+  // Get course sessions for a specific course
+  getCourseSessions: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const membership = await db.getCourseMembership(input.courseId, ctx.user.id);
+      if (!membership) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      }
+      return db.getCourseSessionsByCourse(input.courseId);
+    }),
+
+  // Get user's full timetable (all enrolled courses' sessions + overrides for today)
+  getMyTimetable: protectedProcedure.query(async ({ ctx }) => {
+    const sessions = await db.getCourseSessionsByUser(ctx.user.id);
+    const today = new Date().toISOString().split("T")[0];
+    // Attach overrides for today
+    const sessionsWithOverrides = await Promise.all(
+      sessions.map(async (session) => {
+        const overrides = await db.getSessionOverridesByDate(session.id, today);
+        const activeOverride = overrides.length > 0 ? overrides[overrides.length - 1] : null;
+        return { ...session, override: activeOverride };
+      })
+    );
+    return sessionsWithOverrides;
+  }),
+
+  // Create a course session (class rep / lecturer / admin only)
+  createCourseSession: protectedProcedure
+    .input(
+      z.object({
+        courseId: z.number(),
+        sessionType: z.enum(["lecture", "tutorial", "lab", "seminar", "other"]).optional(),
+        dayOfWeek: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
+        startTime: z.string(),
+        endTime: z.string(),
+        roomCode: z.string().optional(),
+        lecturerId: z.number().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+      if (!membership || (membership.membershipRole !== "class_rep" && membership.membershipRole !== "lecturer" && ctx.user.role !== "guild_admin")) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep or lecturer access required" });
+      }
+      const session = await db.createCourseSession(input);
+      return session;
+    }),
+});
+
+// ============================================================================
+// CLASS REPORTS ROUTER
+// ============================================================================
+
+const classReportsRouter = router({
+  // Submit a class report
+  submitReport: protectedProcedure
+    .input(
+      z.object({
+        courseId: z.number(),
+        courseSessionId: z.number().optional(),
+        reportType: z.enum(["class_cancelled", "lecturer_late", "room_changed", "time_changed", "class_confirmed", "other"]),
+        title: z.string().min(3).max(255),
+        description: z.string().max(1000).optional(),
+        originalRoom: z.string().max(64).optional(),
+        newRoom: z.string().max(64).optional(),
+        originalStartTime: z.string().optional(),
+        newStartTime: z.string().optional(),
+        originalEndTime: z.string().optional(),
+        newEndTime: z.string().optional(),
+        reportDate: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Check course membership
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      }
+
+      // Check suspension
+      const isSuspended = await db.isUserSuspendedFromReporting(ctx.user.id);
+      if (isSuspended) {
+        const status = await db.getUserSuspensionStatus(ctx.user.id);
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: `You are temporarily suspended from submitting class reports. Suspension ends at ${status.suspendedUntil?.toISOString() ?? "unknown"}.`,
+        });
+      }
+
+      // Calculate thresholds
+      const { required, rejection } = await db.getRequiredThresholdForReport(input.courseId, ctx.user.id);
+      const reportDate = input.reportDate ?? new Date().toISOString().split("T")[0];
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      const report = await db.createClassReport({
+        courseId: input.courseId,
+        courseSessionId: input.courseSessionId,
+        reporterUserId: ctx.user.id,
+        reportType: input.reportType,
+        title: input.title,
+        description: input.description,
+        originalRoom: input.originalRoom,
+        newRoom: input.newRoom,
+        originalStartTime: input.originalStartTime,
+        newStartTime: input.newStartTime,
+        originalEndTime: input.originalEndTime,
+        newEndTime: input.newEndTime,
+        reportDate,
+        requiredThreshold: required,
+        rejectionThreshold: rejection,
+        expiresAt,
+      });
+
+      if (!report) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create report" });
+      }
+
+      // If lecturer/admin, auto-verify immediately
+      if (required === 0) {
+        await db.updateClassReportStatus(report.id, "verified");
+        await handleReportVerified(report.id, input.courseId, ctx.user.id);
+      }
+
+      eventEmitter.emit("event", {
+        type: "class_report.created",
+        timestamp: Date.now(),
+        data: { reportId: report.id, courseId: input.courseId, reportType: input.reportType },
+      });
+
+      return { reportId: report.id, status: required === 0 ? "verified" : "pending" };
+    }),
+
+  // Get reports for a course
+  getReportsByCourse: protectedProcedure
+    .input(z.object({ courseId: z.number(), includeAll: z.boolean().optional() }))
+    .query(async ({ ctx, input }) => {
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
+      if (!isMember) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      }
+      const reports = await db.getClassReportsByCourse(input.courseId, input.includeAll ?? false);
+      return Promise.all(
+        reports.map(async (r) => {
+          const votes = await db.getClassReportVotes(r.id);
+          const userVote = await db.getUserVoteOnReport(r.id, ctx.user.id);
+          return { ...r, voteCount: votes.length, userVote: userVote?.voteType ?? null };
+        })
+      );
+    }),
+
+  // Get a single report
+  getReport: protectedProcedure
+    .input(z.object({ reportId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const report = await db.getClassReport(input.reportId);
+      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
+      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      const votes = await db.getClassReportVotes(input.reportId);
+      const userVote = await db.getUserVoteOnReport(input.reportId, ctx.user.id);
+      return { ...report, votes, userVote: userVote?.voteType ?? null };
+    }),
+
+  // Vote on a class report
+  voteOnReport: protectedProcedure
+    .input(
+      z.object({
+        reportId: z.number(),
+        voteType: z.enum(["upvote", "downvote"]),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const report = await db.getClassReport(input.reportId);
+      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      if (report.status !== "pending") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Report is no longer pending" });
+      }
+
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
+      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+
+      // Get vote weight based on role
+      const voteWeight = await db.getVoteWeightForUser(ctx.user.id, report.courseId);
+      await db.createOrUpdateClassReportVote(input.reportId, ctx.user.id, input.voteType, voteWeight);
+
+      // Recalculate verification score
+      const allVotes = await db.getClassReportVotes(input.reportId);
+      const verificationScore = allVotes.reduce((sum, v) => {
+        return sum + (v.voteType === "upvote" ? v.voteWeight : -v.voteWeight);
+      }, 0);
+      await db.updateClassReportScore(input.reportId, verificationScore);
+
+      // Check if report should be verified or rejected
+      let newStatus: "pending" | "verified" | "rejected" = "pending";
+      if (verificationScore >= report.requiredThreshold) newStatus = "verified";
+      else if (verificationScore <= report.rejectionThreshold) newStatus = "rejected";
+
+      if (newStatus !== "pending") {
+        await db.updateClassReportStatus(input.reportId, newStatus);
+
+        if (newStatus === "verified") {
+          await handleReportVerified(input.reportId, report.courseId, report.reporterUserId);
+        } else if (newStatus === "rejected") {
+          await handleReportRejected(input.reportId, report.courseId, report.reporterUserId, allVotes);
+        }
+
+        eventEmitter.emit("event", {
+          type: "class_report.resolved",
+          timestamp: Date.now(),
+          data: { reportId: input.reportId, status: newStatus, verificationScore },
+        });
+      }
+
+      return { success: true, verificationScore, status: newStatus };
+    }),
+
+  // Get user's trust score and history
+  getMyTrustScore: protectedProcedure.query(async ({ ctx }) => {
+    const score = await db.getUserTrustScore(ctx.user.id);
+    const history = await db.getTrustScoreHistory(ctx.user.id);
+    return { trustScore: score, history };
+  }),
+
+  // Get user's suspension status
+  getMySuspensionStatus: protectedProcedure.query(async ({ ctx }) => {
+    const status = await db.getUserSuspensionStatus(ctx.user.id);
+    const isSuspended = await db.isUserSuspendedFromReporting(ctx.user.id);
+    return { ...status, isSuspended };
+  }),
+});
+
+// ============================================================================
+// CLASS CHAT ROUTER
+// ============================================================================
+
+const classChatRouter = router({
+  // Get class chat (active reports + comments) for a course
+  getCourseChat: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
+      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+
+      const reports = await db.getClassReportsByCourse(input.courseId, true);
+      const reportsWithDetails = await Promise.all(
+        reports.map(async (r) => {
+          const votes = await db.getClassReportVotes(r.id);
+          const comments = await db.getClassReportComments(r.id);
+          const userVote = await db.getUserVoteOnReport(r.id, ctx.user.id);
+          const verificationScore = votes.reduce((sum, v) => sum + (v.voteType === "upvote" ? v.voteWeight : -v.voteWeight), 0);
+          return { ...r, verificationScore, votes, comments, userVote: userVote?.voteType ?? null };
+        })
+      );
+      return reportsWithDetails;
+    }),
+
+  // Add a comment to a report
+  addComment: protectedProcedure
+    .input(
+      z.object({
+        reportId: z.number(),
+        message: z.string().min(1).max(500),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const report = await db.getClassReport(input.reportId);
+      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
+      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      const comment = await db.createClassReportComment(input.reportId, ctx.user.id, input.message);
+      return comment;
+    }),
+
+  // Get comments for a report
+  getComments: protectedProcedure
+    .input(z.object({ reportId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const report = await db.getClassReport(input.reportId);
+      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
+      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      return db.getClassReportComments(input.reportId);
+    }),
+
+  // Delete own comment
+  deleteComment: protectedProcedure
+    .input(z.object({ commentId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.deleteClassReportComment(input.commentId, ctx.user.id);
+      return { success: true };
+    }),
+});
+
+// ============================================================================
+// PUSH NOTIFICATIONS ROUTER
+// ============================================================================
+
+const pushRouter = router({
+  // Subscribe to push notifications
+  subscribe: protectedProcedure
+    .input(
+      z.object({
+        endpoint: z.string().url(),
+        p256dhKey: z.string(),
+        authKey: z.string(),
+        userAgent: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      await db.upsertPushSubscription({
+        userId: ctx.user.id,
+        endpoint: input.endpoint,
+        p256dhKey: input.p256dhKey,
+        authKey: input.authKey,
+        userAgent: input.userAgent,
+      });
+      return { success: true };
+    }),
+
+  // Unsubscribe from push notifications
+  unsubscribe: protectedProcedure
+    .input(z.object({ endpoint: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.deletePushSubscription(ctx.user.id, input.endpoint);
+      return { success: true };
+    }),
+
+  // Get user's notifications
+  getNotifications: protectedProcedure.query(async ({ ctx }) => {
+    return db.getUserNotifications(ctx.user.id);
+  }),
+
+  // Mark notification as read
+  markRead: protectedProcedure
+    .input(z.object({ notificationId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.markNotificationRead(input.notificationId, ctx.user.id);
+      return { success: true };
+    }),
+});
+
+// ============================================================================
+// HELPER FUNCTIONS FOR REPORT LIFECYCLE
+// ============================================================================
+
+/**
+ * Called when a class report is verified.
+ * - Creates calendar override
+ * - Updates trust scores
+ * - Creates notifications for all course members
+ */
+async function handleReportVerified(
+  reportId: number,
+  courseId: number,
+  reporterUserId: number
+) {
+  try {
+    const report = await db.getClassReport(reportId);
+    if (!report) return;
+
+    // 1. Create calendar override if session is linked
+    if (report.courseSessionId) {
+      const overrideTypeMap: Record<string, "cancelled" | "room_changed" | "time_changed" | "lecturer_late" | "class_confirmed"> = {
+        class_cancelled: "cancelled",
+        room_changed: "room_changed",
+        time_changed: "time_changed",
+        lecturer_late: "lecturer_late",
+        class_confirmed: "class_confirmed",
+        other: "class_confirmed",
+      };
+      const overrideType = overrideTypeMap[report.reportType] ?? "class_confirmed";
+      await db.createSessionOverride({
+        courseSessionId: report.courseSessionId,
+        classReportId: reportId,
+        overrideDate: report.reportDate,
+        overrideType,
+        originalRoom: report.originalRoom ?? undefined,
+        newRoom: report.newRoom ?? undefined,
+        originalStartTime: report.originalStartTime ?? undefined,
+        newStartTime: report.newStartTime ?? undefined,
+        originalEndTime: report.originalEndTime ?? undefined,
+        newEndTime: report.newEndTime ?? undefined,
+        isCancelled: report.reportType === "class_cancelled",
+      });
+    }
+
+    // 2. Update reporter trust score (+2)
+    await db.applyTrustScoreChange(reporterUserId, 2, "verified_report", reportId);
+
+    // 3. Reward correct upvoters (+1), penalise downvoters (-1)
+    const votes = await db.getClassReportVotes(reportId);
+    for (const vote of votes) {
+      if (vote.userId === reporterUserId) continue;
+      if (vote.voteType === "upvote") {
+        await db.applyTrustScoreChange(vote.userId, 1, "correct_vote", reportId);
+      } else {
+        await db.applyTrustScoreChange(vote.userId, -1, "incorrect_vote", reportId);
+      }
+    }
+
+    // 4. Build notification content
+    const course = await db.getCourse(courseId);
+    const courseCode = course?.courseCode ?? "Course";
+    const notifTitle = buildNotificationTitle(report.reportType, courseCode);
+    const notifMessage = buildNotificationMessage(report);
+
+    // 5. Create in-app notifications for all course members
+    await db.createCourseNotificationsForVerifiedReport(
+      courseId,
+      reportId,
+      notifTitle,
+      notifMessage,
+      report.reportType
+    );
+
+    eventEmitter.emit("event", {
+      type: "class_report.verified",
+      timestamp: Date.now(),
+      data: { reportId, courseId, reportType: report.reportType },
+    });
+  } catch (err) {
+    console.error("[handleReportVerified] Error:", err);
+  }
+}
+
+/**
+ * Called when a class report is rejected.
+ * - Penalises reporter trust score (-5)
+ * - Rewards correct downvoters (+1)
+ * - Checks if suspension threshold is reached
+ */
+async function handleReportRejected(
+  reportId: number,
+  courseId: number,
+  reporterUserId: number,
+  votes: Array<{ userId: number; voteType: string }>
+) {
+  try {
+    // 1. Penalise reporter (-5)
+    await db.applyTrustScoreChange(reporterUserId, -5, "rejected_report", reportId);
+
+    // 2. Reward correct downvoters (+1), penalise upvoters (-1)
+    for (const vote of votes) {
+      if (vote.userId === reporterUserId) continue;
+      if (vote.voteType === "downvote") {
+        await db.applyTrustScoreChange(vote.userId, 1, "correct_vote", reportId);
+      } else {
+        await db.applyTrustScoreChange(vote.userId, -1, "incorrect_vote", reportId);
+      }
+    }
+
+    // 3. Check suspension threshold (3 rejected reports in 7 days)
+    const rejectedCount = await db.countRejectedReportsInWindow(reporterUserId, 7);
+    if (rejectedCount >= 3) {
+      const isSuspended = await db.isUserSuspendedFromReporting(reporterUserId);
+      if (!isSuspended) {
+        // First offense: 24 hours
+        const suspendedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await db.applyReportingSuspension(reporterUserId, suspendedUntil);
+        eventEmitter.emit("event", {
+          type: "user.suspended",
+          timestamp: Date.now(),
+          data: { userId: reporterUserId, suspendedUntil, reason: "repeated_false_reports" },
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[handleReportRejected] Error:", err);
+  }
+}
+
+function buildNotificationTitle(reportType: string, courseCode: string): string {
+  switch (reportType) {
+    case "class_cancelled": return `${courseCode} class cancelled`;
+    case "room_changed": return `Room change for ${courseCode}`;
+    case "lecturer_late": return `Lecturer late for ${courseCode}`;
+    case "time_changed": return `Time change for ${courseCode}`;
+    case "class_confirmed": return `${courseCode} class confirmed`;
+    default: return `Update for ${courseCode}`;
+  }
+}
+
+function buildNotificationMessage(report: { reportType: string; courseId: number; newRoom?: string | null; newStartTime?: string | null; title: string }): string {
+  switch (report.reportType) {
+    case "class_cancelled": return `Your class has been reported and verified as cancelled.`;
+    case "room_changed": return report.newRoom ? `Class has moved to room ${report.newRoom}.` : report.title;
+    case "lecturer_late": return report.newStartTime ? `Lecturer is late. Class may begin at ${report.newStartTime}.` : report.title;
+    case "time_changed": return report.newStartTime ? `Class time changed to ${report.newStartTime}.` : report.title;
+    case "class_confirmed": return `Your class is confirmed to be running.`;
+    default: return report.title;
+  }
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -1069,6 +1567,10 @@ export const appRouter = router({
   checkins: checkinRouter,
   footpaths: footpathRouter,
   courses: coursesRouter,
+  timetable: timetableRouter,
+  classReports: classReportsRouter,
+  classChat: classChatRouter,
+  push: pushRouter,
 });
 
 export type AppRouter = typeof appRouter;

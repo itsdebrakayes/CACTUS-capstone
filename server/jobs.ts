@@ -43,6 +43,21 @@ export function initializeJobs() {
     await handleCheckinMonitoring();
   });
 
+  // Class report expiry job - runs every 10 minutes
+  cron.schedule("*/10 * * * *", async () => {
+    await handleClassReportExpiry();
+  });
+
+  // Suspension clearing job - runs every 30 minutes
+  cron.schedule("*/30 * * * *", async () => {
+    await clearExpiredSuspensions();
+  });
+
+  // Expired walking request cleanup - runs every 15 minutes
+  cron.schedule("*/15 * * * *", async () => {
+    await cleanupExpiredWalkingRequests();
+  });
+
   console.log("[Jobs] Background jobs initialized");
 }
 
@@ -134,12 +149,63 @@ async function handleCheckinMonitoring() {
 }
 
 /**
- * Clean up expired walking requests (optional)
+ * Expire pending class reports whose expiresAt has passed.
+ * Applies a small trust penalty (-2) to the reporter for unresolved reports.
+ */
+async function handleClassReportExpiry() {
+  try {
+    const expiredReports = await db.getPendingExpiredClassReports();
+    for (const report of expiredReports) {
+      await db.updateClassReportStatus(report.id, "expired");
+      // Small trust penalty for unresolved report
+      await db.applyTrustScoreChange(report.reporterUserId, -2, "expired_report", report.id);
+      eventEmitter.emit("event", {
+        type: "class_report.expired",
+        timestamp: Date.now(),
+        data: { reportId: report.id, courseId: report.courseId },
+      });
+    }
+    if (expiredReports.length > 0) {
+      console.log(`[Jobs] Expired ${expiredReports.length} class reports`);
+    }
+  } catch (error) {
+    console.error("[Jobs] Error in class report expiry job:", error);
+  }
+}
+
+/**
+ * Clear suspensions that have expired.
+ */
+export async function clearExpiredSuspensions() {
+  try {
+    const expiredSuspensions = await db.getExpiredSuspensions();
+    for (const user of expiredSuspensions) {
+      await db.clearUserSuspension(user.id);
+      console.log(`[Jobs] Cleared suspension for user ${user.id}`);
+    }
+    if (expiredSuspensions.length > 0) {
+      console.log(`[Jobs] Cleared ${expiredSuspensions.length} expired suspensions`);
+    }
+  } catch (error) {
+    console.error("[Jobs] Error clearing expired suspensions:", error);
+  }
+}
+
+/**
+ * Clean up expired walking requests.
  */
 export async function cleanupExpiredWalkingRequests() {
   try {
-    // This would require a query to get expired requests
-    // For now, this is a placeholder for future implementation
+    const { eq, lt, and } = await import("drizzle-orm");
+    const { walkingRequests } = await import("../drizzle/schema");
+    const { getDb } = await import("./db");
+    const dbConn = await getDb();
+    if (!dbConn) return;
+    const now = new Date();
+    await dbConn
+      .update(walkingRequests)
+      .set({ status: "expired" })
+      .where(and(eq(walkingRequests.status, "open"), lt(walkingRequests.expiresAt, now)));
     console.log("[Jobs] Cleanup of expired walking requests completed");
   } catch (error) {
     console.error("[Jobs] Error cleaning up expired requests:", error);
@@ -147,13 +213,21 @@ export async function cleanupExpiredWalkingRequests() {
 }
 
 /**
- * Clean up expired class claims (optional)
+ * Clean up expired class claims (legacy class_claims table).
  */
 export async function cleanupExpiredClaims() {
   try {
-    // This would require a query to get expired claims
-    // For now, this is a placeholder for future implementation
-    console.log("[Jobs] Cleanup of expired claims completed");
+    const { eq, lt, and } = await import("drizzle-orm");
+    const { classClaims } = await import("../drizzle/schema");
+    const { getDb } = await import("./db");
+    const dbConn = await getDb();
+    if (!dbConn) return;
+    const now = new Date();
+    await dbConn
+      .update(classClaims)
+      .set({ status: "expired" })
+      .where(and(eq(classClaims.status, "pending"), lt(classClaims.expiresAt, now)));
+    console.log("[Jobs] Cleanup of expired class claims completed");
   } catch (error) {
     console.error("[Jobs] Error cleaning up expired claims:", error);
   }

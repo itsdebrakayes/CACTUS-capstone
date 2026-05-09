@@ -36,6 +36,11 @@ export const users = mysqlTable("users", {
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["student", "class_rep", "year_rep", "guild_admin", "lecturer"]).default("student").notNull(),
   isVerified: boolean("isVerified").default(false).notNull(),
+  /** Trust score 0-100 (starts at 50) */
+  trustScore: int("trustScore").default(50).notNull(),
+  /** Suspension status for repeated false reports */
+  suspensionStatus: mysqlEnum("suspensionStatus", ["none", "active"]).default("none").notNull(),
+  suspendedUntil: timestamp("suspendedUntil"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -127,6 +132,226 @@ export const courseMemberships = mysqlTable(
 
 export type CourseMembership = typeof courseMemberships.$inferSelect;
 export type InsertCourseMembership = typeof courseMemberships.$inferInsert;
+
+// ============================================================================
+// COURSE SESSIONS & TIMETABLE
+// ============================================================================
+
+/**
+ * Scheduled class sessions for a course.
+ * Represents recurring weekly slots (e.g. Monday 10:00-12:00 in SLT 1).
+ */
+export const courseSessions = mysqlTable(
+  "course_sessions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    courseId: int("courseId").notNull(),
+    sessionType: mysqlEnum("sessionType", ["lecture", "tutorial", "lab", "seminar", "other"]).default("lecture").notNull(),
+    dayOfWeek: mysqlEnum("dayOfWeek", ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]).notNull(),
+    startTime: varchar("startTime", { length: 8 }).notNull(), // HH:MM:SS
+    endTime: varchar("endTime", { length: 8 }).notNull(),     // HH:MM:SS
+    locationId: int("locationId"),
+    roomCode: varchar("roomCode", { length: 64 }),
+    lecturerId: int("lecturerId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    courseIdIdx: index("idx_session_course_id").on(table.courseId),
+    dayIdx: index("idx_session_day").on(table.dayOfWeek),
+  })
+);
+export type CourseSession = typeof courseSessions.$inferSelect;
+export type InsertCourseSession = typeof courseSessions.$inferInsert;
+
+/**
+ * One-off overrides applied to a course session when a report is verified.
+ * Preserves the original session and records the change.
+ */
+export const courseSessionOverrides = mysqlTable(
+  "course_session_overrides",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    courseSessionId: int("courseSessionId").notNull(),
+    classReportId: int("classReportId").notNull(),
+    overrideDate: varchar("overrideDate", { length: 10 }).notNull(), // YYYY-MM-DD
+    overrideType: mysqlEnum("overrideType", ["cancelled", "room_changed", "time_changed", "lecturer_late", "class_confirmed"]).notNull(),
+    originalRoom: varchar("originalRoom", { length: 64 }),
+    newRoom: varchar("newRoom", { length: 64 }),
+    originalStartTime: varchar("originalStartTime", { length: 8 }),
+    newStartTime: varchar("newStartTime", { length: 8 }),
+    originalEndTime: varchar("originalEndTime", { length: 8 }),
+    newEndTime: varchar("newEndTime", { length: 8 }),
+    isCancelled: boolean("isCancelled").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    sessionIdIdx: index("idx_override_session_id").on(table.courseSessionId),
+    reportIdIdx: index("idx_override_report_id").on(table.classReportId),
+    dateIdx: index("idx_override_date").on(table.overrideDate),
+  })
+);
+export type CourseSessionOverride = typeof courseSessionOverrides.$inferSelect;
+export type InsertCourseSessionOverride = typeof courseSessionOverrides.$inferInsert;
+
+// ============================================================================
+// CLASS REPORTS — STUDENT COURSE REPORTING
+// ============================================================================
+
+/**
+ * A student-submitted report about a class session.
+ * Richer than class_claims: includes session linkage, room/time fields,
+ * verification score, and trust threshold.
+ */
+export const classReports = mysqlTable(
+  "class_reports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    courseId: int("courseId").notNull(),
+    courseSessionId: int("courseSessionId"),
+    reporterUserId: int("reporterUserId").notNull(),
+    reportType: mysqlEnum("reportType", ["class_cancelled", "lecturer_late", "room_changed", "time_changed", "class_confirmed", "other"]).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    originalRoom: varchar("originalRoom", { length: 64 }),
+    newRoom: varchar("newRoom", { length: 64 }),
+    originalStartTime: varchar("originalStartTime", { length: 8 }),
+    newStartTime: varchar("newStartTime", { length: 8 }),
+    originalEndTime: varchar("originalEndTime", { length: 8 }),
+    newEndTime: varchar("newEndTime", { length: 8 }),
+    reportDate: varchar("reportDate", { length: 10 }).notNull(), // YYYY-MM-DD
+    status: mysqlEnum("status", ["pending", "verified", "rejected", "expired", "superseded"]).default("pending").notNull(),
+    verificationScore: int("verificationScore").default(0).notNull(),
+    requiredThreshold: int("requiredThreshold").default(3).notNull(),
+    rejectionThreshold: int("rejectionThreshold").default(-3).notNull(),
+    expiresAt: timestamp("expiresAt").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    courseIdIdx: index("idx_class_report_course_id").on(table.courseId),
+    reporterIdx: index("idx_class_report_reporter").on(table.reporterUserId),
+    statusIdx: index("idx_class_report_status").on(table.status),
+    expiresIdx: index("idx_class_report_expires").on(table.expiresAt),
+  })
+);
+export type ClassReport = typeof classReports.$inferSelect;
+export type InsertClassReport = typeof classReports.$inferInsert;
+
+/**
+ * Weighted votes on a class report.
+ * vote_type: upvote (+) or downvote (-)
+ */
+export const classReportVotes = mysqlTable(
+  "class_report_votes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    reportId: int("reportId").notNull(),
+    userId: int("userId").notNull(),
+    voteType: mysqlEnum("voteType", ["upvote", "downvote"]).notNull(),
+    voteWeight: int("voteWeight").default(1).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    reportIdIdx: index("idx_crv_report_id").on(table.reportId),
+    userIdIdx: index("idx_crv_user_id").on(table.userId),
+    uniqueVote: unique("unique_report_user_vote").on(table.reportId, table.userId),
+  })
+);
+export type ClassReportVote = typeof classReportVotes.$inferSelect;
+export type InsertClassReportVote = typeof classReportVotes.$inferInsert;
+
+/**
+ * Audit log for trust score changes.
+ */
+export const trustScoreEvents = mysqlTable(
+  "trust_score_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    relatedReportId: int("relatedReportId"),
+    eventType: mysqlEnum("eventType", ["verified_report", "rejected_report", "correct_vote", "incorrect_vote", "expired_report", "manual_adjustment"]).notNull(),
+    scoreChange: int("scoreChange").notNull(),
+    previousScore: int("previousScore").notNull(),
+    newScore: int("newScore").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("idx_tse_user_id").on(table.userId),
+    reportIdIdx: index("idx_tse_report_id").on(table.relatedReportId),
+  })
+);
+export type TrustScoreEvent = typeof trustScoreEvents.$inferSelect;
+export type InsertTrustScoreEvent = typeof trustScoreEvents.$inferInsert;
+
+/**
+ * Comments on class reports (class chat / discussion layer).
+ */
+export const classReportComments = mysqlTable(
+  "class_report_comments",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    reportId: int("reportId").notNull(),
+    userId: int("userId").notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    reportIdIdx: index("idx_crc_report_id").on(table.reportId),
+    userIdIdx: index("idx_crc_user_id").on(table.userId),
+  })
+);
+export type ClassReportComment = typeof classReportComments.$inferSelect;
+export type InsertClassReportComment = typeof classReportComments.$inferInsert;
+
+/**
+ * Push notification subscriptions (PWA Web Push).
+ */
+export const pushSubscriptions = mysqlTable(
+  "push_subscriptions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    endpoint: text("endpoint").notNull(),
+    p256dhKey: text("p256dhKey").notNull(),
+    authKey: text("authKey").notNull(),
+    userAgent: varchar("userAgent", { length: 512 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("idx_push_user_id").on(table.userId),
+  })
+);
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
+
+/**
+ * In-app notification records (created when a report is verified).
+ */
+export const userNotifications = mysqlTable(
+  "user_notifications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    courseId: int("courseId"),
+    classReportId: int("classReportId"),
+    title: varchar("title", { length: 255 }).notNull(),
+    message: text("message").notNull(),
+    notificationType: varchar("notificationType", { length: 64 }).notNull(),
+    readStatus: boolean("readStatus").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("idx_un_user_id").on(table.userId),
+    courseIdIdx: index("idx_un_course_id").on(table.courseId),
+    readStatusIdx: index("idx_un_read_status").on(table.readStatus),
+  })
+);
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type InsertUserNotification = typeof userNotifications.$inferInsert;
 
 // ============================================================================
 // WALKING BODY - GEOSPATIAL MATCHING
