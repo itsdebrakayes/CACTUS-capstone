@@ -89,10 +89,14 @@ export function useAuth(options?: UseAuthOptions) {
           verificationCode: null,
           verificationExpiry: null,
           avatarUrl:
-            (session.user.user_metadata.avatar_url as string | undefined) ?? null,
+            (session.user.user_metadata.avatar_url as string | undefined) ??
+            null,
           loginMethod: "supabase",
           role: "student" as const,
           isVerified: Boolean(session.user.email_confirmed_at),
+          trustScore: 50,
+          suspensionStatus: "none" as const,
+          suspendedUntil: null,
           createdAt: new Date(session.user.created_at),
           updatedAt: new Date(),
           lastSignedIn: new Date(),
@@ -113,13 +117,7 @@ export function useAuth(options?: UseAuthOptions) {
       error: meQuery.error ?? null,
       isAuthenticated: Boolean(session),
     };
-  }, [
-    authLoading,
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    session,
-  ]);
+  }, [authLoading, meQuery.data, meQuery.error, meQuery.isLoading, session]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
@@ -128,13 +126,8 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
-    window.location.href = redirectPath
-  }, [
-    authLoading,
-    redirectOnUnauthenticated,
-    redirectPath,
-    state.user,
-  ]);
+    window.location.href = redirectPath;
+  }, [authLoading, redirectOnUnauthenticated, redirectPath, state.user]);
 
   return {
     ...state,

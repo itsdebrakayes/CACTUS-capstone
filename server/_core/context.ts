@@ -1,5 +1,6 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
+import { TRUST_SCORE_DEFAULT } from "@shared/trust";
 import * as db from "../db";
 import { sdk } from "./sdk";
 import { getBearerToken, getSupabaseUserForAccessToken } from "./supabaseAuth";
@@ -42,6 +43,36 @@ function getDevBypassUser(): User | null {
   };
 }
 
+function buildSupabaseFallbackUser(input: {
+  supabaseUserId: string;
+  email?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+}): User {
+  const now = new Date();
+
+  return {
+    id: 0,
+    openId: `supabase:${input.supabaseUserId}`,
+    name: input.name ?? input.email?.split("@")[0] ?? "Student",
+    email: input.email ?? null,
+    passwordHash: null,
+    emailVerified: true,
+    verificationCode: null,
+    verificationExpiry: null,
+    avatarUrl: input.avatarUrl ?? null,
+    loginMethod: "supabase",
+    role: "student",
+    isVerified: true,
+    trustScore: TRUST_SCORE_DEFAULT,
+    suspensionStatus: "none",
+    suspendedUntil: null,
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
+  };
+}
+
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
@@ -63,13 +94,32 @@ export async function createContext(
             ? supabaseUser.user_metadata.avatar_url
             : null;
 
-        user =
-          (await db.syncSupabaseAuthUser({
+        try {
+          user =
+            (await db.syncSupabaseAuthUser({
+              supabaseUserId: supabaseUser.id,
+              email: supabaseUser.email ?? null,
+              name: fullName,
+              avatarUrl,
+            })) ??
+            buildSupabaseFallbackUser({
+              supabaseUserId: supabaseUser.id,
+              email: supabaseUser.email ?? null,
+              name: fullName,
+              avatarUrl,
+            });
+        } catch (error) {
+          console.warn(
+            "[Auth] Falling back to Supabase-only context user:",
+            error
+          );
+          user = buildSupabaseFallbackUser({
             supabaseUserId: supabaseUser.id,
             email: supabaseUser.email ?? null,
             name: fullName,
             avatarUrl,
-          })) ?? null;
+          });
+        }
       }
     }
   }

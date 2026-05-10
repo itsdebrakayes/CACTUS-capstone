@@ -90,13 +90,6 @@ interface ActiveMapRoute {
   durationSec: number;
 }
 
-const DEMO_WALKERS = [
-  { id: 101, lat: 18.0038, lng: -76.7492, trustScore: 0.85 },
-  { id: 102, lat: 18.0031, lng: -76.7505, trustScore: 0.72 },
-  { id: 103, lat: 18.0048, lng: -76.748, trustScore: 0.91 },
-  { id: 104, lat: 18.0025, lng: -76.7515, trustScore: 0.6 },
-];
-
 interface MapHazardCategory extends HazardReportOption {
   severity: number;
   icon: LucideIcon;
@@ -227,21 +220,14 @@ async function buildDestinationComponentEntryRoute(params: {
   origin: Coord2;
   destination: PlaceLocation;
   routeType: MapRouteType;
-  requestWalkingRoute: (
-    waypoints: Coord2[]
-  ) => Promise<{
+  requestWalkingRoute: (waypoints: Coord2[]) => Promise<{
     coordinates: Coord2[];
     distanceM: number;
     durationSec: number;
   }>;
 }) {
-  const {
-    campusData,
-    origin,
-    destination,
-    routeType,
-    requestWalkingRoute,
-  } = params;
+  const { campusData, origin, destination, routeType, requestWalkingRoute } =
+    params;
   const destinationComponentId = getCampusNodeComponentId(
     campusData,
     destination.nearestNodeId
@@ -250,7 +236,10 @@ async function buildDestinationComponentEntryRoute(params: {
     return null;
   }
 
-  const candidateNodes = listCampusComponentNodes(campusData, destinationComponentId)
+  const candidateNodes = listCampusComponentNodes(
+    campusData,
+    destinationComponentId
+  )
     .map(node => ({
       ...node,
       directDistanceM: haversineMeters(origin, node.coordinates),
@@ -322,7 +311,10 @@ async function buildDestinationComponentEntryRoute(params: {
     }
   }
 
-  return routeOptions.sort((left, right) => left.distanceM - right.distanceM)[0] ?? null;
+  return (
+    routeOptions.sort((left, right) => left.distanceM - right.distanceM)[0] ??
+    null
+  );
 }
 
 function formatMetersLabel(distanceM: number) {
@@ -385,74 +377,72 @@ function SearchBottomSheet({
     <div className="absolute inset-x-0 bottom-0 z-[45] pointer-events-none">
       <div
         ref={sheetRef}
-        className="pointer-events-auto flex flex-col rounded-t-3xl border-t border-gray-100 bg-white shadow-[0_-4px_24px_-4px_rgba(0,0,0,0.12)]"
+        className="pointer-events-auto flex flex-col rounded-t-[32px] border-t border-gray-100/50 bg-white shadow-[0_-8px_30px_-4px_rgba(0,0,0,0.1)] transition-transform"
         style={{ height: sheetHeight }}
       >
         <div
-          className={`shrink-0 px-6 pb-3 pt-3 ${
+          className={`shrink-0 px-6 pb-4 pt-3 ${
             canDrag ? "cursor-grab active:cursor-grabbing" : ""
           }`}
           onPointerDown={canDrag ? onPointerDown : undefined}
         >
-          <div className="mb-3 flex justify-center">
-            <div className="h-1 w-10 rounded-full bg-gray-200" />
-          </div>
+          <div className="mx-auto h-1.5 w-12 rounded-full bg-gray-200" />
         </div>
 
         {mode === "navigating" ? (
-          <div className="px-4 pb-6">
-            <div className="flex items-center gap-2">
-              <div className="flex flex-1 items-center rounded-xl border border-gray-200 bg-gray-50 px-3 py-3">
-                <Search className="mr-2 h-4 w-4 shrink-0 text-gray-400" />
+          <div className="px-5 pb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-1 items-center rounded-2xl border border-gray-100 bg-gray-50/80 px-4 py-3.5 shadow-sm">
+                <Search className="mr-3 h-5 w-5 shrink-0 text-blue-500" />
                 <input
                   value={selectedPlace?.name ?? searchQuery}
                   readOnly
-                  className="w-full bg-transparent text-sm font-semibold text-gray-900 outline-none"
+                  className="w-full bg-transparent text-sm font-bold tracking-tight text-gray-900 outline-none"
                 />
               </div>
               <button
                 type="button"
                 onClick={onCancelNavigation}
-                className="rounded-xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
+                className="flex shrink-0 items-center justify-center rounded-2xl bg-red-50 px-5 py-3.5 text-sm font-bold text-red-600 transition hover:bg-red-100 active:scale-95"
               >
-                Cancel
+                End
               </button>
             </div>
           </div>
         ) : mode === "routeSelection" && selectedPlace ? (
-          <div className="flex flex-1 flex-col px-4 pb-6">
-            <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex flex-1 flex-col px-5 pb-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
-                  Route Type
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
+                  Route Selection
                 </p>
-                <h3 className="mt-1 text-base font-bold text-gray-900">
+                <h3 className="mt-1.5 text-xl font-bold tracking-tight text-gray-900">
                   Choose Your Route
                 </h3>
-                <p className="mt-1 text-xs text-gray-400">
-                  Routing stops at the nearest outdoor access point for now.
+                <p className="mt-1 text-xs font-medium text-gray-500">
+                  Routing stops at the nearest outdoor access point.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={onBackToSearch}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition hover:bg-gray-200"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-400 transition hover:bg-gray-200 active:scale-95"
                 aria-label="Back to search"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mb-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 rounded-xl bg-blue-600 p-2 text-white">
-                  <MapPin className="h-4 w-4" />
+            <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+              <div className="flex items-center gap-3.5">
+                <div className="rounded-xl bg-blue-600 p-2.5 text-white shadow-sm shadow-blue-500/20">
+                  <MapPin className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-gray-900">
+                  <p className="truncate text-base font-bold tracking-tight text-gray-900">
                     {selectedPlace.name}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-blue-600">
+                  <p className="mt-0.5 text-xs font-bold text-blue-600">
                     {getCategoryMeta(selectedPlace.category).label}
                     {selectedPlaceDistanceLabel
                       ? ` · ${selectedPlaceDistanceLabel} away`
@@ -462,131 +452,126 @@ function SearchBottomSheet({
               </div>
             </div>
 
-            <div className="mb-4">
-              <div className="grid grid-cols-3 gap-2">
-                {(["quick", "shortcut", "scenic"] as MapRouteType[]).map((nextType) => {
-                  const meta = ROUTE_TYPE_META[nextType];
-                  const isSelected = routeType === nextType;
-                  return (
-                    <button
-                      key={nextType}
-                      type="button"
-                      disabled={meta.disabled}
-                      onClick={() => {
-                        if (!meta.disabled) {
-                          onRouteTypeChange(nextType);
-                        }
-                      }}
-                      className={`rounded-xl px-2 py-4 text-center transition-all ${
-                        isSelected
-                          ? "bg-blue-600 shadow-md shadow-blue-200"
-                          : meta.disabled
-                            ? "cursor-not-allowed bg-gray-50 opacity-60"
-                            : "border border-gray-100 bg-gray-50 hover:bg-gray-100"
-                      }`}
-                    >
-                      <span
-                        className={`block text-sm font-bold ${
-                          isSelected ? "text-white" : "text-gray-700"
+            <div className="mb-6">
+              <div className="grid grid-cols-3 gap-3">
+                {(["quick", "shortcut", "scenic"] as MapRouteType[]).map(
+                  nextType => {
+                    const meta = ROUTE_TYPE_META[nextType];
+                    const isSelected = routeType === nextType;
+                    return (
+                      <button
+                        key={nextType}
+                        type="button"
+                        disabled={meta.disabled}
+                        onClick={() => {
+                          if (!meta.disabled) {
+                            onRouteTypeChange(nextType);
+                          }
+                        }}
+                        className={`relative rounded-2xl p-4 text-center transition-all active:scale-95 ${
+                          isSelected
+                            ? "bg-blue-600 shadow-lg shadow-blue-500/30 ring-2 ring-blue-600 ring-offset-2"
+                            : meta.disabled
+                              ? "cursor-not-allowed border border-gray-100 bg-gray-50/50 opacity-60"
+                              : "border border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50"
                         }`}
                       >
-                        {meta.label}
-                      </span>
-                      <span
-                        className={`mt-0.5 block text-[10px] leading-tight ${
-                          isSelected ? "text-blue-100" : "text-gray-400"
-                        }`}
-                      >
-                        {meta.subtitle}
-                      </span>
-                      {meta.disabled ? (
                         <span
-                          className={`mt-1.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                            isSelected
-                              ? "bg-white/20 text-white"
-                              : "bg-gray-200 text-gray-400"
+                          className={`block text-sm font-bold tracking-tight ${
+                            isSelected ? "text-white" : "text-gray-900"
                           }`}
                         >
-                          Soon
+                          {meta.label}
                         </span>
-                      ) : null}
-                    </button>
-                  );
-                })}
+                        <span
+                          className={`mt-1 block text-[10px] font-medium leading-tight ${
+                            isSelected ? "text-blue-100" : "text-gray-500"
+                          }`}
+                        >
+                          {meta.subtitle}
+                        </span>
+                        {meta.disabled ? (
+                          <span
+                            className={`absolute right-2 top-2 inline-flex rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest ${
+                              isSelected
+                                ? "bg-white/20 text-white"
+                                : "bg-gray-200 text-gray-500"
+                            }`}
+                          >
+                            Soon
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  }
+                )}
               </div>
             </div>
 
-            <div className="mt-auto flex gap-2 pb-24">
-              <button
-                type="button"
-                onClick={onBackToSearch}
-                className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-500 transition hover:bg-gray-200"
-                aria-label="Back to search"
-              >
-                <X className="h-5 w-5" />
-              </button>
+            <div className="mt-auto flex gap-3 pb-[88px]">
               <button
                 type="button"
                 onClick={onStartNavigation}
-                className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 text-sm font-bold tracking-wide text-white shadow-md shadow-green-200 transition hover:bg-green-600 active:bg-green-700"
+                className="flex h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-emerald-500 text-base font-bold tracking-wide text-white shadow-lg shadow-emerald-500/20 transition hover:bg-emerald-600 active:scale-[0.98]"
               >
                 {isPlanningRoute ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <>
-                    <Navigation className="h-4 w-4 fill-current" />
-                    GO
+                    <Navigation className="h-5 w-5 fill-current" />
+                    Start Navigation
                   </>
                 )}
               </button>
             </div>
           </div>
         ) : (
-          <div className="cactus-scrollbar flex-1 overflow-y-auto px-4 pb-6">
-            <div className="relative mb-4">
-              <div className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center">
-                <Search className="h-4 w-4 text-gray-400" />
+          <div className="flex-1 overflow-y-auto px-5 pb-6">
+            <div className="relative mb-6">
+              <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center">
+                <Search className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 value={searchQuery}
                 onFocus={onSearchFocus}
-                onChange={(event) => onSearchQueryChange(event.target.value)}
+                onChange={event => onSearchQueryChange(event.target.value)}
                 placeholder="Search classrooms, labs, faculty..."
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-10 pr-9 text-sm font-medium text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-500/15"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-10 text-sm font-semibold tracking-tight text-gray-900 outline-none transition-all placeholder:text-gray-400 placeholder:font-medium focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 shadow-sm"
               />
               {searchQuery ? (
                 <button
                   onClick={onClearSearch}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-gray-600"
+                  className="absolute inset-y-0 right-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               ) : null}
             </div>
 
             {normalizedQuery && visiblePlaces.length === 0 ? (
-              <div className="mb-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <p className="text-sm font-semibold text-gray-900">
+              <div className="mb-6 rounded-2xl border border-gray-100 bg-gray-50 p-5 text-center">
+                <p className="text-sm font-bold text-gray-900">
                   No places matched "{searchQuery}".
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs font-medium text-gray-500">
                   Try a building name, room code, or broader keyword.
                 </p>
               </div>
             ) : null}
 
             <div className="pb-24">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              <div className="mb-3 flex items-center justify-between px-1">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">
                   {normalizedQuery ? "Results" : "Recent Searches"}
                 </p>
-                <span className="text-[11px] text-gray-400">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                   {visiblePlaces.length} shown
                 </span>
               </div>
-              <div className="space-y-1.5">
+              
+              <div className="space-y-2">
                 {visiblePlaces.length > 0 ? (
-                  visiblePlaces.map((place) => {
+                  visiblePlaces.map(place => {
                     const meta = getCategoryMeta(place.category);
                     const Icon = meta.icon;
                     const isSelected = searchQuery === place.name;
@@ -594,35 +579,37 @@ function SearchBottomSheet({
                       <button
                         key={place.id}
                         onClick={() => onChooseResult(place)}
-                        className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
+                        className={`w-full rounded-2xl border p-3.5 text-left transition-all active:scale-[0.98] ${
                           isSelected
-                            ? "border-blue-100 bg-blue-50"
-                            : "border-gray-100 bg-white hover:bg-gray-50 active:bg-gray-100"
+                            ? "border-blue-200 bg-blue-50 shadow-sm"
+                            : "border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50"
                         }`}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-4">
                           <div
-                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors"
                             style={{
-                              backgroundColor: isSelected ? "#eff6ff" : "#f8fafc",
+                              backgroundColor: isSelected ? "#dbeafe" : "#f1f5f9",
                             }}
                           >
                             <Icon
-                              className="h-4 w-4"
-                              style={{ color: isSelected ? "#2563eb" : meta.color }}
+                              className="h-5 w-5"
+                              style={{
+                                color: isSelected ? "#2563eb" : meta.color,
+                              }}
                             />
                           </div>
                           <div className="min-w-0 flex-1">
                             <p
-                              className={`truncate text-sm font-semibold ${
+                              className={`truncate text-sm font-bold tracking-tight ${
                                 isSelected ? "text-blue-700" : "text-gray-900"
                               }`}
                             >
                               {place.name}
                             </p>
                             <p
-                              className={`mt-0.5 text-[11px] ${
-                                isSelected ? "text-blue-400" : "text-gray-400"
+                              className={`mt-0.5 text-xs font-semibold ${
+                                isSelected ? "text-blue-500" : "text-gray-400"
                               }`}
                             >
                               {meta.label}
@@ -630,7 +617,7 @@ function SearchBottomSheet({
                           </div>
                           <ChevronRight
                             className={`h-4 w-4 shrink-0 ${
-                              isSelected ? "text-blue-400" : "text-gray-300"
+                              isSelected ? "text-blue-500" : "text-gray-300"
                             }`}
                           />
                         </div>
@@ -638,7 +625,7 @@ function SearchBottomSheet({
                     );
                   })
                 ) : (
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+                  <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-center text-sm font-medium text-gray-500">
                     Search for a classroom, lab, faculty, or hall to start.
                   </div>
                 )}
@@ -668,37 +655,42 @@ function HazardInfoCard({
 
   return (
     <div className="absolute left-4 right-4 top-4 z-30">
-      <div className="rounded-[32px] bg-[#17181c] px-5 py-5 text-white shadow-2xl">
+      <div className="overflow-hidden rounded-3xl bg-gray-900/90 backdrop-blur-md px-6 py-6 text-white shadow-2xl border border-white/10">
         <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-light text-white/75">{category.label}</p>
-            <p className="mt-1 text-5xl font-bold leading-none">
-              {distance ?? "Nearby"}
-            </p>
-            <p className="mt-3 text-2xl font-semibold leading-tight">
-              {hazard.description?.trim() || category.description}
-            </p>
-            <div className="mt-5 flex items-center gap-2 text-sm text-white/65">
-              <Clock3 className="h-4 w-4" />
-              <span>{formatRelativeTime(hazard.createdAt)}</span>
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl shadow-inner"
+              style={{ backgroundColor: category.color }}
+            >
+              <Icon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/60">
+                {category.label}
+              </p>
+              <p className="text-2xl font-bold tracking-tight text-white leading-none mt-0.5">
+                {distance ?? "Nearby"}
+              </p>
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/75 transition hover:bg-white/15"
-              aria-label="Close hazard details"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div
-              className="flex h-28 w-28 items-center justify-center rounded-full shadow-lg"
-              style={{ backgroundColor: category.color }}
-            >
-              <Icon className="h-14 w-14 text-white" />
-            </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-white/80 transition hover:bg-white/20 active:scale-95"
+            aria-label="Close hazard details"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-base font-medium leading-relaxed text-white/90">
+            {hazard.description?.trim() || category.description}
+          </p>
+          <div className="mt-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-white/40">
+            <Clock3 className="h-3.5 w-3.5" />
+            <span>{formatRelativeTime(hazard.createdAt)}</span>
           </div>
         </div>
       </div>
@@ -727,10 +719,11 @@ export default function MapPage() {
     cachedCampusBundle?.campusData ?? null
   );
   const [hazards, setHazards] = useState<HazardRecord[]>([]);
-  const [activeWalkGroups, setActiveWalkGroups] = useState<WalkGroupRecord[]>([]);
-  const [myActiveWalkGroup, setMyActiveWalkGroup] = useState<WalkGroupRecord | null>(
-    null
+  const [activeWalkGroups, setActiveWalkGroups] = useState<WalkGroupRecord[]>(
+    []
   );
+  const [myActiveWalkGroup, setMyActiveWalkGroup] =
+    useState<WalkGroupRecord | null>(null);
   const [userLat, setUserLat] = useState<number | undefined>();
   const [userLng, setUserLng] = useState<number | undefined>();
   const [viewportHeight, setViewportHeight] = useState(800);
@@ -738,9 +731,13 @@ export default function MapPage() {
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [routeType, setRouteType] = useState<MapRouteType>("quick");
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [selectedWalkGroupId, setSelectedWalkGroupId] = useState<string | null>(null);
+  const [selectedWalkGroupId, setSelectedWalkGroupId] = useState<string | null>(
+    null
+  );
   const [activeRoute, setActiveRoute] = useState<ActiveMapRoute | null>(null);
-  const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(null);
+  const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(
+    null
+  );
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isPlanningRoute, setIsPlanningRoute] = useState(false);
   const [isJoiningWalkGroup, setIsJoiningWalkGroup] = useState(false);
@@ -757,7 +754,8 @@ export default function MapPage() {
 
     async function loadPlaces() {
       try {
-        const { campusData: nextCampusData, placeData } = await loadCampusPlaceData();
+        const { campusData: nextCampusData, placeData } =
+          await loadCampusPlaceData();
         if (!isCancelled) {
           setCampusData(nextCampusData);
           setCampusPlaces(placeData.locations);
@@ -797,11 +795,11 @@ export default function MapPage() {
         walkGroupLoadErrorShownRef.current = false;
         setActiveWalkGroups(nextGroups);
         setMyActiveWalkGroup(nextMyGroup);
-        setSelectedWalkGroupId((current) => {
+        setSelectedWalkGroupId(current => {
           if (!current) {
             return current;
           }
-          const stillVisible = nextGroups.some((group) => group.id === current);
+          const stillVisible = nextGroups.some(group => group.id === current);
           const stillMine = nextMyGroup?.id === current;
           return stillVisible || stillMine ? current : null;
         });
@@ -815,7 +813,10 @@ export default function MapPage() {
     }
 
     void refreshWalkGroups();
-    const interval = window.setInterval(refreshWalkGroups, WALK_GROUP_REFRESH_MS);
+    const interval = window.setInterval(
+      refreshWalkGroups,
+      WALK_GROUP_REFRESH_MS
+    );
 
     return () => {
       isCancelled = true;
@@ -841,7 +842,7 @@ export default function MapPage() {
     }
 
     const watchId = navigator.geolocation.watchPosition(
-      (position) => {
+      position => {
         setUserLat(position.coords.latitude);
         setUserLng(position.coords.longitude);
       },
@@ -885,7 +886,7 @@ export default function MapPage() {
   }, []);
 
   const placesById = useMemo(
-    () => new Map(campusPlaces.map((place) => [place.id, place])),
+    () => new Map(campusPlaces.map(place => [place.id, place])),
     [campusPlaces]
   );
 
@@ -913,7 +914,7 @@ export default function MapPage() {
     }
 
     return campusPlaces
-      .filter((place) => {
+      .filter(place => {
         const haystack = normalizeSearchText(
           `${place.name} ${place.category} ${place.nearestNodeName}`
         );
@@ -925,14 +926,14 @@ export default function MapPage() {
   const recentPlaces = useMemo(
     () =>
       recentIds
-        .map((id) => placesById.get(id))
+        .map(id => placesById.get(id))
         .filter((place): place is PlaceLocation => Boolean(place))
         .slice(0, 6),
     [placesById, recentIds]
   );
 
   const selectedPlace = useMemo(
-    () => (selectedPlaceId ? placesById.get(selectedPlaceId) ?? null : null),
+    () => (selectedPlaceId ? (placesById.get(selectedPlaceId) ?? null) : null),
     [placesById, selectedPlaceId]
   );
 
@@ -941,7 +942,7 @@ export default function MapPage() {
       return null;
     }
     return (
-      activeWalkGroups.find((group) => group.id === selectedWalkGroupId) ??
+      activeWalkGroups.find(group => group.id === selectedWalkGroupId) ??
       (myActiveWalkGroup?.id === selectedWalkGroupId ? myActiveWalkGroup : null)
     );
   }, [activeWalkGroups, myActiveWalkGroup, selectedWalkGroupId]);
@@ -966,7 +967,7 @@ export default function MapPage() {
 
   const visibleHazards = useMemo<Hazard[]>(
     () =>
-      hazards.map((hazard) => ({
+      hazards.map(hazard => ({
         id: hazard.id,
         reportType: hazard.reportType,
         lat: hazard.lat,
@@ -983,10 +984,11 @@ export default function MapPage() {
     () =>
       activeWalkGroups
         .filter(
-          (group) =>
-            Number.isFinite(group.meetingLat) && Number.isFinite(group.meetingLng)
+          group =>
+            Number.isFinite(group.meetingLat) &&
+            Number.isFinite(group.meetingLng)
         )
-        .map((group) => ({
+        .map(group => ({
           id: group.id,
           lat: group.meetingLat,
           lng: group.meetingLng,
@@ -1011,7 +1013,7 @@ export default function MapPage() {
         return;
       }
       sheetRef.current.style.transition =
-        "transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)";
+        "transform 0.4s cubic-bezier(0.32, 0.72, 0, 1)";
       sheetRef.current.style.transform = `translateY(${nextY}px)`;
     },
     [sheetMetrics]
@@ -1032,7 +1034,7 @@ export default function MapPage() {
     }
 
     const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
-    coordinates.slice(1).forEach((coordinate) => bounds.extend(coordinate));
+    coordinates.slice(1).forEach(coordinate => bounds.extend(coordinate));
 
     map.fitBounds(bounds, {
       padding: {
@@ -1056,7 +1058,7 @@ export default function MapPage() {
 
     const url = new URL(
       `https://api.mapbox.com/directions/v5/mapbox/walking/${waypoints
-        .map((point) => `${point[0]},${point[1]}`)
+        .map(point => `${point[0]},${point[1]}`)
         .join(";")}`
     );
     url.searchParams.set("alternatives", "false");
@@ -1080,8 +1082,8 @@ export default function MapPage() {
     const route = data.routes?.[0];
     const coordinates = Array.isArray(route?.geometry?.coordinates)
       ? route.geometry.coordinates
-          .filter((value) => Array.isArray(value) && value.length >= 2)
-          .map((value) => [value[0], value[1]] as Coord2)
+        .filter(value => Array.isArray(value) && value.length >= 2)
+        .map(value => [value[0], value[1]] as Coord2)
       : [];
 
     if (coordinates.length < 2) {
@@ -1102,7 +1104,9 @@ export default function MapPage() {
     }
 
     const source = map.getSource("route") as mapboxgl.GeoJSONSource | undefined;
-    source?.setData(createRouteFeatureCollection(activeRoute?.coordinates ?? []));
+    source?.setData(
+      createRouteFeatureCollection(activeRoute?.coordinates ?? [])
+    );
 
     if (activeRoute) {
       fitMapToRoute(activeRoute.coordinates);
@@ -1178,8 +1182,11 @@ export default function MapPage() {
       setActiveRoute(null);
       focusPlaceOnMap(place);
       snapSheetTo("full");
-      setRecentIds((current) => {
-        const next = [place.id, ...current.filter((id) => id !== place.id)].slice(0, 8);
+      setRecentIds(current => {
+        const next = [place.id, ...current.filter(id => id !== place.id)].slice(
+          0,
+          8
+        );
         writeRecentSearches(next);
         return next;
       });
@@ -1221,12 +1228,15 @@ export default function MapPage() {
     snapSheetTo("collapsed");
   }, [snapSheetTo, userLat, userLng]);
 
-  const handleHazardClick = useCallback((hazard: Hazard) => {
-    const fullHazard =
-      hazards.find((item) => String(item.id) === String(hazard.id)) ?? null;
-    setSelectedHazard(fullHazard);
-    setSelectedWalkGroupId(null);
-  }, [hazards]);
+  const handleHazardClick = useCallback(
+    (hazard: Hazard) => {
+      const fullHazard =
+        hazards.find(item => String(item.id) === String(hazard.id)) ?? null;
+      setSelectedHazard(fullHazard);
+      setSelectedWalkGroupId(null);
+    },
+    [hazards]
+  );
 
   const handleSheetPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1286,7 +1296,7 @@ export default function MapPage() {
           ].filter(
             (option, index, options) =>
               options.findIndex(
-                (candidate) => candidate.nodeId === option.nodeId
+                candidate => candidate.nodeId === option.nodeId
               ) === index
           )
         : [];
@@ -1294,7 +1304,7 @@ export default function MapPage() {
         destinationComponentId === null
           ? []
           : startOptions.filter(
-              (option) =>
+              option =>
                 getCampusNodeComponentId(campusData, option.nodeId) ===
                 destinationComponentId
             );
@@ -1306,11 +1316,17 @@ export default function MapPage() {
       }> = [];
 
       if (userSnap && connectedStartOptions.length > 0) {
-        const roadConnectorDistanceM = haversineMeters(origin, userSnap.coordinates);
+        const roadConnectorDistanceM = haversineMeters(
+          origin,
+          userSnap.coordinates
+        );
         const roadRoute =
           roadConnectorDistanceM < 3
             ? {
-                coordinates: mergeRouteCoordinates([origin], [userSnap.coordinates]),
+                coordinates: mergeRouteCoordinates(
+                  [origin],
+                  [userSnap.coordinates]
+                ),
                 distanceM: roadConnectorDistanceM,
                 durationSec: roadConnectorDistanceM / 1.35,
               }
@@ -1318,7 +1334,7 @@ export default function MapPage() {
 
         routeOptions.push(
           ...connectedStartOptions
-            .map((option) => {
+            .map(option => {
               const campusRoute = planCampusRouteBetweenNodes(
                 campusData,
                 option.nodeId,
@@ -1332,7 +1348,10 @@ export default function MapPage() {
               const lastCampusCoordinate =
                 campusRoute.coordinates[campusRoute.coordinates.length - 1];
               const finalConnectorDistanceM = lastCampusCoordinate
-                ? haversineMeters(lastCampusCoordinate, selectedPlace.coordinates)
+                ? haversineMeters(
+                    lastCampusCoordinate,
+                    selectedPlace.coordinates
+                  )
                 : 0;
               const finalConnectorCoordinates =
                 finalConnectorDistanceM > 1 ? [selectedPlace.coordinates] : [];
@@ -1356,7 +1375,9 @@ export default function MapPage() {
                   finalConnectorDistanceM / 1.2,
               };
             })
-            .filter((route): route is NonNullable<typeof route> => route !== null)
+            .filter(
+              (route): route is NonNullable<typeof route> => route !== null
+            )
         );
       }
 
@@ -1419,31 +1440,37 @@ export default function MapPage() {
     userLng,
   ]);
 
-  const handleSubmitHazardWithOption = useCallback(async (nextType: HazardType) => {
-    const category = getHazardCategory(nextType);
-    const mapCenter = mapRef.current?.getMap()?.getCenter();
-    const lat = userLat ?? mapCenter?.lat ?? UWI_MONA_CENTER[1];
-    const lng = userLng ?? mapCenter?.lng ?? UWI_MONA_CENTER[0];
+  const handleSubmitHazardWithOption = useCallback(
+    async (nextType: HazardType) => {
+      const category = getHazardCategory(nextType);
+      const mapCenter = mapRef.current?.getMap()?.getCenter();
+      const lat = userLat ?? mapCenter?.lat ?? UWI_MONA_CENTER[1];
+      const lng = userLng ?? mapCenter?.lng ?? UWI_MONA_CENTER[0];
 
-    try {
-      const created = await createSupabaseHazard({
-        reportType: nextType,
-        lat,
-        lng,
-        severity: category.severity,
-        description: undefined,
-      });
+      try {
+        const created = await createSupabaseHazard({
+          reportType: nextType,
+          lat,
+          lng,
+          severity: category.severity,
+          description: undefined,
+        });
 
-      setHazards((current) => [created, ...current.filter((item) => item.id !== created.id)]);
-      setSelectedHazard(created);
-      setIsReportOpen(false);
-      toast.success("Hazard reported on the map.");
-      mapRef.current?.flyTo(created.lat, created.lng, 17.2);
-    } catch (error) {
-      console.error(error);
-      toast.error("Unable to submit the hazard report.");
-    }
-  }, [userLat, userLng]);
+        setHazards(current => [
+          created,
+          ...current.filter(item => item.id !== created.id),
+        ]);
+        setSelectedHazard(created);
+        setIsReportOpen(false);
+        toast.success("Hazard reported on the map.");
+        mapRef.current?.flyTo(created.lat, created.lng, 17.2);
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to submit the hazard report.");
+      }
+    },
+    [userLat, userLng]
+  );
 
   const openSelectedWalkGroup = useCallback(() => {
     if (!selectedWalkGroup) {
@@ -1482,12 +1509,12 @@ export default function MapPage() {
 
   return (
     <AppLayout activeTab="map" noScroll>
-      <div className="relative" style={{ height: "calc(100vh - 64px)" }}>
+      <div className="relative w-full" style={{ height: "calc(100vh - 64px)" }}>
         <CactusMap
           ref={mapRef}
           userLat={userLat}
           userLng={userLng}
-          walkers={DEMO_WALKERS}
+          walkers={[]}
           hazards={visibleHazards}
           walkGroups={visibleWalkGroups}
           places={campusPlaces}
@@ -1510,12 +1537,12 @@ export default function MapPage() {
           <button
             type="button"
             onClick={() => setIsReportOpen(true)}
-            className="relative flex h-14 w-14 items-center justify-center rounded-3xl border-2 border-[#ff9f0a] bg-white text-[#ff9f0a] shadow-xl transition hover:scale-[1.03]"
+            className="relative flex h-14 w-14 items-center justify-center rounded-[24px] bg-white/90 backdrop-blur-md shadow-lg shadow-amber-500/20 border-2 border-amber-500 text-amber-500 transition-all hover:scale-105 active:scale-95"
             aria-label="Report a hazard"
           >
             <AlertTriangle className="h-6 w-6" />
             {activeHazardCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff5a4f] px-1 text-[10px] font-bold text-white">
+              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
                 {activeHazardCount}
               </span>
             ) : null}
@@ -1553,14 +1580,17 @@ export default function MapPage() {
 
         {selectedWalkGroup ? (
           <div
-            className="pointer-events-none absolute inset-x-0 z-[55] px-4"
-            style={{ bottom: Math.min(walkGroupPreviewBottom, viewportHeight - 260) }}
+            className="pointer-events-none absolute inset-x-0 z-[55] px-4 transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]"
+            style={{
+              bottom: Math.min(walkGroupPreviewBottom, viewportHeight - 260),
+            }}
           >
             <WalkGroupPreviewCard
               group={selectedWalkGroup}
               isJoining={isJoiningWalkGroup}
               hasOtherActiveGroup={Boolean(
-                myActiveWalkGroup && myActiveWalkGroup.id !== selectedWalkGroup.id
+                myActiveWalkGroup &&
+                myActiveWalkGroup.id !== selectedWalkGroup.id
               )}
               onClose={() => setSelectedWalkGroupId(null)}
               onJoin={() => {
@@ -1570,7 +1600,6 @@ export default function MapPage() {
             />
           </div>
         ) : null}
-
       </div>
 
       <MapHazardReportSheet
@@ -1580,7 +1609,7 @@ export default function MapPage() {
         helperText="Pick the issue type first. After that, we will save it to Supabase and show it on the map."
         options={HAZARD_CATEGORIES}
         onClose={() => setIsReportOpen(false)}
-        onSelect={(option) => {
+        onSelect={option => {
           void handleSubmitHazardWithOption(option.type as HazardType);
         }}
       />
@@ -1590,8 +1619,7 @@ export default function MapPage() {
 
 function getHazardCategory(type: string) {
   return (
-    HAZARD_CATEGORIES.find((category) => category.type === type) ??
-    {
+    HAZARD_CATEGORIES.find(category => category.type === type) ?? {
       type: "other",
       label: "Hazard",
       description: "Campus safety report",

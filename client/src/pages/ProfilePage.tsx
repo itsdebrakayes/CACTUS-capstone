@@ -21,18 +21,24 @@ import {
   Award,
   Clock3,
 } from "lucide-react";
+import { TRUST_SCORE_DEFAULT, getTrustTier } from "@shared/trust";
 import { toast } from "sonner";
 
 export default function ProfilePage() {
   const [, navigate] = useLocation();
   const { user, loading, logout } = useAuth();
-  const trustQuery = trpc.walking.getTrustScore.useQuery(undefined, { enabled: !!user });
+  const trustQuery = trpc.trust.getMySummary.useQuery(undefined, {
+    enabled: !!user,
+  });
   const cachedCourses = getCachedSupabaseCourses();
-  const [supabaseCourses, setSupabaseCourses] = useState<SupabaseCourseRecord[]>(
-    cachedCourses ?? []
-  );
-  const [loadingSupabaseCourses, setLoadingSupabaseCourses] = useState(!cachedCourses);
-  const [supabaseCoursesError, setSupabaseCoursesError] = useState<string | null>(null);
+  const [supabaseCourses, setSupabaseCourses] = useState<
+    SupabaseCourseRecord[]
+  >(cachedCourses ?? []);
+  const [loadingSupabaseCourses, setLoadingSupabaseCourses] =
+    useState(!cachedCourses);
+  const [supabaseCoursesError, setSupabaseCoursesError] = useState<
+    string | null
+  >(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   if (!loading && !user) {
@@ -43,15 +49,16 @@ export default function ProfilePage() {
   const displayName = user?.name || "Student";
   const initials = displayName
     .split(" ")
-    .map((n) => n[0])
+    .map(n => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
 
-  const trustScore = trustQuery.data?.score ?? 0;
-  const trustPercent = Math.round(trustScore * 100);
+  const trustPercent = trustQuery.data?.score ?? TRUST_SCORE_DEFAULT;
   const ratingCount = trustQuery.data?.ratingCount ?? 0;
   const avgStars = trustQuery.data?.averageStars ?? 0;
+  const trustTier =
+    trustQuery.data?.tierLabel ?? getTrustTier(TRUST_SCORE_DEFAULT).label;
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +77,9 @@ export default function ProfilePage() {
         if (!cancelled) {
           setSupabaseCourses([]);
           setSupabaseCoursesError(
-            error instanceof Error ? error.message : "Unable to load Supabase courses."
+            error instanceof Error
+              ? error.message
+              : "Unable to load Supabase courses."
           );
         }
       } finally {
@@ -105,15 +114,27 @@ export default function ProfilePage() {
     {
       title: "Academic",
       items: [
-        { icon: BookOpen, label: "My Courses", onClick: () => navigate("/schedule") },
+        {
+          icon: BookOpen,
+          label: "My Courses",
+          onClick: () => navigate("/schedule"),
+        },
         { icon: MapPin, label: "Campus Map", onClick: () => navigate("/map") },
       ],
     },
     {
       title: "Safety",
       items: [
-        { icon: Shield, label: "My Check-Ins", onClick: () => navigate("/check-in") },
-        { icon: Award, label: "Walking History", onClick: () => navigate("/walking") },
+        {
+          icon: Shield,
+          label: "My Check-Ins",
+          onClick: () => navigate("/check-in"),
+        },
+        {
+          icon: Award,
+          label: "Walking History",
+          onClick: () => navigate("/walking"),
+        },
       ],
     },
     {
@@ -136,7 +157,7 @@ export default function ProfilePage() {
   const formatSchedule = (course: SupabaseCourseRecord) => {
     const dayText = course.dayOfWeek
       ?.split(",")
-      .map((day) => day.trim())
+      .map(day => day.trim())
       .filter(Boolean)
       .join(" / ");
 
@@ -145,7 +166,9 @@ export default function ProfilePage() {
         ? `${course.startTime} - ${course.endTime}`
         : undefined;
 
-    return [dayText, timeText].filter(Boolean).join(" - ") || "Schedule not set";
+    return (
+      [dayText, timeText].filter(Boolean).join(" - ") || "Schedule not set"
+    );
   };
 
   return (
@@ -162,8 +185,12 @@ export default function ProfilePage() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-gray-900 truncate">{displayName}</h2>
-            <p className="text-sm text-gray-500 truncate">{user?.email || "UWI Mona Student"}</p>
+            <h2 className="text-lg font-bold text-gray-900 truncate">
+              {displayName}
+            </h2>
+            <p className="text-sm text-gray-500 truncate">
+              {user?.email || "UWI Mona Student"}
+            </p>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-2 h-2 rounded-full bg-[#00c853]" />
               <span className="text-xs text-[#00c853] font-medium">Active</span>
@@ -176,8 +203,15 @@ export default function ProfilePage() {
       <div className="mx-4 mt-4 mb-3 bg-gradient-to-br from-[#0f1e35] to-[#1a2f50] rounded-2xl p-4 text-white shadow-lg">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-xs text-[#8899aa] uppercase tracking-wide font-medium">Trust Score</p>
-            <p className="text-3xl font-bold text-white mt-0.5">{trustPercent}%</p>
+            <p className="text-xs text-[#8899aa] uppercase tracking-wide font-medium">
+              Trust Score
+            </p>
+            <p className="text-3xl font-bold text-white mt-0.5">
+              {trustPercent}%
+            </p>
+            <p className="mt-1 text-sm font-medium text-[#d8e6f8]">
+              {trustTier}
+            </p>
           </div>
           <div className="w-12 h-12 rounded-xl bg-[#00c853]/20 flex items-center justify-center">
             <Shield className="w-6 h-6 text-[#00c853]" />
@@ -240,30 +274,40 @@ export default function ProfilePage() {
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-semibold">Unable to load Supabase courses</p>
-                  <p className="text-xs mt-1 break-words">{supabaseCoursesError}</p>
+                  <p className="text-sm font-semibold">
+                    Unable to load Supabase courses
+                  </p>
+                  <p className="text-xs mt-1 break-words">
+                    {supabaseCoursesError}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         ) : supabaseCourses.length === 0 ? (
           <div className="px-4 py-8 text-center">
-            <p className="text-sm font-medium text-gray-700">No courses found in Supabase</p>
+            <p className="text-sm font-medium text-gray-700">
+              No courses found in Supabase
+            </p>
             <p className="text-xs text-gray-500 mt-1">
               Check the seed rows in <code>create-tables.sql</code>.
             </p>
           </div>
         ) : (
           <div className="px-4 py-4 space-y-3">
-            {supabaseCourses.map((course) => (
+            {supabaseCourses.map(course => (
               <div
                 key={course.id}
                 className="rounded-2xl border border-gray-100 bg-[#fbfcfb] px-3 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-gray-900">{course.courseCode}</p>
-                    <p className="text-sm text-gray-600 leading-snug">{course.courseName}</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {course.courseCode}
+                    </p>
+                    <p className="text-sm text-gray-600 leading-snug">
+                      {course.courseName}
+                    </p>
                   </div>
                   <span className="shrink-0 rounded-full bg-[#f0faf5] px-2.5 py-1 text-[11px] font-semibold text-[#00a844]">
                     {course.department ?? "Course"}
@@ -294,13 +338,13 @@ export default function ProfilePage() {
 
       {/* Menu sections */}
       <div className="px-4 space-y-3 mb-4">
-        {menuSections.map((section) => (
+        {menuSections.map(section => (
           <div key={section.title}>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5 px-1">
               {section.title}
             </p>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-50">
-              {section.items.map((item) => {
+              {section.items.map(item => {
                 const Icon = item.icon;
                 return (
                   <button
@@ -311,7 +355,9 @@ export default function ProfilePage() {
                     <div className="w-8 h-8 rounded-lg bg-[#f0faf5] flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-[#00c853]" />
                     </div>
-                    <span className="flex-1 text-sm font-medium text-gray-800 text-left">{item.label}</span>
+                    <span className="flex-1 text-sm font-medium text-gray-800 text-left">
+                      {item.label}
+                    </span>
                     <ChevronRight className="w-4 h-4 text-gray-300" />
                   </button>
                 );

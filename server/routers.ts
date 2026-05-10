@@ -2,7 +2,20 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import {
+  WALK_GROUP_DOWNVOTE_TRUST_DELTA,
+  getWalkingRatingTrustDelta,
+} from "@shared/trust";
 import { getSessionCookieOptions } from "./_core/cookies";
+import {
+  createSupabaseDataClientForAccessToken,
+  getBearerToken,
+} from "./_core/supabaseAuth";
+import {
+  getSupabaseTrustProfilesByOpenIds,
+  getSupabaseTrustSummaryForOpenId,
+  getSupabaseTrustSummaryForUserId,
+} from "./_core/supabaseTrust";
 import { systemRouter } from "./_core/systemRouter";
 import { sdk } from "./_core/sdk";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -10,7 +23,11 @@ import * as db from "./db";
 import * as algo from "./algorithms";
 import * as pf from "./pathfinding";
 import { eventEmitter } from "./realtime";
-import { generateVerificationCode, codeExpiry, sendVerificationEmail } from "./emailVerification";
+import {
+  generateVerificationCode,
+  codeExpiry,
+  sendVerificationEmail,
+} from "./emailVerification";
 
 // ============================================================================
 // WALKING BODY ROUTER
@@ -86,8 +103,8 @@ const walkingRouter = router({
 
       // Filter by distance and exclude requester
       const filtered = candidates
-        .filter((c) => c.userId !== ctx.user.id)
-        .filter((c) => {
+        .filter(c => c.userId !== ctx.user.id)
+        .filter(c => {
           const cLat = parseFloat(c.lat.toString());
           const cLng = parseFloat(c.lng.toString());
           const distance = algo.haversineDistance(lat, lng, cLat, cLng);
@@ -213,7 +230,24 @@ const walkingRouter = router({
         });
       }
 
-      const rateeId = match.walkerId === ctx.user.id ? match.requestId : match.walkerId;
+      const request = await db.getWalkingRequest(match.requestId);
+      if (!request) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Match request not found",
+        });
+      }
+
+      const isRequester = request.requesterId === ctx.user.id;
+      const isWalker = match.walkerId === ctx.user.id;
+      if (!isRequester && !isWalker) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You were not part of this walk",
+        });
+      }
+
+      const rateeId = isWalker ? request.requesterId : match.walkerId;
 
       await db.createWalkingRating(
         input.matchId,
@@ -223,40 +257,166 @@ const walkingRouter = router({
         input.comment
       );
 
-      // Recalculate trust score
-      const ratings = await db.getWalkingRatingsForUser(rateeId);
-      const avgStars = ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length;
-      const trustScore = algo.calculateTrustScoreSimple(avgStars, ratings.length);
+      await db.applyTrustScoreChange(
+        rateeId,
+        getWalkingRatingTrustDelta(input.stars),
+        "manual_adjustment"
+      );
+      const trustSummary = await db.getUserTrustSummary(rateeId);
 
       eventEmitter.emit("event", {
-        type: "trust.walking.updated",
+        type: "trust.score.updated",
         timestamp: Date.now(),
         data: {
           userId: rateeId,
-          trustScore,
-          ratingCount: ratings.length,
+          trustScore: trustSummary.score,
+          ratingCount: trustSummary.ratingCount,
+          source: "walking_rating",
         },
       });
 
-      return { success: true, trustScore };
+      return { success: true, trustScore: trustSummary.scoreRatio };
     }),
 
   // Get user's trust score
   getTrustScore: protectedProcedure.query(async ({ ctx }) => {
-    const ratings = await db.getWalkingRatingsForUser(ctx.user.id);
-    if (ratings.length === 0) {
-      return { score: 0.5, ratingCount: 0, averageStars: 0 };
-    }
-
-    const avgStars = ratings.reduce((sum, r) => sum + r.stars, 0) / ratings.length;
-    const score = algo.calculateTrustScoreSimple(avgStars, ratings.length);
+    const summary = await db.getUserTrustSummary(ctx.user.id);
 
     return {
-      score,
-      ratingCount: ratings.length,
-      averageStars: avgStars,
+      score: summary.scoreRatio,
+      scorePercent: summary.score,
+      tierKey: summary.tierKey,
+      tierLabel: summary.tierLabel,
+      ratingCount: summary.ratingCount,
+      averageStars: summary.averageStars,
     };
   }),
+});
+
+// ============================================================================
+// TRUST SCORE ROUTER
+// ============================================================================
+
+const trustRouter = router({
+  getMySummary: protectedProcedure.query(async ({ ctx }) => {
+    const sqlDb = await db.getDb();
+    if (!sqlDb) {
+      const accessToken = getBearerToken(ctx.req.headers.authorization);
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Missing Supabase access token.",
+        });
+      }
+
+      return getSupabaseTrustSummaryForOpenId(accessToken, ctx.user.openId);
+    }
+
+    return db.getUserTrustSummary(ctx.user.id);
+  }),
+
+  getProfilesByOpenIds: protectedProcedure
+    .input(
+      z.object({
+        openIds: z.array(z.string().min(1)).max(50),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const sqlDb = await db.getDb();
+      if (!sqlDb) {
+        const accessToken = getBearerToken(ctx.req.headers.authorization);
+        if (!accessToken) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "Missing Supabase access token.",
+          });
+        }
+
+        return getSupabaseTrustProfilesByOpenIds(accessToken, input.openIds);
+      }
+
+      return db.getTrustProfilesByOpenIds(input.openIds);
+    }),
+
+  downvoteWalkGroupMember: protectedProcedure
+    .input(
+      z.object({
+        walkGroupId: z.string().uuid(),
+        targetUserId: z.string().uuid(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const accessToken = getBearerToken(ctx.req.headers.authorization);
+      if (!accessToken) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Missing Supabase access token.",
+        });
+      }
+
+      const supabase = createSupabaseDataClientForAccessToken(accessToken);
+      const { data, error } = await supabase.rpc("downvote_walk_group_member", {
+        walk_group_id_input: input.walkGroupId,
+        target_user_id_input: input.targetUserId,
+      });
+
+      if (error) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error.message,
+        });
+      }
+
+      const targetOpenId = `supabase:${input.targetUserId}`;
+      const sqlDb = await db.getDb();
+
+      let summary:
+        | Awaited<ReturnType<typeof db.getUserTrustSummary>>
+        | Awaited<ReturnType<typeof getSupabaseTrustSummaryForUserId>>;
+      let emittedUserId: number | string = targetOpenId;
+
+      if (sqlDb) {
+        const targetUser = await db.getUserByOpenId(targetOpenId);
+        if (!targetUser) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Target user profile is not synced yet.",
+          });
+        }
+
+        await db.applyTrustScoreChange(
+          targetUser.id,
+          WALK_GROUP_DOWNVOTE_TRUST_DELTA,
+          "manual_adjustment"
+        );
+        summary = await db.getUserTrustSummary(targetUser.id);
+        emittedUserId = targetUser.id;
+      } else {
+        summary = await getSupabaseTrustSummaryForUserId(
+          accessToken,
+          input.targetUserId
+        );
+        emittedUserId = input.targetUserId;
+      }
+
+      eventEmitter.emit("event", {
+        type: "trust.score.updated",
+        timestamp: Date.now(),
+        data: {
+          userId: emittedUserId,
+          targetOpenId,
+          trustScore: summary.score,
+          source: "walk_group_downvote",
+          walkGroupId: input.walkGroupId,
+        },
+      });
+
+      return {
+        downvoteCount: typeof data === "number" ? data : null,
+        summary,
+        targetOpenId,
+      };
+    }),
 });
 
 // ============================================================================
@@ -269,7 +429,13 @@ const classRouter = router({
     .input(
       z.object({
         courseId: z.number(),
-        claimType: z.enum(["cancelled", "room_change", "time_change", "late", "other"]),
+        claimType: z.enum([
+          "cancelled",
+          "room_change",
+          "time_change",
+          "late",
+          "other",
+        ]),
         message: z.string().min(1).max(500),
       })
     )
@@ -282,7 +448,10 @@ const classRouter = router({
         });
       }
 
-      const membership = await db.getCourseMembership(input.courseId, ctx.user.id);
+      const membership = await db.getCourseMembership(
+        input.courseId,
+        ctx.user.id
+      );
       if (!membership) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -337,7 +506,10 @@ const classRouter = router({
         });
       }
 
-      const membership = await db.getCourseMembership(claim.courseId, ctx.user.id);
+      const membership = await db.getCourseMembership(
+        claim.courseId,
+        ctx.user.id
+      );
       if (!membership) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -350,15 +522,18 @@ const classRouter = router({
 
       // Get updated vote counts
       const votes = await db.getClassClaimVotes(input.claimId);
-      const confirmCount = votes.filter((v) => v.vote > 0).length;
-      const denyCount = votes.filter((v) => v.vote < 0).length;
+      const confirmCount = votes.filter(v => v.vote > 0).length;
+      const denyCount = votes.filter(v => v.vote < 0).length;
 
       // Check if claim should be resolved
       const course = await db.getCourse(claim.courseId);
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
 
       const isRepClaim = membership.membershipRole === "class_rep";
-      const requiredConfirms = algo.getRequiredConfirmations(course.classSize, isRepClaim);
+      const requiredConfirms = algo.getRequiredConfirmations(
+        course.classSize,
+        isRepClaim
+      );
       const rejectThreshold = algo.getRejectThreshold(course.classSize);
       const newStatus = algo.determineClaimStatus(
         confirmCount,
@@ -372,14 +547,23 @@ const classRouter = router({
 
         // Handle rep strikes if claim is rejected and created by rep
         if (newStatus === "rejected" && claim.createdBy !== ctx.user.id) {
-          const creatorMembership = await db.getCourseMembership(claim.courseId, claim.createdBy);
+          const creatorMembership = await db.getCourseMembership(
+            claim.courseId,
+            claim.createdBy
+          );
           if (creatorMembership?.membershipRole === "class_rep") {
-            const repStrike = await db.getOrCreateRepStrike(claim.createdBy, claim.courseId);
+            const repStrike = await db.getOrCreateRepStrike(
+              claim.createdBy,
+              claim.courseId
+            );
             if (repStrike) {
               const newStrikeCount = repStrike.strikeCount + 1;
-              const bypassDisabledDays = algo.getBypassDisabledDuration(newStrikeCount);
+              const bypassDisabledDays =
+                algo.getBypassDisabledDuration(newStrikeCount);
               const bypassDisabledUntil = new Date();
-              bypassDisabledUntil.setDate(bypassDisabledUntil.getDate() + bypassDisabledDays);
+              bypassDisabledUntil.setDate(
+                bypassDisabledUntil.getDate() + bypassDisabledDays
+              );
 
               const bypassRevoked = newStrikeCount >= 4;
 
@@ -436,7 +620,10 @@ const classRouter = router({
   getClaimsByCourse: protectedProcedure
     .input(z.object({ courseId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const membership = await db.getCourseMembership(input.courseId, ctx.user.id);
+      const membership = await db.getCourseMembership(
+        input.courseId,
+        ctx.user.id
+      );
       if (!membership) {
         throw new TRPCError({
           code: "FORBIDDEN",
@@ -446,15 +633,15 @@ const classRouter = router({
 
       const claims = await db.getClassClaimsByCourse(input.courseId);
       const claimsWithVotes = await Promise.all(
-        claims.map(async (claim) => {
+        claims.map(async claim => {
           const votes = await db.getClassClaimVotes(claim.id);
-          const confirmCount = votes.filter((v) => v.vote > 0).length;
-          const denyCount = votes.filter((v) => v.vote < 0).length;
+          const confirmCount = votes.filter(v => v.vote > 0).length;
+          const denyCount = votes.filter(v => v.vote < 0).length;
           return {
             ...claim,
             confirmCount,
             denyCount,
-            userVote: votes.find((v) => v.voterId === ctx.user.id)?.vote,
+            userVote: votes.find(v => v.voterId === ctx.user.id)?.vote,
           };
         })
       );
@@ -472,7 +659,13 @@ const reportsRouter = router({
   createReport: protectedProcedure
     .input(
       z.object({
-        reportType: z.enum(["light_out", "broken_path", "flooding", "obstruction", "suspicious"]),
+        reportType: z.enum([
+          "light_out",
+          "broken_path",
+          "flooding",
+          "obstruction",
+          "suspicious",
+        ]),
         severity: z.number().min(1).max(5),
         lat: z.number(),
         lng: z.number(),
@@ -541,11 +734,23 @@ const reportsRouter = router({
       await db.createPathReportVote(input.reportId, ctx.user.id, voteValue);
 
       // Update reliability
-      const reliability = await db.getOrCreatePathReportReliability(ctx.user.id);
+      const reliability = await db.getOrCreatePathReportReliability(
+        ctx.user.id
+      );
       if (reliability) {
-        const newTrueVotes = input.vote === "still_there" ? reliability.trueVotes + 1 : reliability.trueVotes;
-        const newFalseVotes = input.vote === "not_there" ? reliability.falseVotes + 1 : reliability.falseVotes;
-        await db.updatePathReportReliability(ctx.user.id, newTrueVotes, newFalseVotes);
+        const newTrueVotes =
+          input.vote === "still_there"
+            ? reliability.trueVotes + 1
+            : reliability.trueVotes;
+        const newFalseVotes =
+          input.vote === "not_there"
+            ? reliability.falseVotes + 1
+            : reliability.falseVotes;
+        await db.updatePathReportReliability(
+          ctx.user.id,
+          newTrueVotes,
+          newFalseVotes
+        );
       }
 
       // Update TTL based on vote and reporter reliability
@@ -572,7 +777,14 @@ const reportsRouter = router({
   getReports: protectedProcedure
     .input(
       z.object({
-        bbox: z.object({ minLat: z.number(), minLng: z.number(), maxLat: z.number(), maxLng: z.number() }).optional(),
+        bbox: z
+          .object({
+            minLat: z.number(),
+            minLng: z.number(),
+            maxLat: z.number(),
+            maxLng: z.number(),
+          })
+          .optional(),
       })
     )
     .query(async ({ input }) => {
@@ -580,10 +792,10 @@ const reportsRouter = router({
       // In production, implement proper bbox filtering
       const reports = await db.getActivePathReports();
       const reportsWithVotes = await Promise.all(
-        reports.map(async (report) => {
+        reports.map(async report => {
           const votes = await db.getPathReportVotes(report.id);
-          const stillThereCount = votes.filter((v) => v.vote > 0).length;
-          const notThereCount = votes.filter((v) => v.vote < 0).length;
+          const stillThereCount = votes.filter(v => v.vote > 0).length;
+          const notThereCount = votes.filter(v => v.vote < 0).length;
           return {
             ...report,
             stillThereCount,
@@ -699,7 +911,11 @@ const footpathRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const footpath = await db.createFootpath(input.name || null, input.geoJson, ctx.user.id);
+      const footpath = await db.createFootpath(
+        input.name || null,
+        input.geoJson,
+        ctx.user.id
+      );
       return { footpathId: footpath?.id };
     }),
 
@@ -738,15 +954,45 @@ const footpathRouter = router({
     .mutation(async ({ input }) => {
       const hourOfDay = input.hourOfDay ?? new Date().getHours();
       const isRainy = input.isRainy ?? false;
-      const cached = await db.getCachedRoutePlan(input.fromNodeId, input.toNodeId, input.mode, hourOfDay);
+      const cached = await db.getCachedRoutePlan(
+        input.fromNodeId,
+        input.toNodeId,
+        input.mode,
+        hourOfDay
+      );
       if (cached) return cached.result as pf.RouteResult;
-      const [nodeRows, edgeRows] = await Promise.all([db.getAllPathNodes(), db.getAllPathEdges()]);
+      const [nodeRows, edgeRows] = await Promise.all([
+        db.getAllPathNodes(),
+        db.getAllPathEdges(),
+      ]);
       const nodes = new Map<number, pf.GraphNode>();
       for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
       const edges = edgeRows.map(pf.toGraphEdge);
-      const result = pf.dijkstra({ fromNodeId: input.fromNodeId, toNodeId: input.toNodeId, mode: input.mode, hourOfDay, isRainy, nodes, edges });
-      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "No path found between the selected locations for this route profile." });
-      await db.cacheRoutePlan({ fromNodeId: input.fromNodeId, toNodeId: input.toNodeId, mode: input.mode, hourOfDay, result, distanceM: result.distanceM, walkTimeSec: result.walkTimeSec, safetyScore: result.safetyScore });
+      const result = pf.dijkstra({
+        fromNodeId: input.fromNodeId,
+        toNodeId: input.toNodeId,
+        mode: input.mode,
+        hourOfDay,
+        isRainy,
+        nodes,
+        edges,
+      });
+      if (!result)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "No path found between the selected locations for this route profile.",
+        });
+      await db.cacheRoutePlan({
+        fromNodeId: input.fromNodeId,
+        toNodeId: input.toNodeId,
+        mode: input.mode,
+        hourOfDay,
+        result,
+        distanceM: result.distanceM,
+        walkTimeSec: result.walkTimeSec,
+        safetyScore: result.safetyScore,
+      });
       return result;
     }),
 
@@ -763,11 +1009,21 @@ const footpathRouter = router({
     .mutation(async ({ input }) => {
       const hourOfDay = input.hourOfDay ?? new Date().getHours();
       const isRainy = input.isRainy ?? false;
-      const [nodeRows, edgeRows] = await Promise.all([db.getAllPathNodes(), db.getAllPathEdges()]);
+      const [nodeRows, edgeRows] = await Promise.all([
+        db.getAllPathNodes(),
+        db.getAllPathEdges(),
+      ]);
       const nodes = new Map<number, pf.GraphNode>();
       for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
       const edges = edgeRows.map(pf.toGraphEdge);
-      return pf.planAllRoutes(input.fromNodeId, input.toNodeId, hourOfDay, isRainy, nodes, edges);
+      return pf.planAllRoutes(
+        input.fromNodeId,
+        input.toNodeId,
+        hourOfDay,
+        isRainy,
+        nodes,
+        edges
+      );
     }),
 });
 
@@ -791,7 +1047,10 @@ const localAuthRouter = router({
     .mutation(async ({ input }) => {
       const existingEmail = await db.getUserByEmail(input.email);
       if (existingEmail) {
-        throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "Email already registered",
+        });
       }
       const passwordHash = await bcrypt.hash(input.password, 12);
       const code = generateVerificationCode();
@@ -804,10 +1063,13 @@ const localAuthRouter = router({
         verificationExpiry: expiry,
       });
       if (!user) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create account" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create account",
+        });
       }
       await db.enrollUserInAllActiveCourses(user.id, "student");
-      await sendVerificationEmail(input.email, input.name, code).catch((err) =>
+      await sendVerificationEmail(input.email, input.name, code).catch(err =>
         console.error("[signup] email send failed:", err)
       );
       return { success: true, userId: user.id, email: input.email };
@@ -817,12 +1079,20 @@ const localAuthRouter = router({
     .input(z.object({ email: z.string().email() }))
     .mutation(async ({ input }) => {
       const user = await db.getUserByEmail(input.email);
-      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (!user)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Account not found",
+        });
       if (user.emailVerified) return { success: true, alreadyVerified: true };
       const code = generateVerificationCode();
       const expiry = codeExpiry();
       await db.setVerificationCode(user.id, code, expiry);
-      await sendVerificationEmail(input.email, user.name ?? "Student", code).catch((err) =>
+      await sendVerificationEmail(
+        input.email,
+        user.name ?? "Student",
+        code
+      ).catch(err =>
         console.error("[sendVerificationCode] email send failed:", err)
       );
       return { success: true, alreadyVerified: false };
@@ -832,21 +1102,43 @@ const localAuthRouter = router({
     .input(z.object({ email: z.string().email(), code: z.string().length(6) }))
     .mutation(async ({ ctx, input }) => {
       const user = await db.getUserByEmail(input.email);
-      if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+      if (!user)
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Account not found",
+        });
       if (user.emailVerified) {
-        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name ?? "",
+          expiresInMs: ONE_YEAR_MS,
+        });
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...getSessionCookieOptions(ctx.req),
+          maxAge: ONE_YEAR_MS,
+        });
         return { success: true };
       }
       if (!user.verificationCode || user.verificationCode !== input.code) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid verification code" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Invalid verification code",
+        });
       }
       if (!user.verificationExpiry || new Date() > user.verificationExpiry) {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Verification code has expired. Request a new one." });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Verification code has expired. Request a new one.",
+        });
       }
       await db.verifyUserEmail(user.id);
-      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(ctx.req), maxAge: ONE_YEAR_MS });
+      const sessionToken = await sdk.createSessionToken(user.openId, {
+        name: user.name ?? "",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      ctx.res.cookie(COOKIE_NAME, sessionToken, {
+        ...getSessionCookieOptions(ctx.req),
+        maxAge: ONE_YEAR_MS,
+      });
       return { success: true };
     }),
 
@@ -860,19 +1152,39 @@ const localAuthRouter = router({
     .mutation(async ({ ctx, input }) => {
       const user = await db.getUserByEmail(input.email);
       if (!user || !user.passwordHash) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid email or password",
+        });
       }
       const valid = await bcrypt.compare(input.password, user.passwordHash);
       if (!valid) {
-        throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "Invalid email or password",
+        });
       }
       // Update last signed in
       await db.upsertUser({ openId: user.openId, lastSignedIn: new Date() });
       // Create session cookie
-      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name ?? "", expiresInMs: ONE_YEAR_MS });
+      const sessionToken = await sdk.createSessionToken(user.openId, {
+        name: user.name ?? "",
+        expiresInMs: ONE_YEAR_MS,
+      });
       const cookieOptions = getSessionCookieOptions(ctx.req);
-      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
-      return { success: true, user: { id: user.id, name: user.name, email: user.email, role: user.role } };
+      ctx.res.cookie(COOKIE_NAME, sessionToken, {
+        ...cookieOptions,
+        maxAge: ONE_YEAR_MS,
+      });
+      return {
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      };
     }),
 });
 
@@ -890,7 +1202,8 @@ const coursesRouter = router({
     .input(z.object({ courseId: z.number() }))
     .query(async ({ input }) => {
       const course = await db.getCourseById(input.courseId);
-      if (!course) throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      if (!course)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
       return course;
     }),
   getSavedCourses: protectedProcedure.query(async ({ ctx }) => {
@@ -922,9 +1235,19 @@ const coursesRouter = router({
   getPendingAnnouncements: protectedProcedure
     .input(z.object({ courseId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
-      if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep access required" });
+      const membership = await db.getUserMembershipForCourse(
+        ctx.user.id,
+        input.courseId
+      );
+      if (
+        !membership ||
+        (membership.membershipRole !== "class_rep" &&
+          ctx.user.role !== "guild_admin")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Class rep access required",
+        });
       }
       return db.getPendingAnnouncementsByCourse(input.courseId);
     }),
@@ -932,7 +1255,14 @@ const coursesRouter = router({
     .input(
       z.object({
         courseId: z.number(),
-        announcementType: z.enum(["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]),
+        announcementType: z.enum([
+          "cancelled",
+          "room_changed",
+          "lecturer_late",
+          "rescheduled",
+          "materials_uploaded",
+          "general",
+        ]),
         title: z.string().min(3).max(200),
         body: z.string().max(1000).optional(),
         isOfficial: z.boolean().default(false),
@@ -940,9 +1270,19 @@ const coursesRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       if (input.isOfficial) {
-        const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
-        if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Only class reps can post official announcements" });
+        const membership = await db.getUserMembershipForCourse(
+          ctx.user.id,
+          input.courseId
+        );
+        if (
+          !membership ||
+          (membership.membershipRole !== "class_rep" &&
+            ctx.user.role !== "guild_admin")
+        ) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Only class reps can post official announcements",
+          });
         }
       }
       const announcement = await db.createCourseAnnouncement({
@@ -954,7 +1294,10 @@ const coursesRouter = router({
         isOfficial: input.isOfficial,
       });
       if (announcement) {
-        eventEmitter.emit("announcement", { courseId: input.courseId, announcement });
+        eventEmitter.emit("announcement", {
+          courseId: input.courseId,
+          announcement,
+        });
       }
       return announcement;
     }),
@@ -967,11 +1310,25 @@ const coursesRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
-      if (!membership || (membership.membershipRole !== "class_rep" && ctx.user.role !== "guild_admin")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep access required" });
+      const membership = await db.getUserMembershipForCourse(
+        ctx.user.id,
+        input.courseId
+      );
+      if (
+        !membership ||
+        (membership.membershipRole !== "class_rep" &&
+          ctx.user.role !== "guild_admin")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Class rep access required",
+        });
       }
-      await db.reviewAnnouncement(input.announcementId, ctx.user.id, input.status);
+      await db.reviewAnnouncement(
+        input.announcementId,
+        ctx.user.id,
+        input.status
+      );
       return { success: true };
     }),
   getClassRepStats: protectedProcedure.query(async ({ ctx }) => {
@@ -990,8 +1347,12 @@ const coursesRouter = router({
     .input(z.object({ courseId: z.number() }))
     .query(async ({ ctx, input }) => {
       const course = await db.getCourseById(input.courseId);
-      if (!course) throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
-      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
+      if (!course)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      const membership = await db.getUserMembershipForCourse(
+        ctx.user.id,
+        input.courseId
+      );
       return { ...course, membershipRole: membership?.membershipRole ?? null };
     }),
   // Alias for getAnnouncements used by CourseDetailsPage
@@ -1005,7 +1366,14 @@ const coursesRouter = router({
     .input(
       z.object({
         courseId: z.number(),
-        announcementType: z.enum(["cancelled", "room_changed", "lecturer_late", "rescheduled", "materials_uploaded", "general"]),
+        announcementType: z.enum([
+          "cancelled",
+          "room_changed",
+          "lecturer_late",
+          "rescheduled",
+          "materials_uploaded",
+          "general",
+        ]),
         title: z.string().min(3).max(200),
         body: z.string().max(1000).optional(),
       })
@@ -1035,11 +1403,13 @@ const coursesRouter = router({
       if (!dbConn) return { success: false };
       const { eq, sql } = await import("drizzle-orm");
       if (input.direction === "up") {
-        await dbConn.update(courseAnnouncements)
+        await dbConn
+          .update(courseAnnouncements)
           .set({ upvotes: sql`upvotes + 1` })
           .where(eq(courseAnnouncements.id, input.announcementId));
       } else {
-        await dbConn.update(courseAnnouncements)
+        await dbConn
+          .update(courseAnnouncements)
           .set({ downvotes: sql`downvotes + 1` })
           .where(eq(courseAnnouncements.id, input.announcementId));
       }
@@ -1056,9 +1426,15 @@ const timetableRouter = router({
   getCourseSessions: protectedProcedure
     .input(z.object({ courseId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const membership = await db.getCourseMembership(input.courseId, ctx.user.id);
+      const membership = await db.getCourseMembership(
+        input.courseId,
+        ctx.user.id
+      );
       if (!membership) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
       }
       return db.getCourseSessionsByCourse(input.courseId);
     }),
@@ -1069,9 +1445,10 @@ const timetableRouter = router({
     const today = new Date().toISOString().split("T")[0];
     // Attach overrides for today
     const sessionsWithOverrides = await Promise.all(
-      sessions.map(async (session) => {
+      sessions.map(async session => {
         const overrides = await db.getSessionOverridesByDate(session.id, today);
-        const activeOverride = overrides.length > 0 ? overrides[overrides.length - 1] : null;
+        const activeOverride =
+          overrides.length > 0 ? overrides[overrides.length - 1] : null;
         return { ...session, override: activeOverride };
       })
     );
@@ -1083,8 +1460,18 @@ const timetableRouter = router({
     .input(
       z.object({
         courseId: z.number(),
-        sessionType: z.enum(["lecture", "tutorial", "lab", "seminar", "other"]).optional(),
-        dayOfWeek: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
+        sessionType: z
+          .enum(["lecture", "tutorial", "lab", "seminar", "other"])
+          .optional(),
+        dayOfWeek: z.enum([
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday",
+        ]),
         startTime: z.string(),
         endTime: z.string(),
         roomCode: z.string().optional(),
@@ -1092,9 +1479,20 @@ const timetableRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const membership = await db.getUserMembershipForCourse(ctx.user.id, input.courseId);
-      if (!membership || (membership.membershipRole !== "class_rep" && membership.membershipRole !== "lecturer" && ctx.user.role !== "guild_admin")) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Class rep or lecturer access required" });
+      const membership = await db.getUserMembershipForCourse(
+        ctx.user.id,
+        input.courseId
+      );
+      if (
+        !membership ||
+        (membership.membershipRole !== "class_rep" &&
+          membership.membershipRole !== "lecturer" &&
+          ctx.user.role !== "guild_admin")
+      ) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Class rep or lecturer access required",
+        });
       }
       const session = await db.createCourseSession(input);
       return session;
@@ -1112,7 +1510,14 @@ const classReportsRouter = router({
       z.object({
         courseId: z.number(),
         courseSessionId: z.number().optional(),
-        reportType: z.enum(["class_cancelled", "lecturer_late", "room_changed", "time_changed", "class_confirmed", "other"]),
+        reportType: z.enum([
+          "class_cancelled",
+          "lecturer_late",
+          "room_changed",
+          "time_changed",
+          "class_confirmed",
+          "other",
+        ]),
         title: z.string().min(3).max(255),
         description: z.string().max(1000).optional(),
         originalRoom: z.string().max(64).optional(),
@@ -1126,9 +1531,15 @@ const classReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       // Check course membership
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        input.courseId
+      );
       if (!isMember) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
       }
 
       // Check suspension
@@ -1142,8 +1553,12 @@ const classReportsRouter = router({
       }
 
       // Calculate thresholds
-      const { required, rejection } = await db.getRequiredThresholdForReport(input.courseId, ctx.user.id);
-      const reportDate = input.reportDate ?? new Date().toISOString().split("T")[0];
+      const { required, rejection } = await db.getRequiredThresholdForReport(
+        input.courseId,
+        ctx.user.id
+      );
+      const reportDate =
+        input.reportDate ?? new Date().toISOString().split("T")[0];
       const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
       const report = await db.createClassReport({
@@ -1166,7 +1581,10 @@ const classReportsRouter = router({
       });
 
       if (!report) {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create report" });
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to create report",
+        });
       }
 
       // If lecturer/admin, auto-verify immediately
@@ -1178,26 +1596,48 @@ const classReportsRouter = router({
       eventEmitter.emit("event", {
         type: "class_report.created",
         timestamp: Date.now(),
-        data: { reportId: report.id, courseId: input.courseId, reportType: input.reportType },
+        data: {
+          reportId: report.id,
+          courseId: input.courseId,
+          reportType: input.reportType,
+        },
       });
 
-      return { reportId: report.id, status: required === 0 ? "verified" : "pending" };
+      return {
+        reportId: report.id,
+        status: required === 0 ? "verified" : "pending",
+      };
     }),
 
   // Get reports for a course
   getReportsByCourse: protectedProcedure
-    .input(z.object({ courseId: z.number(), includeAll: z.boolean().optional() }))
+    .input(
+      z.object({ courseId: z.number(), includeAll: z.boolean().optional() })
+    )
     .query(async ({ ctx, input }) => {
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        input.courseId
+      );
       if (!isMember) {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
       }
-      const reports = await db.getClassReportsByCourse(input.courseId, input.includeAll ?? false);
+      const reports = await db.getClassReportsByCourse(
+        input.courseId,
+        input.includeAll ?? false
+      );
       return Promise.all(
-        reports.map(async (r) => {
+        reports.map(async r => {
           const votes = await db.getClassReportVotes(r.id);
           const userVote = await db.getUserVoteOnReport(r.id, ctx.user.id);
-          return { ...r, voteCount: votes.length, userVote: userVote?.voteType ?? null };
+          return {
+            ...r,
+            voteCount: votes.length,
+            userVote: userVote?.voteType ?? null,
+          };
         })
       );
     }),
@@ -1207,11 +1647,22 @@ const classReportsRouter = router({
     .input(z.object({ reportId: z.number() }))
     .query(async ({ ctx, input }) => {
       const report = await db.getClassReport(input.reportId);
-      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
-      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      if (!report)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        report.courseId
+      );
+      if (!isMember)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
       const votes = await db.getClassReportVotes(input.reportId);
-      const userVote = await db.getUserVoteOnReport(input.reportId, ctx.user.id);
+      const userVote = await db.getUserVoteOnReport(
+        input.reportId,
+        ctx.user.id
+      );
       return { ...report, votes, userVote: userVote?.voteType ?? null };
     }),
 
@@ -1225,17 +1676,36 @@ const classReportsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const report = await db.getClassReport(input.reportId);
-      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      if (!report)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
       if (report.status !== "pending") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Report is no longer pending" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Report is no longer pending",
+        });
       }
 
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
-      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        report.courseId
+      );
+      if (!isMember)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
 
       // Get vote weight based on role
-      const voteWeight = await db.getVoteWeightForUser(ctx.user.id, report.courseId);
-      await db.createOrUpdateClassReportVote(input.reportId, ctx.user.id, input.voteType, voteWeight);
+      const voteWeight = await db.getVoteWeightForUser(
+        ctx.user.id,
+        report.courseId
+      );
+      await db.createOrUpdateClassReportVote(
+        input.reportId,
+        ctx.user.id,
+        input.voteType,
+        voteWeight
+      );
 
       // Recalculate verification score
       const allVotes = await db.getClassReportVotes(input.reportId);
@@ -1247,21 +1717,35 @@ const classReportsRouter = router({
       // Check if report should be verified or rejected
       let newStatus: "pending" | "verified" | "rejected" = "pending";
       if (verificationScore >= report.requiredThreshold) newStatus = "verified";
-      else if (verificationScore <= report.rejectionThreshold) newStatus = "rejected";
+      else if (verificationScore <= report.rejectionThreshold)
+        newStatus = "rejected";
 
       if (newStatus !== "pending") {
         await db.updateClassReportStatus(input.reportId, newStatus);
 
         if (newStatus === "verified") {
-          await handleReportVerified(input.reportId, report.courseId, report.reporterUserId);
+          await handleReportVerified(
+            input.reportId,
+            report.courseId,
+            report.reporterUserId
+          );
         } else if (newStatus === "rejected") {
-          await handleReportRejected(input.reportId, report.courseId, report.reporterUserId, allVotes);
+          await handleReportRejected(
+            input.reportId,
+            report.courseId,
+            report.reporterUserId,
+            allVotes
+          );
         }
 
         eventEmitter.emit("event", {
           type: "class_report.resolved",
           timestamp: Date.now(),
-          data: { reportId: input.reportId, status: newStatus, verificationScore },
+          data: {
+            reportId: input.reportId,
+            status: newStatus,
+            verificationScore,
+          },
         });
       }
 
@@ -1292,17 +1776,34 @@ const classChatRouter = router({
   getCourseChat: protectedProcedure
     .input(z.object({ courseId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, input.courseId);
-      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        input.courseId
+      );
+      if (!isMember)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
 
       const reports = await db.getClassReportsByCourse(input.courseId, true);
       const reportsWithDetails = await Promise.all(
-        reports.map(async (r) => {
+        reports.map(async r => {
           const votes = await db.getClassReportVotes(r.id);
           const comments = await db.getClassReportComments(r.id);
           const userVote = await db.getUserVoteOnReport(r.id, ctx.user.id);
-          const verificationScore = votes.reduce((sum, v) => sum + (v.voteType === "upvote" ? v.voteWeight : -v.voteWeight), 0);
-          return { ...r, verificationScore, votes, comments, userVote: userVote?.voteType ?? null };
+          const verificationScore = votes.reduce(
+            (sum, v) =>
+              sum + (v.voteType === "upvote" ? v.voteWeight : -v.voteWeight),
+            0
+          );
+          return {
+            ...r,
+            verificationScore,
+            votes,
+            comments,
+            userVote: userVote?.voteType ?? null,
+          };
         })
       );
       return reportsWithDetails;
@@ -1318,10 +1819,22 @@ const classChatRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const report = await db.getClassReport(input.reportId);
-      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
-      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
-      const comment = await db.createClassReportComment(input.reportId, ctx.user.id, input.message);
+      if (!report)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        report.courseId
+      );
+      if (!isMember)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
+      const comment = await db.createClassReportComment(
+        input.reportId,
+        ctx.user.id,
+        input.message
+      );
       return comment;
     }),
 
@@ -1330,9 +1843,17 @@ const classChatRouter = router({
     .input(z.object({ reportId: z.number() }))
     .query(async ({ ctx, input }) => {
       const report = await db.getClassReport(input.reportId);
-      if (!report) throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
-      const isMember = await db.isUserRegisteredForCourse(ctx.user.id, report.courseId);
-      if (!isMember) throw new TRPCError({ code: "FORBIDDEN", message: "Not enrolled in course" });
+      if (!report)
+        throw new TRPCError({ code: "NOT_FOUND", message: "Report not found" });
+      const isMember = await db.isUserRegisteredForCourse(
+        ctx.user.id,
+        report.courseId
+      );
+      if (!isMember)
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Not enrolled in course",
+        });
       return db.getClassReportComments(input.reportId);
     }),
 
@@ -1414,7 +1935,14 @@ async function handleReportVerified(
 
     // 1. Create calendar override if session is linked
     if (report.courseSessionId) {
-      const overrideTypeMap: Record<string, "cancelled" | "room_changed" | "time_changed" | "lecturer_late" | "class_confirmed"> = {
+      const overrideTypeMap: Record<
+        string,
+        | "cancelled"
+        | "room_changed"
+        | "time_changed"
+        | "lecturer_late"
+        | "class_confirmed"
+      > = {
         class_cancelled: "cancelled",
         room_changed: "room_changed",
         time_changed: "time_changed",
@@ -1422,7 +1950,8 @@ async function handleReportVerified(
         class_confirmed: "class_confirmed",
         other: "class_confirmed",
       };
-      const overrideType = overrideTypeMap[report.reportType] ?? "class_confirmed";
+      const overrideType =
+        overrideTypeMap[report.reportType] ?? "class_confirmed";
       await db.createSessionOverride({
         courseSessionId: report.courseSessionId,
         classReportId: reportId,
@@ -1439,16 +1968,31 @@ async function handleReportVerified(
     }
 
     // 2. Update reporter trust score (+2)
-    await db.applyTrustScoreChange(reporterUserId, 2, "verified_report", reportId);
+    await db.applyTrustScoreChange(
+      reporterUserId,
+      2,
+      "verified_report",
+      reportId
+    );
 
     // 3. Reward correct upvoters (+1), penalise downvoters (-1)
     const votes = await db.getClassReportVotes(reportId);
     for (const vote of votes) {
       if (vote.userId === reporterUserId) continue;
       if (vote.voteType === "upvote") {
-        await db.applyTrustScoreChange(vote.userId, 1, "correct_vote", reportId);
+        await db.applyTrustScoreChange(
+          vote.userId,
+          1,
+          "correct_vote",
+          reportId
+        );
       } else {
-        await db.applyTrustScoreChange(vote.userId, -1, "incorrect_vote", reportId);
+        await db.applyTrustScoreChange(
+          vote.userId,
+          -1,
+          "incorrect_vote",
+          reportId
+        );
       }
     }
 
@@ -1491,20 +2035,38 @@ async function handleReportRejected(
 ) {
   try {
     // 1. Penalise reporter (-5)
-    await db.applyTrustScoreChange(reporterUserId, -5, "rejected_report", reportId);
+    await db.applyTrustScoreChange(
+      reporterUserId,
+      -5,
+      "rejected_report",
+      reportId
+    );
 
     // 2. Reward correct downvoters (+1), penalise upvoters (-1)
     for (const vote of votes) {
       if (vote.userId === reporterUserId) continue;
       if (vote.voteType === "downvote") {
-        await db.applyTrustScoreChange(vote.userId, 1, "correct_vote", reportId);
+        await db.applyTrustScoreChange(
+          vote.userId,
+          1,
+          "correct_vote",
+          reportId
+        );
       } else {
-        await db.applyTrustScoreChange(vote.userId, -1, "incorrect_vote", reportId);
+        await db.applyTrustScoreChange(
+          vote.userId,
+          -1,
+          "incorrect_vote",
+          reportId
+        );
       }
     }
 
     // 3. Check suspension threshold (3 rejected reports in 7 days)
-    const rejectedCount = await db.countRejectedReportsInWindow(reporterUserId, 7);
+    const rejectedCount = await db.countRejectedReportsInWindow(
+      reporterUserId,
+      7
+    );
     if (rejectedCount >= 3) {
       const isSuspended = await db.isUserSuspendedFromReporting(reporterUserId);
       if (!isSuspended) {
@@ -1514,7 +2076,11 @@ async function handleReportRejected(
         eventEmitter.emit("event", {
           type: "user.suspended",
           timestamp: Date.now(),
-          data: { userId: reporterUserId, suspendedUntil, reason: "repeated_false_reports" },
+          data: {
+            userId: reporterUserId,
+            suspendedUntil,
+            reason: "repeated_false_reports",
+          },
         });
       }
     }
@@ -1523,32 +2089,59 @@ async function handleReportRejected(
   }
 }
 
-function buildNotificationTitle(reportType: string, courseCode: string): string {
+function buildNotificationTitle(
+  reportType: string,
+  courseCode: string
+): string {
   switch (reportType) {
-    case "class_cancelled": return `${courseCode} class cancelled`;
-    case "room_changed": return `Room change for ${courseCode}`;
-    case "lecturer_late": return `Lecturer late for ${courseCode}`;
-    case "time_changed": return `Time change for ${courseCode}`;
-    case "class_confirmed": return `${courseCode} class confirmed`;
-    default: return `Update for ${courseCode}`;
+    case "class_cancelled":
+      return `${courseCode} class cancelled`;
+    case "room_changed":
+      return `Room change for ${courseCode}`;
+    case "lecturer_late":
+      return `Lecturer late for ${courseCode}`;
+    case "time_changed":
+      return `Time change for ${courseCode}`;
+    case "class_confirmed":
+      return `${courseCode} class confirmed`;
+    default:
+      return `Update for ${courseCode}`;
   }
 }
 
-function buildNotificationMessage(report: { reportType: string; courseId: number; newRoom?: string | null; newStartTime?: string | null; title: string }): string {
+function buildNotificationMessage(report: {
+  reportType: string;
+  courseId: number;
+  newRoom?: string | null;
+  newStartTime?: string | null;
+  title: string;
+}): string {
   switch (report.reportType) {
-    case "class_cancelled": return `Your class has been reported and verified as cancelled.`;
-    case "room_changed": return report.newRoom ? `Class has moved to room ${report.newRoom}.` : report.title;
-    case "lecturer_late": return report.newStartTime ? `Lecturer is late. Class may begin at ${report.newStartTime}.` : report.title;
-    case "time_changed": return report.newStartTime ? `Class time changed to ${report.newStartTime}.` : report.title;
-    case "class_confirmed": return `Your class is confirmed to be running.`;
-    default: return report.title;
+    case "class_cancelled":
+      return `Your class has been reported and verified as cancelled.`;
+    case "room_changed":
+      return report.newRoom
+        ? `Class has moved to room ${report.newRoom}.`
+        : report.title;
+    case "lecturer_late":
+      return report.newStartTime
+        ? `Lecturer is late. Class may begin at ${report.newStartTime}.`
+        : report.title;
+    case "time_changed":
+      return report.newStartTime
+        ? `Class time changed to ${report.newStartTime}.`
+        : report.title;
+    case "class_confirmed":
+      return `Your class is confirmed to be running.`;
+    default:
+      return report.title;
   }
 }
 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query((opts) => opts.ctx.user),
+    me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -1562,6 +2155,7 @@ export const appRouter = router({
     verifyEmail: localAuthRouter.verifyEmail,
   }),
   walking: walkingRouter,
+  trust: trustRouter,
   classes: classRouter,
   reports: reportsRouter,
   checkins: checkinRouter,

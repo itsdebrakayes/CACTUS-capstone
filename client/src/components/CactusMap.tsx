@@ -1,4 +1,10 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { getCategoryMeta, type PlaceLocation } from "@/lib/campusPlaces";
@@ -8,6 +14,11 @@ import {
   createWalkGroupMeetingMarkerElement,
 } from "@/lib/placeMarkerIcons";
 import { type CampusDataset } from "@/lib/findWayGeo";
+import {
+  bindManagedMapMarkerVisibility,
+  type ManagedMapMarker,
+  type MapMarkerVisibilityBinding,
+} from "@/lib/mapMarkerVisibility";
 
 export const UWI_MONA_CENTER: [number, number] = [-76.7497, 18.0035];
 export const UWI_MONA_ZOOM = 15.5;
@@ -49,7 +60,12 @@ export interface WalkGroupMapMarker {
 }
 
 export interface CactusMapHandle {
-  showRoute: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
+  showRoute: (
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number
+  ) => void;
   clearRoute: () => void;
   flyTo: (lat: number, lng: number, zoom?: number) => void;
   getMap: () => mapboxgl.Map | null;
@@ -109,10 +125,11 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const mapRef = useRef<mapboxgl.Map | null>(null);
     const userMarkerRef = useRef<mapboxgl.Marker | null>(null);
     const destMarkerRef = useRef<mapboxgl.Marker | null>(null);
-    const walkerMarkersRef = useRef<mapboxgl.Marker[]>([]);
-    const hazardMarkersRef = useRef<mapboxgl.Marker[]>([]);
-    const walkGroupMarkersRef = useRef<mapboxgl.Marker[]>([]);
-    const placeMarkersRef = useRef<mapboxgl.Marker[]>([]);
+    const walkerMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const hazardMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const walkGroupMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const placeMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const markerVisibilityRef = useRef<MapMarkerVisibilityBinding | null>(null);
     const isSelectingRef = useRef(isSelectingDest);
     const mapReadyRef = useRef(false);
     const [mapReady, setMapReady] = useState(false);
@@ -169,8 +186,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         zoom: UWI_MONA_ZOOM,
         attributionControl: false,
       });
-
-      map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+      markerVisibilityRef.current = bindManagedMapMarkerVisibility(map, () => [
+        ...walkerMarkersRef.current,
+        ...hazardMarkersRef.current,
+        ...walkGroupMarkersRef.current,
+        ...placeMarkersRef.current,
+      ]);
 
       map.on("load", () => {
         mapReadyRef.current = true;
@@ -216,7 +237,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         }
       });
 
-      map.on("click", (event) => {
+      map.on("click", event => {
         if (!isSelectingRef.current) {
           return;
         }
@@ -238,10 +259,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       mapRef.current = map;
 
       return () => {
-        placeMarkersRef.current.forEach((marker) => marker.remove());
-        walkerMarkersRef.current.forEach((marker) => marker.remove());
-        hazardMarkersRef.current.forEach((marker) => marker.remove());
-        walkGroupMarkersRef.current.forEach((marker) => marker.remove());
+        markerVisibilityRef.current?.destroy();
+        markerVisibilityRef.current = null;
+        placeMarkersRef.current.forEach(({ marker }) => marker.remove());
+        walkerMarkersRef.current.forEach(({ marker }) => marker.remove());
+        hazardMarkersRef.current.forEach(({ marker }) => marker.remove());
+        walkGroupMarkersRef.current.forEach(({ marker }) => marker.remove());
         userMarkerRef.current?.remove();
         destMarkerRef.current?.remove();
         placeMarkersRef.current = [];
@@ -269,9 +292,15 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         element.title = "Your location";
         userMarkerRef.current = new mapboxgl.Marker(element)
           .setLngLat([userLng, userLat])
-          .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML("<strong>You</strong>"))
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML("<strong>You</strong>")
+          )
           .addTo(map);
-        map.flyTo({ center: [userLng, userLat], zoom: UWI_MONA_ZOOM, duration: 1000 });
+        map.flyTo({
+          center: [userLng, userLat],
+          zoom: UWI_MONA_ZOOM,
+          duration: 1000,
+        });
       }
     }, [mapReady, userLat, userLng]);
 
@@ -281,16 +310,17 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         return;
       }
 
-      walkerMarkersRef.current.forEach((marker) => marker.remove());
+      walkerMarkersRef.current.forEach(({ marker }) => marker.remove());
       walkerMarkersRef.current = [];
 
       if (walkers.length === 0) {
+        markerVisibilityRef.current?.sync();
         return;
       }
 
       const clusters = clusterPoints(walkers, 0.0005);
 
-      clusters.forEach((cluster) => {
+      clusters.forEach(cluster => {
         const element = document.createElement("div");
         if (cluster.count > 1) {
           element.className = "cactus-cluster-marker";
@@ -317,11 +347,21 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           .addTo(map);
 
         if (cluster.count === 1 && onWalkerClick) {
-          element.addEventListener("click", () => onWalkerClick(cluster.items[0]));
+          element.addEventListener("click", () =>
+            onWalkerClick(cluster.items[0])
+          );
         }
 
-        walkerMarkersRef.current.push(marker);
+        walkerMarkersRef.current.push({
+          baseSizePx:
+            cluster.count > 1 ? Math.min(36, 24 + cluster.count * 2) : 12,
+          element,
+          marker,
+          priority: cluster.count > 1 ? 18 : 12,
+        });
       });
+
+      markerVisibilityRef.current?.sync();
     }, [mapReady, walkers, onWalkerClick]);
 
     useEffect(() => {
@@ -330,10 +370,10 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         return;
       }
 
-      hazardMarkersRef.current.forEach((marker) => marker.remove());
+      hazardMarkersRef.current.forEach(({ marker }) => marker.remove());
       hazardMarkersRef.current = [];
 
-      hazards.forEach((hazard) => {
+      hazards.forEach(hazard => {
         const element = createCrowdReportMarkerElement({
           title: `${REPORT_TYPE_LABELS[hazard.reportType] || hazard.reportType} (Severity ${hazard.severity})`,
           reportType: hazard.reportType,
@@ -348,8 +388,15 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           element.addEventListener("click", () => onHazardClick(hazard));
         }
 
-        hazardMarkersRef.current.push(marker);
+        hazardMarkersRef.current.push({
+          baseSizePx: 34,
+          element,
+          marker,
+          priority: 30,
+        });
       });
+
+      markerVisibilityRef.current?.sync();
     }, [mapReady, hazards, onHazardClick]);
 
     useEffect(() => {
@@ -358,11 +405,14 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         return;
       }
 
-      walkGroupMarkersRef.current.forEach((marker) => marker.remove());
+      walkGroupMarkersRef.current.forEach(({ marker }) => marker.remove());
       walkGroupMarkersRef.current = [];
 
-      walkGroups.forEach((walkGroup) => {
-        if (!Number.isFinite(walkGroup.lat) || !Number.isFinite(walkGroup.lng)) {
+      walkGroups.forEach(walkGroup => {
+        if (
+          !Number.isFinite(walkGroup.lat) ||
+          !Number.isFinite(walkGroup.lng)
+        ) {
           return;
         }
 
@@ -379,14 +429,21 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           .setPopup(popup)
           .addTo(map);
 
-        markerElement.addEventListener("click", (event) => {
+        markerElement.addEventListener("click", event => {
           event.stopPropagation();
           marker.togglePopup();
           onWalkGroupClick?.(walkGroup);
         });
 
-        walkGroupMarkersRef.current.push(marker);
+        walkGroupMarkersRef.current.push({
+          baseSizePx: 40,
+          element: markerElement,
+          marker,
+          priority: 24,
+        });
       });
+
+      markerVisibilityRef.current?.sync();
     }, [mapReady, onWalkGroupClick, walkGroups]);
 
     useEffect(() => {
@@ -395,10 +452,10 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         return;
       }
 
-      placeMarkersRef.current.forEach((marker) => marker.remove());
+      placeMarkersRef.current.forEach(({ marker }) => marker.remove());
       placeMarkersRef.current = [];
 
-      places.forEach((place) => {
+      places.forEach(place => {
         const markerElement = createCampusPlaceMarkerElement(place);
         const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(
           createCampusPlacePopupHtml(place)
@@ -412,14 +469,21 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           .setPopup(popup)
           .addTo(map);
 
-        markerElement.addEventListener("click", (event) => {
+        markerElement.addEventListener("click", event => {
           event.stopPropagation();
           marker.togglePopup();
           onPlaceClick?.(place);
         });
 
-        placeMarkersRef.current.push(marker);
+        placeMarkersRef.current.push({
+          baseSizePx: 32,
+          element: markerElement,
+          marker,
+          priority: 6,
+        });
       });
+
+      markerVisibilityRef.current?.sync();
     }, [mapReady, places, onPlaceClick]);
 
     useEffect(() => {
@@ -438,13 +502,15 @@ CactusMap.displayName = "CactusMap";
 export { CactusMap };
 
 function renderFootpaths(map: mapboxgl.Map, footpaths: Footpath[]) {
-  const source = map.getSource("footpaths") as mapboxgl.GeoJSONSource | undefined;
+  const source = map.getSource("footpaths") as
+    | mapboxgl.GeoJSONSource
+    | undefined;
   if (!source) {
     return;
   }
 
   const features = footpaths
-    .map((footpath) => {
+    .map(footpath => {
       try {
         const geoJson =
           typeof footpath.geoJson === "string"

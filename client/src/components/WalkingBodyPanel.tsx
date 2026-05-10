@@ -7,8 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import {
-  Users, MapPin, Star, PersonStanding, CheckCircle2,
-  XCircle, Navigation, Shield, Clock
+  Users,
+  MapPin,
+  Star,
+  PersonStanding,
+  CheckCircle2,
+  XCircle,
+  Navigation,
+  Shield,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,7 +24,12 @@ interface WalkingBodyPanelProps {
   userLng: number;
   isAvailable?: boolean;
   onAvailabilityChange?: (available: boolean) => void;
-  onRouteRequested?: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
+  onRouteRequested?: (
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number
+  ) => void;
 }
 
 export function WalkingBodyPanel({
@@ -34,35 +46,47 @@ export function WalkingBodyPanel({
   const [ratingComment, setRatingComment] = useState("");
 
   // Queries
-  const { data: trustData, refetch: refetchTrust } = trpc.walking.getTrustScore.useQuery();
+  const { data: trustData, refetch: refetchTrust } =
+    trpc.trust.getMySummary.useQuery();
 
   // Mutations
-  const updateAvailabilityMutation = trpc.walking.updateAvailability.useMutation({
-    onSuccess: (_, vars) => {
-      setLocalAvailable(vars.isAvailable);
-      onAvailabilityChange?.(vars.isAvailable);
-      toast.success(vars.isAvailable ? "You are now available for walking" : "You are no longer available");
-    },
-    onError: (e: any) => toast.error(e.message),
-  });
+  const updateAvailabilityMutation =
+    trpc.walking.updateAvailability.useMutation({
+      onSuccess: (_, vars) => {
+        setLocalAvailable(vars.isAvailable);
+        onAvailabilityChange?.(vars.isAvailable);
+        toast.success(
+          vars.isAvailable
+            ? "You are now available for walking"
+            : "You are no longer available"
+        );
+      },
+      onError: (e: any) => toast.error(e.message),
+    });
 
   const requestWalkersMutation = trpc.walking.requestWalkers.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Walking request sent — ${data.matchCount} walker${data.matchCount !== 1 ? "s" : ""} notified`);
+    onSuccess: data => {
+      toast.success(
+        `Walking request sent — ${data.matchCount} walker${data.matchCount !== 1 ? "s" : ""} notified`
+      );
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const respondToMatchMutation = trpc.walking.respondToMatch.useMutation({
     onSuccess: (_, vars) => {
-      toast.success(vars.action === "accept" ? "Match accepted!" : "Match declined");
+      toast.success(
+        vars.action === "accept" ? "Match accepted!" : "Match declined"
+      );
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const ratePartnerMutation = trpc.walking.ratePartner.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Rating submitted! New trust score: ${(data.trustScore * 100).toFixed(0)}%`);
+    onSuccess: data => {
+      toast.success(
+        `Rating submitted! New trust score: ${(data.trustScore * 100).toFixed(0)}%`
+      );
       setRatingMatchId(null);
       setRatingComment("");
       setRatingStars(5);
@@ -87,12 +111,15 @@ export function WalkingBodyPanel({
     requestWalkersMutation.mutate({ radiusM });
   };
 
-  const trustPct = trustData ? Math.round(trustData.score * 100) : null;
+  const trustPct = trustData?.score ?? null;
   const trustColor =
-    trustPct === null ? "text-muted-foreground"
-    : trustPct >= 80 ? "text-green-600"
-    : trustPct >= 50 ? "text-yellow-600"
-    : "text-red-600";
+    trustPct === null
+      ? "text-muted-foreground"
+      : trustPct >= 80
+        ? "text-green-600"
+        : trustPct >= 50
+          ? "text-yellow-600"
+          : "text-red-600";
 
   return (
     <div className="space-y-3">
@@ -108,12 +135,18 @@ export function WalkingBodyPanel({
               <div className="text-right">
                 <p className={`text-lg font-bold ${trustColor}`}>{trustPct}%</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {trustData.ratingCount} rating{trustData.ratingCount !== 1 ? "s" : ""}
-                  {trustData.ratingCount > 0 && ` · ★ ${trustData.averageStars.toFixed(1)}`}
+                  {trustData.tierLabel}
+                  {" · "}
+                  {trustData.ratingCount} rating
+                  {trustData.ratingCount !== 1 ? "s" : ""}
+                  {trustData.ratingCount > 0 &&
+                    ` · ★ ${trustData.averageStars.toFixed(1)}`}
                 </p>
               </div>
             ) : (
-              <span className="text-xs text-muted-foreground">No ratings yet</span>
+              <span className="text-xs text-muted-foreground">
+                No ratings yet
+              </span>
             )}
           </div>
         </CardContent>
@@ -139,21 +172,27 @@ export function WalkingBodyPanel({
             <Badge
               variant={localAvailable ? "default" : "secondary"}
               className="text-[10px]"
-              style={localAvailable ? { background: "oklch(0.55 0.12 185)" } : {}}>
+              style={
+                localAvailable ? { background: "oklch(0.55 0.12 185)" } : {}
+              }
+            >
               {localAvailable ? "Available" : "Offline"}
             </Badge>
           </div>
           <Button
             className="w-full text-xs h-8"
             variant={localAvailable ? "destructive" : "default"}
-            style={!localAvailable ? { background: "oklch(0.55 0.12 185)" } : {}}
+            style={
+              !localAvailable ? { background: "oklch(0.55 0.12 185)" } : {}
+            }
             onClick={handleToggleAvailability}
-            disabled={updateAvailabilityMutation.isPending}>
+            disabled={updateAvailabilityMutation.isPending}
+          >
             {updateAvailabilityMutation.isPending
               ? "Updating..."
               : localAvailable
-              ? "Go Offline"
-              : "Go Available"}
+                ? "Go Offline"
+                : "Go Available"}
           </Button>
         </CardContent>
       </Card>
@@ -189,8 +228,11 @@ export function WalkingBodyPanel({
             className="w-full text-xs h-8"
             style={{ background: "oklch(0.28 0.08 245)" }}
             onClick={handleRequestWalkers}
-            disabled={requestWalkersMutation.isPending || !localAvailable}>
-            {requestWalkersMutation.isPending ? "Searching..." : "Request Walkers Nearby"}
+            disabled={requestWalkersMutation.isPending || !localAvailable}
+          >
+            {requestWalkersMutation.isPending
+              ? "Searching..."
+              : "Request Walkers Nearby"}
           </Button>
           {!localAvailable && (
             <p className="text-[10px] text-muted-foreground text-center">
@@ -212,14 +254,15 @@ export function WalkingBodyPanel({
           {ratingMatchId === null ? (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                Enter a match ID to rate your walking partner after completing a walk.
+                Enter a match ID to rate your walking partner after completing a
+                walk.
               </p>
               <div className="flex gap-2">
                 <Input
                   type="number"
                   placeholder="Match ID"
                   className="text-xs h-8"
-                  onChange={(e) => {
+                  onChange={e => {
                     const v = parseInt(e.target.value);
                     if (!isNaN(v)) setRatingMatchId(v);
                   }}
@@ -230,7 +273,8 @@ export function WalkingBodyPanel({
                   variant="outline"
                   onClick={() => {
                     if (ratingMatchId) setRatingMatchId(ratingMatchId);
-                  }}>
+                  }}
+                >
                   Rate
                 </Button>
               </div>
@@ -238,22 +282,25 @@ export function WalkingBodyPanel({
           ) : (
             <div className="space-y-3">
               <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
+                {[1, 2, 3, 4, 5].map(s => (
                   <button
                     key={s}
                     onClick={() => setRatingStars(s)}
-                    className="p-0.5 transition-transform hover:scale-110">
+                    className="p-0.5 transition-transform hover:scale-110"
+                  >
                     <Star
                       className={`w-5 h-5 ${s <= ratingStars ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`}
                     />
                   </button>
                 ))}
-                <span className="text-xs text-muted-foreground ml-1">{ratingStars}/5</span>
+                <span className="text-xs text-muted-foreground ml-1">
+                  {ratingStars}/5
+                </span>
               </div>
               <Input
                 placeholder="Optional comment..."
                 value={ratingComment}
-                onChange={(e) => setRatingComment(e.target.value)}
+                onChange={e => setRatingComment(e.target.value)}
                 className="text-xs h-8"
               />
               <div className="flex gap-2">
@@ -268,14 +315,18 @@ export function WalkingBodyPanel({
                       comment: ratingComment || undefined,
                     })
                   }
-                  disabled={ratePartnerMutation.isPending}>
-                  {ratePartnerMutation.isPending ? "Submitting..." : "Submit Rating"}
+                  disabled={ratePartnerMutation.isPending}
+                >
+                  {ratePartnerMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Rating"}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
                   className="h-8 text-xs"
-                  onClick={() => setRatingMatchId(null)}>
+                  onClick={() => setRatingMatchId(null)}
+                >
                   Cancel
                 </Button>
               </div>

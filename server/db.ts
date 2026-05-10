@@ -2,6 +2,7 @@ import { eq, and, or, gt, lt, lte, gte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
+  type User,
   users,
   courses,
   courseMemberships,
@@ -29,7 +30,14 @@ import {
   pushSubscriptions,
   userNotifications,
 } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  TRUST_SCORE_DEFAULT,
+  clampTrustScore,
+  getTrustScoreRatio,
+  getTrustTier,
+  type TrustTierKey,
+} from "@shared/trust";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let loggedSqlDisabled = false;
@@ -92,8 +100,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'guild_admin';
-      updateSet.role = 'guild_admin';
+      values.role = "guild_admin";
+      updateSet.role = "guild_admin";
     }
 
     if (!values.lastSignedIn) {
@@ -120,21 +128,49 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserById(userId: number) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUsersByOpenIds(openIds: string[]) {
+  const uniqueOpenIds = Array.from(
+    new Set(
+      openIds.map(openId => openId.trim()).filter(openId => openId.length > 0)
+    )
+  );
+  if (uniqueOpenIds.length === 0) {
+    return [];
+  }
+
+  const db = await getDb();
+  if (!db) return [];
+
+  return db.select().from(users).where(inArray(users.openId, uniqueOpenIds));
 }
 
 export async function getUserByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -233,20 +269,39 @@ export async function createLocalUser(data: {
     role: data.role ?? "student",
     lastSignedIn: new Date(),
   });
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function setVerificationCode(userId: number, code: string, expiry: Date) {
+export async function setVerificationCode(
+  userId: number,
+  code: string,
+  expiry: Date
+) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ verificationCode: code, verificationExpiry: expiry }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ verificationCode: code, verificationExpiry: expiry })
+    .where(eq(users.id, userId));
 }
 
 export async function verifyUserEmail(userId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ emailVerified: true, isVerified: true, verificationCode: null, verificationExpiry: null }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({
+      emailVerified: true,
+      isVerified: true,
+      verificationCode: null,
+      verificationExpiry: null,
+    })
+    .where(eq(users.id, userId));
 }
 
 // ============================================================================
@@ -286,14 +341,21 @@ export async function upsertWalkingAvailability(
     });
 }
 
-export async function getAvailableWalkersByGeohash5(geohash5Prefixes: string[]) {
+export async function getAvailableWalkersByGeohash5(
+  geohash5Prefixes: string[]
+) {
   const db = await getDb();
   if (!db) return [];
 
   return db
     .select()
     .from(walkingAvailability)
-    .where(and(inArray(walkingAvailability.geohash5, geohash5Prefixes), eq(walkingAvailability.isAvailable, true)));
+    .where(
+      and(
+        inArray(walkingAvailability.geohash5, geohash5Prefixes),
+        eq(walkingAvailability.isAvailable, true)
+      )
+    );
 }
 
 export async function getWalkingAvailability(userId: number) {
@@ -365,7 +427,12 @@ export async function createWalkingMatch(requestId: number, walkerId: number) {
   const result = await db
     .select()
     .from(walkingMatches)
-    .where(and(eq(walkingMatches.requestId, requestId), eq(walkingMatches.walkerId, walkerId)))
+    .where(
+      and(
+        eq(walkingMatches.requestId, requestId),
+        eq(walkingMatches.walkerId, walkerId)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -382,7 +449,10 @@ export async function getWalkingMatch(matchId: number) {
   return result.length > 0 ? result[0] : null;
 }
 
-export async function updateWalkingMatchStatus(matchId: number, status: string) {
+export async function updateWalkingMatchStatus(
+  matchId: number,
+  status: string
+) {
   const db = await getDb();
   if (!db) return;
 
@@ -420,7 +490,10 @@ export async function getWalkingRatingsForUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(walkingRatings).where(eq(walkingRatings.rateeId, userId));
+  return db
+    .select()
+    .from(walkingRatings)
+    .where(eq(walkingRatings.rateeId, userId));
 }
 
 // ============================================================================
@@ -471,10 +544,17 @@ export async function getClassClaimsByCourse(courseId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(classClaims).where(eq(classClaims.courseId, courseId));
+  return db
+    .select()
+    .from(classClaims)
+    .where(eq(classClaims.courseId, courseId));
 }
 
-export async function createClassClaimVote(claimId: number, voterId: number, vote: number) {
+export async function createClassClaimVote(
+  claimId: number,
+  voterId: number,
+  vote: number
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -491,7 +571,10 @@ export async function getClassClaimVotes(claimId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(classClaimVotes).where(eq(classClaimVotes.claimId, claimId));
+  return db
+    .select()
+    .from(classClaimVotes)
+    .where(eq(classClaimVotes.claimId, claimId));
 }
 
 export async function updateClassClaimStatus(claimId: number, status: string) {
@@ -547,7 +630,8 @@ export async function updateRepStrike(
   if (!db) return;
 
   const updateData: any = { strikeCount };
-  if (bypassDisabledUntil !== undefined) updateData.bypassDisabledUntil = bypassDisabledUntil;
+  if (bypassDisabledUntil !== undefined)
+    updateData.bypassDisabledUntil = bypassDisabledUntil;
   if (bypassRevoked !== undefined) updateData.bypassRevoked = bypassRevoked;
   if (trueStreak !== undefined) updateData.trueStreak = trueStreak;
 
@@ -617,11 +701,18 @@ export async function getPathReportsByGeohash6(geohash6Prefixes: string[]) {
     .select()
     .from(pathReports)
     .where(
-      and(inArray(pathReports.geohash6, geohash6Prefixes), eq(pathReports.status, "active"))
+      and(
+        inArray(pathReports.geohash6, geohash6Prefixes),
+        eq(pathReports.status, "active")
+      )
     );
 }
 
-export async function createPathReportVote(reportId: number, voterId: number, vote: number) {
+export async function createPathReportVote(
+  reportId: number,
+  voterId: number,
+  vote: number
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -638,10 +729,16 @@ export async function getPathReportVotes(reportId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  return db.select().from(pathReportVotes).where(eq(pathReportVotes.reportId, reportId));
+  return db
+    .select()
+    .from(pathReportVotes)
+    .where(eq(pathReportVotes.reportId, reportId));
 }
 
-export async function updatePathReportTTL(reportId: number, ttlMinutes: number) {
+export async function updatePathReportTTL(
+  reportId: number,
+  ttlMinutes: number
+) {
   const db = await getDb();
   if (!db) return;
 
@@ -784,7 +881,12 @@ export async function getActiveCheckins() {
   return db.select().from(checkins).where(eq(checkins.status, "active"));
 }
 
-export async function updateCheckinStatus(checkinId: number, status: string, completedAt?: Date, failedAt?: Date) {
+export async function updateCheckinStatus(
+  checkinId: number,
+  status: string,
+  completedAt?: Date,
+  failedAt?: Date
+) {
   const db = await getDb();
   if (!db) return;
 
@@ -792,17 +894,18 @@ export async function updateCheckinStatus(checkinId: number, status: string, com
   if (completedAt) updateData.completedAt = completedAt;
   if (failedAt) updateData.failedAt = failedAt;
 
-  await db
-    .update(checkins)
-    .set(updateData)
-    .where(eq(checkins.id, checkinId));
+  await db.update(checkins).set(updateData).where(eq(checkins.id, checkinId));
 }
 
 // ============================================================================
 // NOTIFICATION QUERIES
 // ============================================================================
 
-export async function createNotification(userId: number, type: string, payload: any) {
+export async function createNotification(
+  userId: number,
+  type: string,
+  payload: any
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -819,7 +922,11 @@ export async function createNotification(userId: number, type: string, payload: 
 // COURSE & MEMBERSHIP QUERIES
 // ============================================================================
 
-export async function createCourse(courseCode: string, courseName: string, classSize: number) {
+export async function createCourse(
+  courseCode: string,
+  courseName: string,
+  classSize: number
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -857,7 +964,12 @@ export async function getCourseMembership(courseId: number, userId: number) {
   const result = await db
     .select()
     .from(courseMemberships)
-    .where(and(eq(courseMemberships.courseId, courseId), eq(courseMemberships.userId, userId)))
+    .where(
+      and(
+        eq(courseMemberships.courseId, courseId),
+        eq(courseMemberships.userId, userId)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -871,14 +983,23 @@ export async function verifyRepMembership(courseId: number, userId: number) {
     .set({
       verifiedAt: new Date(),
     })
-    .where(and(eq(courseMemberships.courseId, courseId), eq(courseMemberships.userId, userId)));
+    .where(
+      and(
+        eq(courseMemberships.courseId, courseId),
+        eq(courseMemberships.userId, userId)
+      )
+    );
 }
 
 // ============================================================================
 // FOOTPATH QUERIES
 // ============================================================================
 
-export async function createFootpath(name: string | null, geoJson: any, createdBy: number) {
+export async function createFootpath(
+  name: string | null,
+  geoJson: any,
+  createdBy: number
+) {
   const db = await getDb();
   if (!db) return null;
 
@@ -931,7 +1052,11 @@ export async function getAllPathEdges() {
 export async function getPathNode(nodeId: number) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(_pathNodes).where(eq(_pathNodes.id, nodeId)).limit(1);
+  const result = await db
+    .select()
+    .from(_pathNodes)
+    .where(eq(_pathNodes.id, nodeId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -1028,13 +1153,17 @@ export async function cacheRoutePlan(data: {
   const db = await getDb();
   if (!db) return;
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
-  await db.insert(_routePlans).values({ ...data, mode: data.mode as any, expiresAt });
+  await db
+    .insert(_routePlans)
+    .values({ ...data, mode: data.mode as any, expiresAt });
 }
 
 export async function countPathNodes() {
   const db = await getDb();
   if (!db) return 0;
-  const result = await db.select({ count: sql<number>`COUNT(*)` }).from(_pathNodes);
+  const result = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(_pathNodes);
   return Number(result[0]?.count ?? 0);
 }
 
@@ -1051,7 +1180,11 @@ export async function getAllCourses() {
 export async function getCourseById(courseId: number) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(courses).where(eq(courses.id, courseId)).limit(1);
+  const result = await db
+    .select()
+    .from(courses)
+    .where(eq(courses.id, courseId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -1063,13 +1196,13 @@ export async function getCoursesByUser(userId: number) {
     .from(courseMemberships)
     .where(eq(courseMemberships.userId, userId));
   if (memberships.length === 0) return [];
-  const courseIds = memberships.map((m) => m.courseId);
+  const courseIds = memberships.map(m => m.courseId);
   const courseList = await db
     .select()
     .from(courses)
     .where(and(inArray(courses.id, courseIds), eq(courses.isActive, true)));
-  return courseList.map((c) => {
-    const membership = memberships.find((m) => m.courseId === c.id);
+  return courseList.map(c => {
+    const membership = memberships.find(m => m.courseId === c.id);
     return { ...c, membershipRole: membership?.membershipRole ?? "student" };
   });
 }
@@ -1077,39 +1210,64 @@ export async function getCoursesByUser(userId: number) {
 export async function getSavedCoursesByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  const saved = await db.select().from(savedCourses).where(eq(savedCourses.userId, userId));
+  const saved = await db
+    .select()
+    .from(savedCourses)
+    .where(eq(savedCourses.userId, userId));
   if (saved.length === 0) return [];
-  const courseIds = saved.map((s) => s.courseId);
+  const courseIds = saved.map(s => s.courseId);
   return db.select().from(courses).where(inArray(courses.id, courseIds));
 }
 
 export async function saveCourse(userId: number, courseId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(savedCourses).values({ userId, courseId }).onDuplicateKeyUpdate({ set: { userId } });
+  await db
+    .insert(savedCourses)
+    .values({ userId, courseId })
+    .onDuplicateKeyUpdate({ set: { userId } });
 }
 
 export async function unsaveCourse(userId: number, courseId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.delete(savedCourses).where(and(eq(savedCourses.userId, userId), eq(savedCourses.courseId, courseId)));
+  await db
+    .delete(savedCourses)
+    .where(
+      and(eq(savedCourses.userId, userId), eq(savedCourses.courseId, courseId))
+    );
 }
 
-export async function getUserMembershipForCourse(userId: number, courseId: number) {
+export async function getUserMembershipForCourse(
+  userId: number,
+  courseId: number
+) {
   const db = await getDb();
   if (!db) return null;
   const result = await db
     .select()
     .from(courseMemberships)
-    .where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.courseId, courseId)))
+    .where(
+      and(
+        eq(courseMemberships.userId, userId),
+        eq(courseMemberships.courseId, courseId)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
-export async function enrollUserInCourse(userId: number, courseId: number, membershipRole: "student" | "class_rep" | "lecturer" = "student") {
+export async function enrollUserInCourse(
+  userId: number,
+  courseId: number,
+  membershipRole: "student" | "class_rep" | "lecturer" = "student"
+) {
   const db = await getDb();
   if (!db) return;
-  await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onDuplicateKeyUpdate({ set: { membershipRole } });
+  await db
+    .insert(courseMemberships)
+    .values({ userId, courseId, membershipRole })
+    .onDuplicateKeyUpdate({ set: { membershipRole } });
 }
 
 export async function enrollUserInAllActiveCourses(
@@ -1135,7 +1293,7 @@ export async function enrollUserInAllActiveCourses(
       .onDuplicateKeyUpdate({ set: { membershipRole } });
   }
 
-  return activeCourses.map((course) => course.id);
+  return activeCourses.map(course => course.id);
 }
 
 // ============================================================================
@@ -1145,7 +1303,13 @@ export async function enrollUserInAllActiveCourses(
 export async function createCourseAnnouncement(data: {
   courseId: number;
   authorId: number;
-  announcementType: "cancelled" | "room_changed" | "lecturer_late" | "rescheduled" | "materials_uploaded" | "general";
+  announcementType:
+    | "cancelled"
+    | "room_changed"
+    | "lecturer_late"
+    | "rescheduled"
+    | "materials_uploaded"
+    | "general";
   title: string;
   body?: string;
   isOfficial: boolean;
@@ -1165,16 +1329,28 @@ export async function createCourseAnnouncement(data: {
   return result.length > 0 ? result[0] : null;
 }
 
-export async function getAnnouncementsByCourse(courseId: number, includeAll = false) {
+export async function getAnnouncementsByCourse(
+  courseId: number,
+  includeAll = false
+) {
   const db = await getDb();
   if (!db) return [];
   if (includeAll) {
-    return db.select().from(courseAnnouncements).where(eq(courseAnnouncements.courseId, courseId)).orderBy(sql`id DESC`);
+    return db
+      .select()
+      .from(courseAnnouncements)
+      .where(eq(courseAnnouncements.courseId, courseId))
+      .orderBy(sql`id DESC`);
   }
   return db
     .select()
     .from(courseAnnouncements)
-    .where(and(eq(courseAnnouncements.courseId, courseId), eq(courseAnnouncements.status, "approved")))
+    .where(
+      and(
+        eq(courseAnnouncements.courseId, courseId),
+        eq(courseAnnouncements.status, "approved")
+      )
+    )
     .orderBy(sql`id DESC`);
 }
 
@@ -1184,11 +1360,20 @@ export async function getPendingAnnouncementsByCourse(courseId: number) {
   return db
     .select()
     .from(courseAnnouncements)
-    .where(and(eq(courseAnnouncements.courseId, courseId), eq(courseAnnouncements.status, "pending")))
+    .where(
+      and(
+        eq(courseAnnouncements.courseId, courseId),
+        eq(courseAnnouncements.status, "pending")
+      )
+    )
     .orderBy(sql`id DESC`);
 }
 
-export async function reviewAnnouncement(announcementId: number, reviewerId: number, status: "approved" | "rejected") {
+export async function reviewAnnouncement(
+  announcementId: number,
+  reviewerId: number,
+  status: "approved" | "rejected"
+) {
   const db = await getDb();
   if (!db) return;
   await db
@@ -1203,9 +1388,14 @@ export async function getClassRepCourses(userId: number) {
   const memberships = await db
     .select()
     .from(courseMemberships)
-    .where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.membershipRole, "class_rep")));
+    .where(
+      and(
+        eq(courseMemberships.userId, userId),
+        eq(courseMemberships.membershipRole, "class_rep")
+      )
+    );
   if (memberships.length === 0) return [];
-  const courseIds = memberships.map((m) => m.courseId);
+  const courseIds = memberships.map(m => m.courseId);
   return db.select().from(courses).where(inArray(courses.id, courseIds));
 }
 
@@ -1213,22 +1403,39 @@ export async function getClassRepStats(userId: number) {
   const db = await getDb();
   if (!db) return { activeIssues: 0, pendingReports: 0, verifiedToday: 0 };
   const repCourses = await getClassRepCourses(userId);
-  if (repCourses.length === 0) return { activeIssues: 0, pendingReports: 0, verifiedToday: 0 };
-  const courseIds = repCourses.map((c) => c.id);
+  if (repCourses.length === 0)
+    return { activeIssues: 0, pendingReports: 0, verifiedToday: 0 };
+  const courseIds = repCourses.map(c => c.id);
   const pendingClaims = await db
     .select()
     .from(classClaims)
-    .where(and(inArray(classClaims.courseId, courseIds), eq(classClaims.status, "pending")));
+    .where(
+      and(
+        inArray(classClaims.courseId, courseIds),
+        eq(classClaims.status, "pending")
+      )
+    );
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const verifiedToday = await db
     .select()
     .from(classClaims)
-    .where(and(inArray(classClaims.courseId, courseIds), eq(classClaims.status, "verified"), gte(classClaims.resolvedAt, todayStart)));
+    .where(
+      and(
+        inArray(classClaims.courseId, courseIds),
+        eq(classClaims.status, "verified"),
+        gte(classClaims.resolvedAt, todayStart)
+      )
+    );
   const pendingAnnouncements = await db
     .select()
     .from(courseAnnouncements)
-    .where(and(inArray(courseAnnouncements.courseId, courseIds), eq(courseAnnouncements.status, "pending")));
+    .where(
+      and(
+        inArray(courseAnnouncements.courseId, courseIds),
+        eq(courseAnnouncements.status, "pending")
+      )
+    );
   return {
     activeIssues: pendingClaims.length,
     pendingReports: pendingAnnouncements.length,
@@ -1242,9 +1449,12 @@ export async function getCourseHealth(courseId: number) {
   const openClaims = await db
     .select()
     .from(classClaims)
-    .where(and(eq(classClaims.courseId, courseId), eq(classClaims.status, "pending")));
+    .where(
+      and(eq(classClaims.courseId, courseId), eq(classClaims.status, "pending"))
+    );
   const openIssues = openClaims.length;
-  const status = openIssues === 0 ? "stable" : openIssues <= 2 ? "minor" : "critical";
+  const status =
+    openIssues === 0 ? "stable" : openIssues <= 2 ? "minor" : "critical";
   return { openIssues, status };
 }
 
@@ -1260,10 +1470,21 @@ export async function upsertCourse(data: {
 }) {
   const db = await getDb();
   if (!db) return null;
-  await db.insert(courses).values({ ...data, isActive: true }).onDuplicateKeyUpdate({
-    set: { courseName: data.courseName, room: data.room, lecturer: data.lecturer },
-  });
-  const result = await db.select().from(courses).where(eq(courses.courseCode, data.courseCode)).limit(1);
+  await db
+    .insert(courses)
+    .values({ ...data, isActive: true })
+    .onDuplicateKeyUpdate({
+      set: {
+        courseName: data.courseName,
+        room: data.room,
+        lecturer: data.lecturer,
+      },
+    });
+  const result = await db
+    .select()
+    .from(courses)
+    .where(eq(courses.courseCode, data.courseCode))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -1274,7 +1495,14 @@ export async function upsertCourse(data: {
 export async function createCourseSession(data: {
   courseId: number;
   sessionType?: "lecture" | "tutorial" | "lab" | "seminar" | "other";
-  dayOfWeek: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
+  dayOfWeek:
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday";
   startTime: string;
   endTime: string;
   locationId?: number;
@@ -1296,13 +1524,20 @@ export async function createCourseSession(data: {
 export async function getCourseSessionsByCourse(courseId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(courseSessions).where(eq(courseSessions.courseId, courseId));
+  return db
+    .select()
+    .from(courseSessions)
+    .where(eq(courseSessions.courseId, courseId));
 }
 
 export async function getCourseSession(sessionId: number) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(courseSessions).where(eq(courseSessions.id, sessionId)).limit(1);
+  const result = await db
+    .select()
+    .from(courseSessions)
+    .where(eq(courseSessions.id, sessionId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -1315,11 +1550,17 @@ export async function getCourseSessionsByUser(userId: number) {
     .from(courseMemberships)
     .where(eq(courseMemberships.userId, userId));
   if (memberships.length === 0) return [];
-  const courseIds = memberships.map((m) => m.courseId);
-  return db.select().from(courseSessions).where(inArray(courseSessions.courseId, courseIds));
+  const courseIds = memberships.map(m => m.courseId);
+  return db
+    .select()
+    .from(courseSessions)
+    .where(inArray(courseSessions.courseId, courseIds));
 }
 
-export async function getSessionOverridesByDate(courseSessionId: number, overrideDate: string) {
+export async function getSessionOverridesByDate(
+  courseSessionId: number,
+  overrideDate: string
+) {
   const db = await getDb();
   if (!db) return [];
   return db
@@ -1337,7 +1578,12 @@ export async function createSessionOverride(data: {
   courseSessionId: number;
   classReportId: number;
   overrideDate: string;
-  overrideType: "cancelled" | "room_changed" | "time_changed" | "lecturer_late" | "class_confirmed";
+  overrideType:
+    | "cancelled"
+    | "room_changed"
+    | "time_changed"
+    | "lecturer_late"
+    | "class_confirmed";
   originalRoom?: string;
   newRoom?: string;
   originalStartTime?: string;
@@ -1366,7 +1612,13 @@ export async function createClassReport(data: {
   courseId: number;
   courseSessionId?: number;
   reporterUserId: number;
-  reportType: "class_cancelled" | "lecturer_late" | "room_changed" | "time_changed" | "class_confirmed" | "other";
+  reportType:
+    | "class_cancelled"
+    | "lecturer_late"
+    | "room_changed"
+    | "time_changed"
+    | "class_confirmed"
+    | "other";
   title: string;
   description?: string;
   originalRoom?: string;
@@ -1395,11 +1647,18 @@ export async function createClassReport(data: {
 export async function getClassReport(reportId: number) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(classReports).where(eq(classReports.id, reportId)).limit(1);
+  const result = await db
+    .select()
+    .from(classReports)
+    .where(eq(classReports.id, reportId))
+    .limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
-export async function getClassReportsByCourse(courseId: number, includeAll = false) {
+export async function getClassReportsByCourse(
+  courseId: number,
+  includeAll = false
+) {
   const db = await getDb();
   if (!db) return [];
   if (includeAll) {
@@ -1427,13 +1686,22 @@ export async function updateClassReportStatus(
 ) {
   const db = await getDb();
   if (!db) return;
-  await db.update(classReports).set({ status }).where(eq(classReports.id, reportId));
+  await db
+    .update(classReports)
+    .set({ status })
+    .where(eq(classReports.id, reportId));
 }
 
-export async function updateClassReportScore(reportId: number, verificationScore: number) {
+export async function updateClassReportScore(
+  reportId: number,
+  verificationScore: number
+) {
   const db = await getDb();
   if (!db) return;
-  await db.update(classReports).set({ verificationScore }).where(eq(classReports.id, reportId));
+  await db
+    .update(classReports)
+    .set({ verificationScore })
+    .where(eq(classReports.id, reportId));
 }
 
 export async function getPendingExpiredClassReports() {
@@ -1443,7 +1711,9 @@ export async function getPendingExpiredClassReports() {
   return db
     .select()
     .from(classReports)
-    .where(and(eq(classReports.status, "pending"), lt(classReports.expiresAt, now)));
+    .where(
+      and(eq(classReports.status, "pending"), lt(classReports.expiresAt, now))
+    );
 }
 
 // ============================================================================
@@ -1461,11 +1731,18 @@ export async function createOrUpdateClassReportVote(
   await db
     .insert(classReportVotes)
     .values({ reportId, userId, voteType, voteWeight })
-    .onDuplicateKeyUpdate({ set: { voteType, voteWeight, updatedAt: new Date() } });
+    .onDuplicateKeyUpdate({
+      set: { voteType, voteWeight, updatedAt: new Date() },
+    });
   const result = await db
     .select()
     .from(classReportVotes)
-    .where(and(eq(classReportVotes.reportId, reportId), eq(classReportVotes.userId, userId)))
+    .where(
+      and(
+        eq(classReportVotes.reportId, reportId),
+        eq(classReportVotes.userId, userId)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -1473,7 +1750,10 @@ export async function createOrUpdateClassReportVote(
 export async function getClassReportVotes(reportId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(classReportVotes).where(eq(classReportVotes.reportId, reportId));
+  return db
+    .select()
+    .from(classReportVotes)
+    .where(eq(classReportVotes.reportId, reportId));
 }
 
 export async function getUserVoteOnReport(reportId: number, userId: number) {
@@ -1482,7 +1762,12 @@ export async function getUserVoteOnReport(reportId: number, userId: number) {
   const result = await db
     .select()
     .from(classReportVotes)
-    .where(and(eq(classReportVotes.reportId, reportId), eq(classReportVotes.userId, userId)))
+    .where(
+      and(
+        eq(classReportVotes.reportId, reportId),
+        eq(classReportVotes.userId, userId)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -1491,24 +1776,55 @@ export async function getUserVoteOnReport(reportId: number, userId: number) {
 // TRUST SCORE QUERIES
 // ============================================================================
 
+export interface UserTrustProfile {
+  userId: number | null;
+  openId: string;
+  name: string | null;
+  avatarUrl: string | null;
+  score: number;
+  scoreRatio: number;
+  tierKey: TrustTierKey;
+  tierLabel: string;
+}
+
+export interface UserTrustSummary extends UserTrustProfile {
+  averageStars: number;
+  ratingCount: number;
+}
+
 export async function getUserTrustScore(userId: number) {
   const db = await getDb();
-  if (!db) return 50;
-  const result = await db.select({ trustScore: users.trustScore }).from(users).where(eq(users.id, userId)).limit(1);
-  return result.length > 0 ? result[0].trustScore : 50;
+  if (!db) return TRUST_SCORE_DEFAULT;
+  const result = await db
+    .select({ trustScore: users.trustScore })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return result.length > 0
+    ? clampTrustScore(result[0].trustScore)
+    : TRUST_SCORE_DEFAULT;
 }
 
 export async function updateUserTrustScore(userId: number, newScore: number) {
   const db = await getDb();
   if (!db) return;
-  const clamped = Math.min(100, Math.max(0, newScore));
-  await db.update(users).set({ trustScore: clamped }).where(eq(users.id, userId));
+  const clamped = clampTrustScore(newScore);
+  await db
+    .update(users)
+    .set({ trustScore: clamped })
+    .where(eq(users.id, userId));
 }
 
 export async function logTrustScoreEvent(data: {
   userId: number;
   relatedReportId?: number;
-  eventType: "verified_report" | "rejected_report" | "correct_vote" | "incorrect_vote" | "expired_report" | "manual_adjustment";
+  eventType:
+    | "verified_report"
+    | "rejected_report"
+    | "correct_vote"
+    | "incorrect_vote"
+    | "expired_report"
+    | "manual_adjustment";
   scoreChange: number;
   previousScore: number;
   newScore: number;
@@ -1530,6 +1846,50 @@ export async function getTrustScoreHistory(userId: number) {
     .limit(50);
 }
 
+export async function getUserTrustSummary(
+  userId: number
+): Promise<UserTrustSummary> {
+  const [user, ratings] = await Promise.all([
+    getUserById(userId),
+    getWalkingRatingsForUser(userId),
+  ]);
+
+  const trustProfile = buildTrustProfile(
+    user ?? null,
+    user?.openId ?? `user:${userId}`
+  );
+  const ratingCount = ratings.length;
+  const averageStars =
+    ratingCount > 0
+      ? ratings.reduce((sum, rating) => sum + rating.stars, 0) / ratingCount
+      : 0;
+
+  return {
+    ...trustProfile,
+    averageStars,
+    ratingCount,
+  };
+}
+
+export async function getTrustProfilesByOpenIds(openIds: string[]) {
+  const uniqueOpenIds = Array.from(
+    new Set(
+      openIds.map(openId => openId.trim()).filter(openId => openId.length > 0)
+    )
+  );
+  if (uniqueOpenIds.length === 0) {
+    return [];
+  }
+
+  const usersByOpenId = new Map(
+    (await getUsersByOpenIds(uniqueOpenIds)).map(user => [user.openId, user])
+  );
+
+  return uniqueOpenIds.map(openId =>
+    buildTrustProfile(usersByOpenId.get(openId) ?? null, openId)
+  );
+}
+
 /**
  * Apply a trust score change to a user and log the event.
  * Returns the new score.
@@ -1537,11 +1897,17 @@ export async function getTrustScoreHistory(userId: number) {
 export async function applyTrustScoreChange(
   userId: number,
   scoreChange: number,
-  eventType: "verified_report" | "rejected_report" | "correct_vote" | "incorrect_vote" | "expired_report" | "manual_adjustment",
+  eventType:
+    | "verified_report"
+    | "rejected_report"
+    | "correct_vote"
+    | "incorrect_vote"
+    | "expired_report"
+    | "manual_adjustment",
   relatedReportId?: number
 ): Promise<number> {
   const previousScore = await getUserTrustScore(userId);
-  const newScore = Math.min(100, Math.max(0, previousScore + scoreChange));
+  const newScore = clampTrustScore(previousScore + scoreChange);
   await updateUserTrustScore(userId, newScore);
   await logTrustScoreEvent({
     userId,
@@ -1554,6 +1920,28 @@ export async function applyTrustScoreChange(
   return newScore;
 }
 
+function buildTrustProfile(
+  user: Pick<
+    User,
+    "id" | "openId" | "name" | "avatarUrl" | "trustScore"
+  > | null,
+  fallbackOpenId: string
+): UserTrustProfile {
+  const score = clampTrustScore(user?.trustScore ?? TRUST_SCORE_DEFAULT);
+  const tier = getTrustTier(score);
+
+  return {
+    userId: user?.id ?? null,
+    openId: user?.openId ?? fallbackOpenId,
+    name: user?.name ?? null,
+    avatarUrl: user?.avatarUrl ?? null,
+    score,
+    scoreRatio: getTrustScoreRatio(score),
+    tierKey: tier.key,
+    tierLabel: tier.label,
+  };
+}
+
 // ============================================================================
 // SUSPENSION QUERIES
 // ============================================================================
@@ -1562,24 +1950,37 @@ export async function getUserSuspensionStatus(userId: number) {
   const db = await getDb();
   if (!db) return { suspensionStatus: "none" as const, suspendedUntil: null };
   const result = await db
-    .select({ suspensionStatus: users.suspensionStatus, suspendedUntil: users.suspendedUntil })
+    .select({
+      suspensionStatus: users.suspensionStatus,
+      suspendedUntil: users.suspendedUntil,
+    })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
-  if (result.length === 0) return { suspensionStatus: "none" as const, suspendedUntil: null };
+  if (result.length === 0)
+    return { suspensionStatus: "none" as const, suspendedUntil: null };
   return result[0];
 }
 
-export async function applyReportingSuspension(userId: number, suspendedUntil: Date) {
+export async function applyReportingSuspension(
+  userId: number,
+  suspendedUntil: Date
+) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ suspensionStatus: "active", suspendedUntil }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ suspensionStatus: "active", suspendedUntil })
+    .where(eq(users.id, userId));
 }
 
 export async function clearUserSuspension(userId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.update(users).set({ suspensionStatus: "none", suspendedUntil: null }).where(eq(users.id, userId));
+  await db
+    .update(users)
+    .set({ suspensionStatus: "none", suspendedUntil: null })
+    .where(eq(users.id, userId));
 }
 
 export async function getExpiredSuspensions() {
@@ -1589,10 +1990,15 @@ export async function getExpiredSuspensions() {
   return db
     .select({ id: users.id })
     .from(users)
-    .where(and(eq(users.suspensionStatus, "active"), lt(users.suspendedUntil, now)));
+    .where(
+      and(eq(users.suspensionStatus, "active"), lt(users.suspendedUntil, now))
+    );
 }
 
-export async function countRejectedReportsInWindow(userId: number, windowDays: number) {
+export async function countRejectedReportsInWindow(
+  userId: number,
+  windowDays: number
+) {
   const db = await getDb();
   if (!db) return 0;
   const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000);
@@ -1613,14 +2019,23 @@ export async function countRejectedReportsInWindow(userId: number, windowDays: n
 // CLASS REPORT COMMENTS QUERIES
 // ============================================================================
 
-export async function createClassReportComment(reportId: number, userId: number, message: string) {
+export async function createClassReportComment(
+  reportId: number,
+  userId: number,
+  message: string
+) {
   const db = await getDb();
   if (!db) return null;
   await db.insert(classReportComments).values({ reportId, userId, message });
   const result = await db
     .select()
     .from(classReportComments)
-    .where(and(eq(classReportComments.reportId, reportId), eq(classReportComments.userId, userId)))
+    .where(
+      and(
+        eq(classReportComments.reportId, reportId),
+        eq(classReportComments.userId, userId)
+      )
+    )
     .orderBy(sql`id DESC`)
     .limit(1);
   return result.length > 0 ? result[0] : null;
@@ -1636,12 +2051,20 @@ export async function getClassReportComments(reportId: number) {
     .orderBy(sql`id ASC`);
 }
 
-export async function deleteClassReportComment(commentId: number, userId: number) {
+export async function deleteClassReportComment(
+  commentId: number,
+  userId: number
+) {
   const db = await getDb();
   if (!db) return;
   await db
     .delete(classReportComments)
-    .where(and(eq(classReportComments.id, commentId), eq(classReportComments.userId, userId)));
+    .where(
+      and(
+        eq(classReportComments.id, commentId),
+        eq(classReportComments.userId, userId)
+      )
+    );
 }
 
 // ============================================================================
@@ -1660,11 +2083,22 @@ export async function upsertPushSubscription(data: {
   await db
     .insert(pushSubscriptions)
     .values(data as any)
-    .onDuplicateKeyUpdate({ set: { p256dhKey: data.p256dhKey, authKey: data.authKey, updatedAt: new Date() } });
+    .onDuplicateKeyUpdate({
+      set: {
+        p256dhKey: data.p256dhKey,
+        authKey: data.authKey,
+        updatedAt: new Date(),
+      },
+    });
   const result = await db
     .select()
     .from(pushSubscriptions)
-    .where(and(eq(pushSubscriptions.userId, data.userId), eq(pushSubscriptions.endpoint, data.endpoint)))
+    .where(
+      and(
+        eq(pushSubscriptions.userId, data.userId),
+        eq(pushSubscriptions.endpoint, data.endpoint)
+      )
+    )
     .limit(1);
   return result.length > 0 ? result[0] : null;
 }
@@ -1674,13 +2108,21 @@ export async function deletePushSubscription(userId: number, endpoint: string) {
   if (!db) return;
   await db
     .delete(pushSubscriptions)
-    .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
+    .where(
+      and(
+        eq(pushSubscriptions.userId, userId),
+        eq(pushSubscriptions.endpoint, endpoint)
+      )
+    );
 }
 
 export async function getPushSubscriptionsByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  return db
+    .select()
+    .from(pushSubscriptions)
+    .where(eq(pushSubscriptions.userId, userId));
 }
 
 export async function getPushSubscriptionsForCourse(courseId: number) {
@@ -1692,14 +2134,19 @@ export async function getPushSubscriptionsForCourse(courseId: number) {
     .from(courseMemberships)
     .where(eq(courseMemberships.courseId, courseId));
   if (memberships.length === 0) return [];
-  const userIds = memberships.map((m) => m.userId);
-  return db.select().from(pushSubscriptions).where(inArray(pushSubscriptions.userId, userIds));
+  const userIds = memberships.map(m => m.userId);
+  return db
+    .select()
+    .from(pushSubscriptions)
+    .where(inArray(pushSubscriptions.userId, userIds));
 }
 
 export async function deleteInvalidPushSubscription(subscriptionId: number) {
   const db = await getDb();
   if (!db) return;
-  await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscriptionId));
+  await db
+    .delete(pushSubscriptions)
+    .where(eq(pushSubscriptions.id, subscriptionId));
 }
 
 // ============================================================================
@@ -1737,13 +2184,21 @@ export async function getUserNotifications(userId: number) {
     .limit(50);
 }
 
-export async function markNotificationRead(notificationId: number, userId: number) {
+export async function markNotificationRead(
+  notificationId: number,
+  userId: number
+) {
   const db = await getDb();
   if (!db) return;
   await db
     .update(userNotifications)
     .set({ readStatus: true })
-    .where(and(eq(userNotifications.id, notificationId), eq(userNotifications.userId, userId)));
+    .where(
+      and(
+        eq(userNotifications.id, notificationId),
+        eq(userNotifications.userId, userId)
+      )
+    );
 }
 
 export async function createCourseNotificationsForVerifiedReport(
@@ -1776,12 +2231,17 @@ export async function createCourseNotificationsForVerifiedReport(
 // PERMISSION HELPERS
 // ============================================================================
 
-export async function isUserRegisteredForCourse(userId: number, courseId: number): Promise<boolean> {
+export async function isUserRegisteredForCourse(
+  userId: number,
+  courseId: number
+): Promise<boolean> {
   const membership = await getCourseMembership(courseId, userId);
   return membership !== null;
 }
 
-export async function isUserSuspendedFromReporting(userId: number): Promise<boolean> {
+export async function isUserSuspendedFromReporting(
+  userId: number
+): Promise<boolean> {
   const status = await getUserSuspensionStatus(userId);
   if (status.suspensionStatus !== "active") return false;
   if (!status.suspendedUntil) return false;
@@ -1800,7 +2260,11 @@ export async function getVoteWeightForUser(
   const db = await getDb();
   if (!db) return 1;
   // Check user's global role
-  const userResult = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1);
+  const userResult = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
   const globalRole = userResult[0]?.role ?? "student";
   if (globalRole === "guild_admin") return 3;
   if (globalRole === "lecturer") return 5; // instant-like authority
@@ -1822,7 +2286,11 @@ export async function getRequiredThresholdForReport(
   if (!course) return { required: 3, rejection: -3 };
   const membership = await getCourseMembership(courseId, reporterUserId);
   const isRep = membership?.membershipRole === "class_rep";
-  const userResult = await db.select({ role: users.role }).from(users).where(eq(users.id, reporterUserId)).limit(1);
+  const userResult = await db
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, reporterUserId))
+    .limit(1);
   const globalRole = userResult[0]?.role ?? "student";
   // Lecturers and admins get instant verification (threshold 0)
   if (globalRole === "lecturer" || globalRole === "guild_admin") {
@@ -1834,7 +2302,8 @@ export async function getRequiredThresholdForReport(
   const alpha = isRep ? 0.1 : 0.3;
   const roleMultiplier = isRep ? 0.5 : 1.0;
   const beta = 0.5;
-  const raw = alpha * course.classSize * roleMultiplier * (1 - beta * normalisedTrust);
+  const raw =
+    alpha * course.classSize * roleMultiplier * (1 - beta * normalisedTrust);
   const required = Math.max(1, Math.ceil(raw));
   const rejection = -Math.max(2, Math.ceil(0.25 * course.classSize));
   return { required, rejection };

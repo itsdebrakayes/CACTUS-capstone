@@ -1,7 +1,12 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import {
+  getCachedSupabaseCourses,
+  loadSupabaseCourses,
+  type SupabaseCourseRecord,
+} from "@/lib/supabaseCourses";
 import AppLayout from "@/components/AppLayout";
 import {
   ArrowLeft,
@@ -21,11 +26,55 @@ import { cn } from "@/lib/utils";
 
 // ─── Mock enrolled courses ────────────────────────────────────────────────────
 const MOCK_COURSES = [
-  { id: 1, code: "PSYC1001", name: "Introduction to Psychology", room: "SLT 2", professor: "Dr. Williams" },
-  { id: 2, code: "STAT2202", name: "Advanced Statistics", room: "Lab 4", professor: "Prof. Miller" },
-  { id: 3, code: "COMP3161", name: "Database Management", room: "FST 1", professor: "Dr. Brown" },
-  { id: 4, code: "MATH2401", name: "Calculus II", room: "FST 3", professor: "Dr. Clarke" },
+  {
+    id: 1,
+    code: "PSYC1001",
+    name: "Introduction to Psychology",
+    room: "SLT 2",
+    professor: "Dr. Williams",
+  },
+  {
+    id: 2,
+    code: "STAT2202",
+    name: "Advanced Statistics",
+    room: "Lab 4",
+    professor: "Prof. Miller",
+  },
+  {
+    id: 3,
+    code: "COMP3161",
+    name: "Database Management",
+    room: "FST 1",
+    professor: "Dr. Brown",
+  },
+  {
+    id: 4,
+    code: "MATH2401",
+    name: "Calculus II",
+    room: "FST 3",
+    professor: "Dr. Clarke",
+  },
 ];
+
+type ChatCourse = {
+  id: number;
+  code: string;
+  name: string;
+  room: string;
+  professor: string;
+};
+
+function mapSupabaseCourses(
+  courses: SupabaseCourseRecord[] | null | undefined
+): ChatCourse[] {
+  return (courses ?? []).map(course => ({
+    id: course.id,
+    code: course.courseCode,
+    name: course.courseName,
+    room: course.room ?? "Room TBA",
+    professor: course.lecturer ?? "Lecturer TBA",
+  }));
+}
 
 // ─── Mock claims ──────────────────────────────────────────────────────────────
 const MOCK_CLAIMS = [
@@ -74,7 +123,10 @@ const CLAIM_TYPE_LABELS: Record<ClaimType, string> = {
   other: "Other",
 };
 
-const CLAIM_TYPE_COLORS: Record<ClaimType, { color: string; bg: string; icon: typeof XCircle }> = {
+const CLAIM_TYPE_COLORS: Record<
+  ClaimType,
+  { color: string; bg: string; icon: typeof XCircle }
+> = {
   cancelled: { color: "#e53935", bg: "#ffebee", icon: XCircle },
   room_change: { color: "#e65100", bg: "#fff3e0", icon: AlertTriangle },
   time_change: { color: "#1565c0", bg: "#e3f0ff", icon: Clock },
@@ -103,7 +155,8 @@ function ClaimCard({
   const typeConfig = CLAIM_TYPE_COLORS[claim.claimType];
   const Icon = typeConfig.icon;
   const total = claim.confirmCount + claim.denyCount;
-  const confirmPct = total > 0 ? Math.round((claim.confirmCount / total) * 100) : 0;
+  const confirmPct =
+    total > 0 ? Math.round((claim.confirmCount / total) * 100) : 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -119,14 +172,19 @@ function ClaimCard({
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-              style={{ color: typeConfig.color, backgroundColor: typeConfig.bg }}
+              style={{
+                color: typeConfig.color,
+                backgroundColor: typeConfig.bg,
+              }}
             >
               {CLAIM_TYPE_LABELS[claim.claimType]}
             </span>
             <span className="text-[10px] text-gray-400">{courseName}</span>
           </div>
           <p className="text-sm text-gray-800 leading-snug">{claim.message}</p>
-          <p className="text-[10px] text-gray-400 mt-1">{timeAgo(claim.createdAt)}</p>
+          <p className="text-[10px] text-gray-400 mt-1">
+            {timeAgo(claim.createdAt)}
+          </p>
         </div>
       </div>
 
@@ -142,7 +200,12 @@ function ClaimCard({
               className="h-full rounded-full transition-all"
               style={{
                 width: `${confirmPct}%`,
-                backgroundColor: confirmPct >= 60 ? "#00c853" : confirmPct >= 40 ? "#e65100" : "#e53935",
+                backgroundColor:
+                  confirmPct >= 60
+                    ? "#00c853"
+                    : confirmPct >= 40
+                      ? "#e65100"
+                      : "#e53935",
               }}
             />
           </div>
@@ -196,12 +259,19 @@ function NewClaimForm({
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-lg p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">New Class Update</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">×</button>
+        <h3 className="text-sm font-semibold text-gray-900">
+          New Class Update
+        </h3>
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+        >
+          ×
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-2 mb-3">
-        {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map((type) => {
+        {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map(type => {
           const config = CLAIM_TYPE_COLORS[type];
           return (
             <button
@@ -209,11 +279,13 @@ function NewClaimForm({
               onClick={() => setClaimType(type)}
               className={cn(
                 "py-2 px-3 rounded-xl text-xs font-medium transition-all text-left",
-                claimType === type
-                  ? "text-white"
-                  : "bg-[#f5f7fa] text-gray-600"
+                claimType === type ? "text-white" : "bg-[#f5f7fa] text-gray-600"
               )}
-              style={claimType === type ? { backgroundColor: config.color } : undefined}
+              style={
+                claimType === type
+                  ? { backgroundColor: config.color }
+                  : undefined
+              }
             >
               {CLAIM_TYPE_LABELS[type]}
             </button>
@@ -223,7 +295,7 @@ function NewClaimForm({
 
       <textarea
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={e => setMessage(e.target.value)}
         placeholder="Describe the update (e.g. 'Lecturer confirmed class is cancelled via email')"
         className="w-full p-3 bg-[#f5f7fa] rounded-xl text-sm text-gray-700 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-[#00c853]/30 mb-3"
         rows={3}
@@ -232,7 +304,10 @@ function NewClaimForm({
 
       <button
         onClick={() => {
-          if (!message.trim()) { toast.error("Please describe the update"); return; }
+          if (!message.trim()) {
+            toast.error("Please describe the update");
+            return;
+          }
           onSubmit(claimType, message.trim());
         }}
         className="w-full py-2.5 bg-[#00c853] text-white text-sm font-semibold rounded-xl hover:bg-[#00b84a] transition-colors"
@@ -246,8 +321,26 @@ function NewClaimForm({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ClassChatPage() {
   const [, navigate] = useLocation();
+  const search = useSearch();
   const { user, loading } = useAuth();
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const queryParams = useMemo(() => {
+    return new URLSearchParams(search);
+  }, [search]);
+  const requestedCourseId = useMemo(() => {
+    const value = Number(queryParams.get("courseId"));
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }, [queryParams]);
+  const cachedCourses = getCachedSupabaseCourses();
+  const [courses, setCourses] = useState<ChatCourse[]>(() => {
+    const mappedCourses = mapSupabaseCourses(cachedCourses);
+    if (mappedCourses.length > 0) {
+      return mappedCourses;
+    }
+    return requestedCourseId == null ? MOCK_COURSES : [];
+  });
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(
+    requestedCourseId
+  );
   const [showNewClaim, setShowNewClaim] = useState(false);
   const [claims, setClaims] = useState(MOCK_CLAIMS);
 
@@ -256,12 +349,70 @@ export default function ClassChatPage() {
       toast.success("Update posted!");
       setShowNewClaim(false);
     },
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
 
   const voteClaimMutation = trpc.classes.voteClaim.useMutation({
-    onError: (err) => toast.error(err.message),
+    onError: err => toast.error(err.message),
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (loading || !user) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    void loadSupabaseCourses()
+      .then(nextCourses => {
+        if (cancelled) {
+          return;
+        }
+
+        const mappedCourses = mapSupabaseCourses(nextCourses);
+        setCourses(
+          mappedCourses.length > 0
+            ? mappedCourses
+            : requestedCourseId == null
+              ? MOCK_COURSES
+              : []
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          const mappedCourses = mapSupabaseCourses(getCachedSupabaseCourses());
+          setCourses(
+            mappedCourses.length > 0
+              ? mappedCourses
+              : requestedCourseId == null
+                ? MOCK_COURSES
+                : []
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, requestedCourseId, user]);
+
+  useEffect(() => {
+    setSelectedCourse(current => {
+      if (requestedCourseId != null) {
+        return courses.some(course => course.id === requestedCourseId)
+          ? requestedCourseId
+          : null;
+      }
+
+      if (current != null) {
+        return courses.some(course => course.id === current) ? current : null;
+      }
+
+      return current;
+    });
+  }, [courses, requestedCourseId]);
 
   if (!loading && !user) {
     navigate("/login");
@@ -270,8 +421,8 @@ export default function ClassChatPage() {
 
   const handleVote = (claimId: number, vote: "confirm" | "deny") => {
     // Optimistic update
-    setClaims((prev) =>
-      prev.map((c) => {
+    setClaims(prev =>
+      prev.map(c => {
         if (c.id !== claimId) return c;
         const wasConfirm = c.userVote === "confirm";
         const wasDeny = c.userVote === "deny";
@@ -279,14 +430,16 @@ export default function ClassChatPage() {
         return {
           ...c,
           userVote: newVote,
-          confirmCount: c.confirmCount
-            + (vote === "confirm" && !wasConfirm ? 1 : 0)
-            - (vote === "confirm" && wasConfirm ? 1 : 0)
-            - (vote === "deny" && wasConfirm ? 1 : 0),
-          denyCount: c.denyCount
-            + (vote === "deny" && !wasDeny ? 1 : 0)
-            - (vote === "deny" && wasDeny ? 1 : 0)
-            - (vote === "confirm" && wasDeny ? 1 : 0),
+          confirmCount:
+            c.confirmCount +
+            (vote === "confirm" && !wasConfirm ? 1 : 0) -
+            (vote === "confirm" && wasConfirm ? 1 : 0) -
+            (vote === "deny" && wasConfirm ? 1 : 0),
+          denyCount:
+            c.denyCount +
+            (vote === "deny" && !wasDeny ? 1 : 0) -
+            (vote === "deny" && wasDeny ? 1 : 0) -
+            (vote === "confirm" && wasDeny ? 1 : 0),
         };
       })
     );
@@ -303,8 +456,8 @@ export default function ClassChatPage() {
     });
   };
 
-  const selectedCourseData = MOCK_COURSES.find((c) => c.id === selectedCourse);
-  const courseClaims = claims.filter((c) => c.courseId === selectedCourse);
+  const selectedCourseData = courses.find(c => c.id === selectedCourse);
+  const courseClaims = claims.filter(c => c.courseId === selectedCourse);
 
   return (
     <AppLayout activeTab="courses">
@@ -313,7 +466,15 @@ export default function ClassChatPage() {
         <div className="flex items-center gap-3">
           {selectedCourse && (
             <button
-              onClick={() => { setSelectedCourse(null); setShowNewClaim(false); }}
+              onClick={() => {
+                setShowNewClaim(false);
+                if (requestedCourseId != null) {
+                  setSelectedCourse(null);
+                  navigate("/class-chat");
+                  return;
+                }
+                setSelectedCourse(null);
+              }}
               className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center"
             >
               <ArrowLeft className="w-4 h-4 text-gray-600" />
@@ -345,9 +506,11 @@ export default function ClassChatPage() {
             <p className="text-xs text-gray-500 mb-3">
               Select a course to view and post class updates
             </p>
-            {MOCK_COURSES.map((course) => {
-              const courseClaims = claims.filter((c) => c.courseId === course.id);
-              const activeClaims = courseClaims.filter((c) => c.status === "active");
+            {courses.map(course => {
+              const courseClaims = claims.filter(c => c.courseId === course.id);
+              const activeClaims = courseClaims.filter(
+                c => c.status === "active"
+              );
               return (
                 <button
                   key={course.id}
@@ -358,8 +521,12 @@ export default function ClassChatPage() {
                     <BookOpen className="w-5 h-5 text-[#00c853]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{course.name}</p>
-                    <p className="text-xs text-gray-500">{course.code} · {course.professor}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {course.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {course.code} · {course.professor}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {activeClaims.length > 0 && (
@@ -372,6 +539,11 @@ export default function ClassChatPage() {
                 </button>
               );
             })}
+            {courses.length === 0 && (
+              <div className="rounded-xl border border-gray-100 bg-white p-4 text-sm text-gray-500 shadow-sm">
+                No registered classes were found.
+              </div>
+            )}
           </div>
         ) : (
           /* Claims for selected course */
@@ -389,8 +561,12 @@ export default function ClassChatPage() {
                 <div className="w-12 h-12 rounded-2xl bg-[#f5f7fa] flex items-center justify-center mb-3">
                   <CheckCircle className="w-6 h-6 text-gray-300" />
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">No updates yet</p>
-                <p className="text-xs text-gray-400 mb-4">Be the first to post a class update</p>
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  No updates yet
+                </p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Be the first to post a class update
+                </p>
                 <button
                   onClick={() => setShowNewClaim(true)}
                   className="flex items-center gap-2 px-4 py-2 bg-[#00c853] text-white text-sm font-semibold rounded-xl"
@@ -401,8 +577,8 @@ export default function ClassChatPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {courseClaims.map((claim) => {
-                  const course = MOCK_COURSES.find((c) => c.id === claim.courseId);
+                {courseClaims.map(claim => {
+                  const course = courses.find(c => c.id === claim.courseId);
                   return (
                     <ClaimCard
                       key={claim.id}

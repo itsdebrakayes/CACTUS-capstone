@@ -154,8 +154,10 @@ export async function loadMyActiveWalkGroup() {
   }
 
   const groupIds = (membershipRows ?? [])
-    .map((row) => row.walk_group_id)
-    .filter((value): value is string => typeof value === "string" && value.length > 0);
+    .map(row => row.walk_group_id)
+    .filter(
+      (value): value is string => typeof value === "string" && value.length > 0
+    );
 
   if (groupIds.length === 0) {
     return null;
@@ -214,7 +216,9 @@ export async function createWalkGroup(input: CreateWalkGroupInput) {
   }
 
   if (!group.isCreator || group.creatorId !== currentUserId) {
-    throw new Error("The new walk group was created, but creator membership is missing.");
+    throw new Error(
+      "The new walk group was created, but creator membership is missing."
+    );
   }
 
   return group;
@@ -249,9 +253,28 @@ export async function leaveWalkGroup(groupId: string) {
   return Boolean(data);
 }
 
+export async function removeWalkGroupMember(
+  groupId: string,
+  targetUserId: string
+) {
+  const { data, error } = await supabase.rpc("remove_walk_group_member", {
+    walk_group_id_input: groupId,
+    target_user_id_input: targetUserId,
+  });
+
+  if (error) {
+    throw new Error(`Unable to remove this member: ${error.message}`);
+  }
+
+  return Boolean(data);
+}
+
 export async function updateWalkGroupStatus(
   groupId: string,
-  nextStatus: Extract<WalkGroupStatus, "started" | "ended" | "cancelled" | "expired">
+  nextStatus: Extract<
+    WalkGroupStatus,
+    "started" | "ended" | "cancelled" | "expired"
+  >
 ) {
   const { data, error } = await supabase.rpc("update_walk_group_status", {
     walk_group_id_input: groupId,
@@ -281,12 +304,14 @@ async function enrichWalkGroups(
     return [];
   }
 
-  const membersByGroup = await loadMembersByGroup(groups.map((group) => group.id));
+  const membersByGroup = await loadMembersByGroup(
+    groups.map(group => group.id)
+  );
 
-  return groups.map((group) => {
+  return groups.map(group => {
     const members = membersByGroup.get(group.id) ?? [];
     const currentUserMembership = members.find(
-      (member) => member.userId === currentUserId && !member.leftAt
+      member => member.userId === currentUserId && !member.leftAt
     );
 
     return {
