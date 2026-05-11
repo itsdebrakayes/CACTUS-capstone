@@ -249,3 +249,11 @@
 - [x] Animated route playback: green dot moves along route at simulated walking pace (500ms ticks)
 - [x] Landmark callouts at 25%, 50%, 75% progress during simulated walk
 - [x] ETA display and progress bar during navigation (HUD overlay)
+
+## Restore reminders (added by facelift pass)
+- [x] Wire dashboard "Courses in Progress" to `trpc.courses.getMyCourses` (fallback to mock if empty).
+- [x] Wire dashboard "Recent Updates" to `trpc.courses.getCourseAnnouncements` (first enrolled course).
+- [x] Wire desktop calendar to `trpc.timetable.getMyTimetable` + course lookup.
+- [x] Wire profile "Updates" feed and "All Courses" stat to real announcements + memberships.
+- [x] Restore real auth (Login.tsx) and useAuth (src/_core/hooks/useAuth.ts) against tRPC.
+- [ ] Checklist strikethrough must remove items from the visible list (still UI-only mock).
