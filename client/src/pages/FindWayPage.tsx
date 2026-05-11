@@ -5,9 +5,12 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function FindWayPage() {
   const [, navigate] = useLocation();
 
+  // effects (all unchanged)
   useEffect(() => {
     navigate("/map", { replace: true });
   }, [navigate]);

@@ -13,8 +13,14 @@ import {
   haversineMeters,
   mergeRouteCoordinates,
 } from "@/lib/fstRouting";
-import { getCachedCampusPlaceData, loadCampusPlaceData } from "@/lib/campusPlaces";
-import { planCampusRouteBetweenNodes, type CampusDataset } from "@/lib/findWayGeo";
+import {
+  getCachedCampusPlaceData,
+  loadCampusPlaceData,
+} from "@/lib/campusPlaces";
+import {
+  planCampusRouteBetweenNodes,
+  type CampusDataset,
+} from "@/lib/findWayGeo";
 import {
   createSupabaseHazard,
   loadSupabaseHazards,
@@ -26,10 +32,12 @@ import {
   leaveWalkGroup,
   loadMyActiveWalkGroup,
   loadWalkGroup,
+  removeWalkGroupMember,
   updateWalkGroupStatus,
   type WalkGroupRecord,
   type WalkGroupMemberRecord,
 } from "@/lib/supabaseWalkGroups";
+import { trpc } from "@/lib/trpc";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -60,6 +68,11 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import {
+  TRUST_SCORE_DEFAULT,
+  getTrustTier,
+  type TrustTierKey,
+} from "@shared/trust";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 
@@ -100,8 +113,11 @@ interface MapHazardCategory extends HazardReportOption {
 
 interface DemoMemberProfile {
   id: string;
+  userId: string;
   name: string;
   trustScore: number;
+  trustTierKey: TrustTierKey;
+  trustTierLabel: string;
   isCreator: boolean;
   isCurrentUser: boolean;
 }
@@ -167,21 +183,6 @@ const HAZARD_CATEGORIES: MapHazardCategory[] = [
     border: "#ddd6fe",
     severity: 4,
   },
-];
-
-const DEMO_MEMBER_NAMES = [
-  "Daniel",
-  "Amelia",
-  "Jason",
-  "Naomi",
-  "Zuri",
-  "Kayla",
-  "Marcus",
-  "Ari",
-  "Lena",
-  "Noah",
-  "Rhea",
-  "Tariq",
 ];
 
 function formatDistanceLabel(distanceM: number) {
@@ -293,28 +294,31 @@ function createPinnedMarkerElement(label: string, color: string) {
   return el;
 }
 
-function hashString(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-  return hash;
-}
-
 function buildDemoMemberProfile(
   member: WalkGroupMemberRecord,
-  index: number,
-  currentUserId?: string
+  trustProfile:
+    | {
+        name: string | null;
+        score: number;
+        tierKey: TrustTierKey;
+        tierLabel: string;
+      }
+    | undefined,
+  currentUserOpenId?: string
 ): DemoMemberProfile {
-  const hash = hashString(member.userId);
-  const nameSeed = DEMO_MEMBER_NAMES[(hash + index * 7) % DEMO_MEMBER_NAMES.length];
-  const trustScore = (hash % 71) - 10;
-  const isCurrentUser = currentUserId === member.userId;
+  const memberOpenId = `supabase:${member.userId}`;
+  const fallbackTier = getTrustTier(TRUST_SCORE_DEFAULT);
+  const isCurrentUser = currentUserOpenId === memberOpenId;
 
   return {
     id: member.id,
-    name: isCurrentUser ? "You" : nameSeed,
-    trustScore,
+    userId: member.userId,
+    name: isCurrentUser
+      ? "You"
+      : trustProfile?.name?.trim() || `Member ${member.userId.slice(0, 6)}`,
+    trustScore: trustProfile?.score ?? TRUST_SCORE_DEFAULT,
+    trustTierKey: trustProfile?.tierKey ?? fallbackTier.key,
+    trustTierLabel: trustProfile?.tierLabel ?? fallbackTier.label,
     isCreator: member.role === "creator",
     isCurrentUser,
   };
@@ -322,7 +326,7 @@ function buildDemoMemberProfile(
 
 function getHazardCategory(type: string) {
   return (
-    HAZARD_CATEGORIES.find((category) => category.type === type) ?? {
+    HAZARD_CATEGORIES.find(category => category.type === type) ?? {
       type: "other",
       label: "Hazard",
       description: "Campus safety report",
@@ -338,6 +342,7 @@ function getHazardCategory(type: string) {
 export default function WalkGroupPage() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
+  const utils = trpc.useUtils();
   const [, params] = useRoute("/walk-group/:id");
   const groupId = params?.id ?? null;
   const cachedCampusBundle = getCachedCampusPlaceData();
@@ -361,11 +366,12 @@ export default function WalkGroupPage() {
   const [group, setGroup] = useState<WalkGroupRecord | null>(null);
   const [myActiveGroupId, setMyActiveGroupId] = useState<string | null>(null);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [routeSummary, setRouteSummary] = useState<WalkGroupRouteSummary | null>(
+  const [routeSummary, setRouteSummary] =
+    useState<WalkGroupRouteSummary | null>(null);
+  const [hazards, setHazards] = useState<HazardRecord[]>([]);
+  const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(
     null
   );
-  const [hazards, setHazards] = useState<HazardRecord[]>([]);
-  const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -374,24 +380,36 @@ export default function WalkGroupPage() {
   const [activeAction, setActiveAction] = useState<
     null | "join" | "leave" | "start" | "end"
   >(null);
+  const [memberActionKey, setMemberActionKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WalkGroupTab>("main");
   const [activeSnap, setActiveSnap] = useState<SheetSnap>("mid");
+  const downvoteWalkGroupMember =
+    trpc.trust.downvoteWalkGroupMember.useMutation();
 
   const canJoin = Boolean(
     group &&
-      group.status === "active" &&
-      !group.isCurrentUserMember &&
-      (!myActiveGroupId || myActiveGroupId === group.id)
+    group.status === "active" &&
+    !group.isCurrentUserMember &&
+    (!myActiveGroupId || myActiveGroupId === group.id)
   );
   const canLeave = Boolean(
     group &&
-      group.isCurrentUserMember &&
-      !group.isCreator &&
-      (group.status === "active" || group.status === "started")
+    group.isCurrentUserMember &&
+    !group.isCreator &&
+    (group.status === "active" || group.status === "started")
   );
   const canStart = Boolean(group?.isCreator && group.status === "active");
   const canEnd = Boolean(
-    group?.isCreator && (group.status === "active" || group.status === "started")
+    group?.isCreator &&
+    (group.status === "active" || group.status === "started")
+  );
+  const canManageMembers = Boolean(
+    group?.isCreator &&
+    (group.status === "active" || group.status === "started")
+  );
+  const canDownvoteMembers = Boolean(
+    group?.isCurrentUserMember &&
+    (group.status === "active" || group.status === "started")
   );
 
   const refreshGroup = useCallback(async () => {
@@ -439,7 +457,7 @@ export default function WalkGroupPage() {
           setCampusData(campusResponse.campusData);
         }
       })
-      .catch((error) => {
+      .catch(error => {
         if (!cancelled) {
           setLoadError(
             error instanceof Error
@@ -473,7 +491,7 @@ export default function WalkGroupPage() {
     }
 
     const watchId = navigator.geolocation.watchPosition(
-      (position) => {
+      position => {
         setUserLocation({
           coordinates: [
             position.coords.longitude,
@@ -667,8 +685,8 @@ export default function WalkGroupPage() {
     const route = data.routes?.[0];
     const coordinates = Array.isArray(route?.geometry?.coordinates)
       ? route.geometry.coordinates
-          .filter((coord) => Array.isArray(coord) && coord.length >= 2)
-          .map((coord) => [coord[0], coord[1]] as Coord2)
+          .filter(coord => Array.isArray(coord) && coord.length >= 2)
+          .map(coord => [coord[0], coord[1]] as Coord2)
       : [];
 
     if (coordinates.length < 2) {
@@ -692,10 +710,16 @@ export default function WalkGroupPage() {
       }
 
       const meetingCoord: Coord2 = [group.meetingLng, group.meetingLat];
-      const destinationCoord: Coord2 = [group.destinationLng, group.destinationLat];
+      const destinationCoord: Coord2 = [
+        group.destinationLng,
+        group.destinationLat,
+      ];
       const userTarget =
         group.status === "started" ? destinationCoord : meetingCoord;
-      let groupCoordinates = mergeRouteCoordinates([meetingCoord], [destinationCoord]);
+      let groupCoordinates = mergeRouteCoordinates(
+        [meetingCoord],
+        [destinationCoord]
+      );
       let groupDistanceM = haversineMeters(meetingCoord, destinationCoord);
       let groupDurationSec = groupDistanceM / 1.2;
 
@@ -849,7 +873,10 @@ export default function WalkGroupPage() {
     }
 
     const meetingCoord: Coord2 = [group.meetingLng, group.meetingLat];
-    const destinationCoord: Coord2 = [group.destinationLng, group.destinationLat];
+    const destinationCoord: Coord2 = [
+      group.destinationLng,
+      group.destinationLat,
+    ];
 
     if (!meetingMarkerRef.current) {
       meetingMarkerRef.current = new mapboxgl.Marker({
@@ -905,7 +932,9 @@ export default function WalkGroupPage() {
     );
     groupRouteSource?.setData(
       createRouteFeatureCollection(
-        group?.status === "started" ? routeSummary?.groupCoordinates ?? [] : []
+        group?.status === "started"
+          ? (routeSummary?.groupCoordinates ?? [])
+          : []
       )
     );
   }, [group?.status, isMapReady, routeSummary]);
@@ -918,7 +947,9 @@ export default function WalkGroupPage() {
 
     const fitCoordinates = [
       ...(routeSummary?.userCoordinates ?? []),
-      ...(group.status === "started" ? routeSummary?.groupCoordinates ?? [] : []),
+      ...(group.status === "started"
+        ? (routeSummary?.groupCoordinates ?? [])
+        : []),
       [group.meetingLng, group.meetingLat] as Coord2,
       [group.destinationLng, group.destinationLat] as Coord2,
       ...(userLocation ? [userLocation.coordinates] : []),
@@ -1029,18 +1060,84 @@ export default function WalkGroupPage() {
     [group, navigate, refreshGroup]
   );
 
-  const handleHazardClick = useCallback((hazard: Hazard) => {
-    const fullHazard =
-      hazards.find((item) => String(item.id) === String(hazard.id)) ?? null;
-    setSelectedHazard(fullHazard);
-  }, [hazards]);
+  const handleDownvoteMember = useCallback(
+    async (member: DemoMemberProfile) => {
+      if (!group) {
+        return;
+      }
+
+      const actionKey = `downvote:${member.userId}`;
+      setMemberActionKey(actionKey);
+      try {
+        const result = await downvoteWalkGroupMember.mutateAsync({
+          walkGroupId: group.id,
+          targetUserId: member.userId,
+        });
+        await utils.trust.getProfilesByOpenIds.invalidate();
+        toast.success(
+          `${member.name} was downvoted. Trust is now ${result.summary.score}% (${result.summary.tierLabel}).`
+        );
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Unable to downvote this member right now."
+        );
+      } finally {
+        setMemberActionKey(null);
+      }
+    },
+    [downvoteWalkGroupMember, group, utils.trust.getProfilesByOpenIds]
+  );
+
+  const handleRemoveMember = useCallback(
+    async (member: DemoMemberProfile) => {
+      if (!group) {
+        return;
+      }
+
+      const actionKey = `remove:${member.userId}`;
+      setMemberActionKey(actionKey);
+      try {
+        const removed = await removeWalkGroupMember(group.id, member.userId);
+        if (!removed) {
+          throw new Error("This member could not be removed.");
+        }
+
+        toast.success(`${member.name} was removed from the walk group.`);
+        await refreshGroup();
+      } catch (error) {
+        console.error(error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Unable to remove this member right now."
+        );
+      } finally {
+        setMemberActionKey(null);
+      }
+    },
+    [group, refreshGroup]
+  );
+
+  const handleHazardClick = useCallback(
+    (hazard: Hazard) => {
+      const fullHazard =
+        hazards.find(item => String(item.id) === String(hazard.id)) ?? null;
+      setSelectedHazard(fullHazard);
+    },
+    [hazards]
+  );
 
   const handleSubmitHazardWithOption = useCallback(
     async (optionType: string) => {
       const category = getHazardCategory(optionType);
       const mapCenter = mapRef.current?.getMap()?.getCenter();
-      const lat = userLocation?.coordinates[1] ?? mapCenter?.lat ?? group?.meetingLat;
-      const lng = userLocation?.coordinates[0] ?? mapCenter?.lng ?? group?.meetingLng;
+      const lat =
+        userLocation?.coordinates[1] ?? mapCenter?.lat ?? group?.meetingLat;
+      const lng =
+        userLocation?.coordinates[0] ?? mapCenter?.lng ?? group?.meetingLng;
 
       if (lat == null || lng == null) {
         toast.error("Unable to find a point on the map for this report.");
@@ -1056,9 +1153,9 @@ export default function WalkGroupPage() {
           description: undefined,
         });
 
-        setHazards((current) => [
+        setHazards(current => [
           created,
-          ...current.filter((item) => item.id !== created.id),
+          ...current.filter(item => item.id !== created.id),
         ]);
         setSelectedHazard(created);
         setIsReportOpen(false);
@@ -1084,16 +1181,41 @@ export default function WalkGroupPage() {
     [hazards]
   );
 
-  const demoMembers = useMemo(
+  const memberOpenIds = useMemo(
     () =>
-      (group?.members ?? []).map((member, index) =>
-        buildDemoMemberProfile(
-          member,
-          index,
-          user?.id != null ? String(user.id) : undefined
+      Array.from(
+        new Set(
+          (group?.members ?? []).map(member => `supabase:${member.userId}`)
         )
       ),
-    [group?.members, user?.id]
+    [group?.members]
+  );
+  const memberTrustQuery = trpc.trust.getProfilesByOpenIds.useQuery(
+    { openIds: memberOpenIds },
+    {
+      enabled: memberOpenIds.length > 0 && Boolean(user),
+    }
+  );
+  const memberTrustByOpenId = useMemo(
+    () =>
+      new Map(
+        (memberTrustQuery.data ?? []).map(trustProfile => [
+          trustProfile.openId,
+          trustProfile,
+        ])
+      ),
+    [memberTrustQuery.data]
+  );
+  const demoMembers = useMemo(
+    () =>
+      (group?.members ?? []).map(member =>
+        buildDemoMemberProfile(
+          member,
+          memberTrustByOpenId.get(`supabase:${member.userId}`),
+          user?.openId
+        )
+      ),
+    [group?.members, memberTrustByOpenId, user?.openId]
   );
 
   const userLat = userLocation?.coordinates[1];
@@ -1105,7 +1227,7 @@ export default function WalkGroupPage() {
     const liveDuration =
       routeSummary?.userDurationSec && routeSummary.userDurationSec > 0
         ? routeSummary.userDurationSec
-        : routeSummary?.groupDurationSec ?? 0;
+        : (routeSummary?.groupDurationSec ?? 0);
     return formatDurationLabel(liveDuration);
   }, [routeSummary?.groupDurationSec, routeSummary?.userDurationSec]);
   const statusTone = useMemo(() => {
@@ -1266,7 +1388,9 @@ export default function WalkGroupPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                    {group.isCreator ? "Hosting Walk Group" : "Joined Walk Group"}
+                    {group.isCreator
+                      ? "Hosting Walk Group"
+                      : "Joined Walk Group"}
                   </p>
                   <h1 className="mt-1 text-2xl font-bold text-slate-900">
                     {group.isCreator
@@ -1325,7 +1449,11 @@ export default function WalkGroupPage() {
                         showSpinner={activeAction === "join"}
                         color="green"
                         icon={Users}
-                        label={activeAction === "join" ? "Joining..." : "Join Walk Group"}
+                        label={
+                          activeAction === "join"
+                            ? "Joining..."
+                            : "Join Walk Group"
+                        }
                         onClick={() => void handleJoin()}
                       />
                     ) : null}
@@ -1335,7 +1463,11 @@ export default function WalkGroupPage() {
                         showSpinner={activeAction === "leave"}
                         color="slate"
                         icon={ArrowLeft}
-                        label={activeAction === "leave" ? "Leaving..." : "Leave Group"}
+                        label={
+                          activeAction === "leave"
+                            ? "Leaving..."
+                            : "Leave Group"
+                        }
                         onClick={() => void handleLeave()}
                       />
                     ) : null}
@@ -1345,7 +1477,11 @@ export default function WalkGroupPage() {
                         showSpinner={activeAction === "start"}
                         color="blue"
                         icon={Play}
-                        label={activeAction === "start" ? "Starting..." : "Start Group"}
+                        label={
+                          activeAction === "start"
+                            ? "Starting..."
+                            : "Start Group"
+                        }
                         onClick={() => void handleUpdateStatus("started")}
                       />
                     ) : null}
@@ -1355,7 +1491,9 @@ export default function WalkGroupPage() {
                         showSpinner={activeAction === "end"}
                         color="red"
                         icon={XCircle}
-                        label={activeAction === "end" ? "Ending..." : "End Group"}
+                        label={
+                          activeAction === "end" ? "Ending..." : "End Group"
+                        }
                         onClick={() => void handleUpdateStatus("ended")}
                       />
                     ) : null}
@@ -1382,11 +1520,34 @@ export default function WalkGroupPage() {
                       <h2 className="mt-1 text-lg font-bold text-slate-900">
                         Walking together
                       </h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Trust tiers are shared across the app and help members
+                        judge reliability at a glance.
+                      </p>
                     </div>
 
                     <div className="mt-4 space-y-2.5">
-                      {demoMembers.map((member) => (
-                        <MemberRow key={member.id} member={member} />
+                      {demoMembers.map(member => (
+                        <MemberRow
+                          key={member.id}
+                          member={member}
+                          canDownvote={
+                            canDownvoteMembers && !member.isCurrentUser
+                          }
+                          canRemove={
+                            canManageMembers &&
+                            !member.isCurrentUser &&
+                            !member.isCreator
+                          }
+                          isDownvoting={
+                            memberActionKey === `downvote:${member.userId}`
+                          }
+                          isRemoving={
+                            memberActionKey === `remove:${member.userId}`
+                          }
+                          onDownvote={() => void handleDownvoteMember(member)}
+                          onRemove={() => void handleRemoveMember(member)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -1396,14 +1557,17 @@ export default function WalkGroupPage() {
                       <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00a844]">
                         Note
                       </p>
-                      <p className="mt-1 text-sm text-slate-700">{group.note}</p>
+                      <p className="mt-1 text-sm text-slate-700">
+                        {group.note}
+                      </p>
                     </div>
                   ) : null}
 
                   {group.status === "started" ? (
                     <div className="rounded-[24px] border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-700">
-                      The group is already walking. The blue route on the map now
-                      shows the shared path from the meeting point to the destination.
+                      The group is already walking. The blue route on the map
+                      now shows the shared path from the meeting point to the
+                      destination.
                     </div>
                   ) : null}
                 </div>
@@ -1417,7 +1581,8 @@ export default function WalkGroupPage() {
                   </h2>
                   <p className="mt-2 max-w-sm text-sm text-slate-500">
                     This tab is reserved for quick Walk Group messages like
-                    “Wait for me”, “I’m coming”, or “Where exactly are you meeting?”
+                    “Wait for me”, “I’m coming”, or “Where exactly are you
+                    meeting?”
                   </p>
                 </div>
               )}
@@ -1433,7 +1598,7 @@ export default function WalkGroupPage() {
         helperText="Pick the issue type first. After that, we will save it to Supabase and show it on the map."
         options={HAZARD_CATEGORIES}
         onClose={() => setIsReportOpen(false)}
-        onSelect={(option) => {
+        onSelect={option => {
           void handleSubmitHazardWithOption(option.type);
         }}
       />
@@ -1461,7 +1626,25 @@ function InfoTile({
   );
 }
 
-function MemberRow({ member }: { member: DemoMemberProfile }) {
+function MemberRow({
+  member,
+  canDownvote,
+  canRemove,
+  isDownvoting,
+  isRemoving,
+  onDownvote,
+  onRemove,
+}: {
+  member: DemoMemberProfile;
+  canDownvote: boolean;
+  canRemove: boolean;
+  isDownvoting: boolean;
+  isRemoving: boolean;
+  onDownvote: () => void;
+  onRemove: () => void;
+}) {
+  const tierStyles = getTrustTierStyles(member.trustTierKey);
+
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-[#fbfcfd] px-4 py-3">
       <div className="min-w-0">
@@ -1480,18 +1663,95 @@ function MemberRow({ member }: { member: DemoMemberProfile }) {
             </span>
           ) : null}
         </div>
-        <p className="mt-1 text-xs text-slate-500">
-          Trust score: {member.trustScore}
-        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className={tierStyles.badgeClassName}>
+            {member.trustTierLabel}
+          </span>
+          <span className="text-xs text-slate-500">
+            {member.trustScore}% trust
+          </span>
+        </div>
       </div>
 
-      <div
-        className={`h-2.5 w-2.5 rounded-full ${
-          member.trustScore >= 0 ? "bg-[#00c853]" : "bg-red-500"
-        }`}
-      />
+      <div className="flex flex-col items-end gap-2">
+        <div
+          className={`h-2.5 w-2.5 rounded-full ${tierStyles.dotClassName}`}
+        />
+        {canDownvote || canRemove ? (
+          <div className="flex flex-wrap justify-end gap-2">
+            {canDownvote ? (
+              <button
+                type="button"
+                onClick={onDownvote}
+                disabled={isDownvoting || isRemoving}
+                className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isDownvoting ? "Downvoting..." : "Downvote"}
+              </button>
+            ) : null}
+            {canRemove ? (
+              <button
+                type="button"
+                onClick={onRemove}
+                disabled={isRemoving || isDownvoting}
+                className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-[11px] font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isRemoving ? "Removing..." : "Remove"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+function getTrustTierStyles(tierKey: TrustTierKey) {
+  switch (tierKey) {
+    case "flagged":
+      return {
+        badgeClassName:
+          "rounded-full bg-red-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-700",
+        dotClassName: "bg-red-500",
+      };
+    case "watchlist":
+      return {
+        badgeClassName:
+          "rounded-full bg-orange-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-orange-700",
+        dotClassName: "bg-orange-500",
+      };
+    case "low_trust":
+      return {
+        badgeClassName:
+          "rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700",
+        dotClassName: "bg-amber-500",
+      };
+    case "trusted_peer":
+      return {
+        badgeClassName:
+          "rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700",
+        dotClassName: "bg-emerald-500",
+      };
+    case "campus_ally":
+      return {
+        badgeClassName:
+          "rounded-full bg-teal-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-teal-700",
+        dotClassName: "bg-teal-500",
+      };
+    case "guardian":
+      return {
+        badgeClassName:
+          "rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-blue-700",
+        dotClassName: "bg-blue-500",
+      };
+    case "neutral":
+    default:
+      return {
+        badgeClassName:
+          "rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600",
+        dotClassName: "bg-slate-400",
+      };
+  }
 }
 
 function ActionButton({

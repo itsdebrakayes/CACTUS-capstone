@@ -33,7 +33,12 @@ export interface Footpath {
 }
 
 export interface CactusMapHandle {
-  showRoute: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
+  showRoute: (
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number
+  ) => void;
   clearRoute: () => void;
   flyTo: (lat: number, lng: number, zoom?: number) => void;
   getMap: () => mapboxgl.Map | null;
@@ -254,7 +259,9 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         el.title = "Your location";
         userMarkerRef.current = new mapboxgl.Marker(el)
           .setLngLat([userLng, userLat])
-          .setPopup(new mapboxgl.Popup({ offset: 15 }).setHTML("<strong>You</strong>"))
+          .setPopup(
+            new mapboxgl.Popup({ offset: 15 }).setHTML("<strong>You</strong>")
+          )
           .addTo(map);
         // Fly to user on first fix
         map.flyTo({ center: [userLng, userLat], zoom: UWI_MONA_ZOOM, duration: 1000 });
@@ -305,7 +312,13 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           el.addEventListener("click", () => onWalkerClick(cluster.items[0]));
         }
 
-        walkerMarkersRef.current.push(marker);
+        walkerMarkersRef.current.push({
+          baseSizePx:
+            cluster.count > 1 ? Math.min(36, 24 + cluster.count * 2) : 12,
+          element,
+          marker,
+          priority: cluster.count > 1 ? 18 : 12,
+        });
       });
     }, [walkers, onWalkerClick]);
 
@@ -345,7 +358,12 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           el.addEventListener("click", () => onHazardClick(hazard));
         }
 
-        hazardMarkersRef.current.push(marker);
+        hazardMarkersRef.current.push({
+          baseSizePx: 34,
+          element,
+          marker,
+          priority: 30,
+        });
       });
     }, [hazards, onHazardClick]);
 

@@ -40,6 +40,36 @@ function getDevBypassUser(): User | null {
   };
 }
 
+function buildSupabaseFallbackUser(input: {
+  supabaseUserId: string;
+  email?: string | null;
+  name?: string | null;
+  avatarUrl?: string | null;
+}): User {
+  const now = new Date();
+
+  return {
+    id: 0,
+    openId: `supabase:${input.supabaseUserId}`,
+    name: input.name ?? input.email?.split("@")[0] ?? "Student",
+    email: input.email ?? null,
+    passwordHash: null,
+    emailVerified: true,
+    verificationCode: null,
+    verificationExpiry: null,
+    avatarUrl: input.avatarUrl ?? null,
+    loginMethod: "supabase",
+    role: "student",
+    isVerified: true,
+    trustScore: TRUST_SCORE_DEFAULT,
+    suspensionStatus: "none",
+    suspendedUntil: null,
+    createdAt: now,
+    updatedAt: now,
+    lastSignedIn: now,
+  };
+}
+
 export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {

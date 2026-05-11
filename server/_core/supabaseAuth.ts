@@ -40,3 +40,22 @@ export async function getSupabaseUserForAccessToken(
 
   return data.user;
 }
+
+export function createSupabaseDataClientForAccessToken(accessToken: string) {
+  if (!ENV.supabaseUrl || !ENV.supabaseAnonKey) {
+    throw new Error("Supabase is not configured.");
+  }
+
+  return createClient(ENV.supabaseUrl, ENV.supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+}

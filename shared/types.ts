@@ -33,7 +33,12 @@ export interface WalkingRatingInput {
 }
 
 // Class Claims Types
-export type ClaimType = "cancelled" | "room_change" | "time_change" | "late" | "other";
+export type ClaimType =
+  | "cancelled"
+  | "room_change"
+  | "time_change"
+  | "late"
+  | "other";
 
 export interface ClassClaimInput {
   courseId: number;
@@ -47,7 +52,12 @@ export interface ClassClaimVoteInput {
 }
 
 // Path Reports Types
-export type ReportType = "light_out" | "broken_path" | "flooding" | "obstruction" | "suspicious";
+export type ReportType =
+  | "light_out"
+  | "broken_path"
+  | "flooding"
+  | "obstruction"
+  | "suspicious";
 
 export interface PathReportInput {
   reportType: ReportType;
@@ -76,6 +86,7 @@ export type RealtimeEventType =
   | "walking.request.created"
   | "walking.match.updated"
   | "trust.walking.updated"
+  | "trust.score.updated"
   | "class.claim.created"
   | "class.claim.voted"
   | "class.claim.resolved"

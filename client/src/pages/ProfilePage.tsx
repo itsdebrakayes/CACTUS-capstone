@@ -22,6 +22,7 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
+import { TRUST_SCORE_DEFAULT, getTrustTier } from "@shared/trust";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -206,8 +207,16 @@ export default function ProfilePage() {
     {
       title: "Safety",
       items: [
-        { icon: Shield, label: "My Check-Ins", onClick: () => navigate("/check-in") },
-        { icon: Award, label: "Walking History", onClick: () => navigate("/walking") },
+        {
+          icon: Shield,
+          label: "My Check-Ins",
+          onClick: () => navigate("/check-in"),
+        },
+        {
+          icon: Award,
+          label: "Walking History",
+          onClick: () => navigate("/walking"),
+        },
       ],
     },
     {
@@ -357,7 +366,7 @@ export default function ProfilePage() {
 
       {/* Menu sections */}
       <div className="px-4 space-y-3 mb-4">
-        {menuSections.map((section) => (
+        {menuSections.map(section => (
           <div key={section.title}>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 px-1">
               {section.title}

@@ -11,7 +11,12 @@ interface WalkingBodyPanelProps {
   userLng: number;
   isAvailable?: boolean;
   onAvailabilityChange?: (available: boolean) => void;
-  onRouteRequested?: (fromLat: number, fromLng: number, toLat: number, toLng: number) => void;
+  onRouteRequested?: (
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number
+  ) => void;
 }
 
 export function WalkingBodyPanel({
@@ -39,15 +44,19 @@ export function WalkingBodyPanel({
   });
 
   const requestWalkersMutation = trpc.walking.requestWalkers.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Walking request sent — ${data.matchCount} walker${data.matchCount !== 1 ? "s" : ""} notified`);
+    onSuccess: data => {
+      toast.success(
+        `Walking request sent — ${data.matchCount} walker${data.matchCount !== 1 ? "s" : ""} notified`
+      );
     },
     onError: (e: any) => toast.error(e.message),
   });
 
   const ratePartnerMutation = trpc.walking.ratePartner.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Rating submitted! New trust score: ${(data.trustScore * 100).toFixed(0)}%`);
+    onSuccess: data => {
+      toast.success(
+        `Rating submitted! New trust score: ${(data.trustScore * 100).toFixed(0)}%`
+      );
       setRatingMatchId(null);
       setRatingMatchInput("");
       setRatingComment("");
@@ -73,12 +82,15 @@ export function WalkingBodyPanel({
     requestWalkersMutation.mutate({ radiusM });
   };
 
-  const trustPct = trustData ? Math.round(trustData.score * 100) : null;
+  const trustPct = trustData?.score ?? null;
   const trustColor =
-    trustPct === null ? "text-muted-foreground"
-    : trustPct >= 80 ? "text-green-600"
-    : trustPct >= 50 ? "text-yellow-600"
-    : "text-red-600";
+    trustPct === null
+      ? "text-muted-foreground"
+      : trustPct >= 80
+        ? "text-green-600"
+        : trustPct >= 50
+          ? "text-yellow-600"
+          : "text-red-600";
 
   return (
     <div className="space-y-3 p-1">
@@ -101,7 +113,9 @@ export function WalkingBodyPanel({
                 </p>
               </>
             ) : (
-              <span className="text-xs text-muted-foreground">No ratings yet</span>
+              <span className="text-xs text-muted-foreground">
+                No ratings yet
+              </span>
             )}
           </div>
         </div>

@@ -1,7 +1,12 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import {
+  getCachedSupabaseCourses,
+  loadSupabaseCourses,
+  type SupabaseCourseRecord,
+} from "@/lib/supabaseCourses";
 import AppLayout from "@/components/AppLayout";
 import {
   ArrowLeft,
@@ -95,7 +100,10 @@ function ClaimCard({
           <div className="flex items-center gap-2 flex-wrap mb-0.5">
             <span
               className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-              style={{ color: typeConfig.color, backgroundColor: typeConfig.bg }}
+              style={{
+                color: typeConfig.color,
+                backgroundColor: typeConfig.bg,
+              }}
             >
               {CLAIM_TYPE_LABELS[claimTypeKey]}
             </span>
@@ -171,7 +179,7 @@ function NewClaimForm({
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">&times;</button>
       </div>
       <div className="grid grid-cols-2 gap-2 mb-3">
-        {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map((type) => {
+        {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map(type => {
           const config = CLAIM_TYPE_COLORS[type];
           return (
             <button
@@ -181,7 +189,11 @@ function NewClaimForm({
                 "py-2 px-3 rounded-xl text-xs font-medium transition-all text-left",
                 claimType === type ? "text-primary-foreground" : "bg-secondary text-muted-foreground"
               )}
-              style={claimType === type ? { backgroundColor: config.color } : undefined}
+              style={
+                claimType === type
+                  ? { backgroundColor: config.color }
+                  : undefined
+              }
             >
               {CLAIM_TYPE_LABELS[type]}
             </button>
@@ -198,7 +210,10 @@ function NewClaimForm({
       />
       <button
         onClick={() => {
-          if (!message.trim()) { toast.error("Please describe the update"); return; }
+          if (!message.trim()) {
+            toast.error("Please describe the update");
+            return;
+          }
           onSubmit(claimType, message.trim());
         }}
         className="w-full py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:bg-primary/90 transition-colors"
@@ -211,8 +226,26 @@ function NewClaimForm({
 
 export default function ClassChatPage() {
   const [, navigate] = useLocation();
+  const search = useSearch();
   const { user, loading } = useAuth();
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const queryParams = useMemo(() => {
+    return new URLSearchParams(search);
+  }, [search]);
+  const requestedCourseId = useMemo(() => {
+    const value = Number(queryParams.get("courseId"));
+    return Number.isInteger(value) && value > 0 ? value : null;
+  }, [queryParams]);
+  const cachedCourses = getCachedSupabaseCourses();
+  const [courses, setCourses] = useState<ChatCourse[]>(() => {
+    const mappedCourses = mapSupabaseCourses(cachedCourses);
+    if (mappedCourses.length > 0) {
+      return mappedCourses;
+    }
+    return requestedCourseId == null ? MOCK_COURSES : [];
+  });
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(
+    requestedCourseId
+  );
   const [showNewClaim, setShowNewClaim] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const utils = trpc.useUtils();
