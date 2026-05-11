@@ -1,10 +1,8 @@
 /**
- * Google Maps API Integration for Manus WebDev Templates
- * 
- * Main function: makeRequest<T>(endpoint, params) - Makes authenticated requests to Google Maps APIs
- * All credentials are automatically injected. Array parameters use | as separator.
- * 
- * See API examples below the type definitions for usage patterns.
+ * Legacy maps proxy helper.
+ *
+ * The active frontend uses Mapbox directly. This module remains only for any
+ * server-side code that still targets the older proxy format.
  */
 
 import { ENV } from "./env";
@@ -24,7 +22,7 @@ function getMapsConfig(): MapsConfig {
 
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "Google Maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+      "Legacy maps proxy credentials missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
     );
   }
 
@@ -44,7 +42,7 @@ interface RequestOptions {
 }
 
 /**
- * Make authenticated requests to Google Maps APIs
+ * Make authenticated requests to the legacy maps proxy
  * 
  * @param endpoint - The API endpoint (e.g., "/maps/api/geocode/json")
  * @param params - Query parameters for the request
@@ -82,7 +80,7 @@ export async function makeRequest<T = unknown>(
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(
-      `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
+      `Legacy maps proxy request failed (${response.status} ${response.statusText}): ${errorText}`
     );
   }
 
