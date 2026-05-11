@@ -1,33 +1,26 @@
-import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
 import {
-  AlertTriangle,
-  Play,
   MapPin,
   MessageSquare,
   ShieldAlert,
   ChevronRight,
   Bell,
   Search,
-  Clock,
-  CheckCircle,
-  XCircle,
   BookOpen,
-  Users,
   TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getGreeting(name: string) {
+function getGreeting() {
   const hour = new Date().getHours();
-  const first = name.split(" ")[0];
-  if (hour < 12) return `Good Morning`;
-  if (hour < 17) return `Good Afternoon`;
-  return `Good Evening`;
+  if (hour < 12) return "Good Morning";
+  if (hour < 17) return "Good Afternoon";
+  return "Good Evening";
 }
 
 function formatDate() {
@@ -39,70 +32,37 @@ function formatDate() {
   });
 }
 
-// ─── Mock data ──────────────────────────────────────────────────────────────
+function getSessionStatus(session: { dayOfWeek: string; startTime: string; endTime: string }) {
+  const now = new Date();
+  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const todayName = dayNames[now.getDay()];
+  if (session.dayOfWeek !== todayName) return "other";
+  const [sh, sm] = session.startTime.split(":").map(Number);
+  const [eh, em] = session.endTime.split(":").map(Number);
+  const startMins = sh * 60 + sm;
+  const endMins = eh * 60 + em;
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  if (nowMins >= startMins && nowMins < endMins) return "live";
+  if (nowMins < startMins) return "upcoming";
+  return "done";
+}
 
-const MOCK_SCHEDULE = [
-  {
-    id: 1,
-    courseCode: "PSYC1001",
-    courseName: "Introduction to Psychology",
-    room: "SLT 2",
-    startTime: new Date(new Date().setHours(9, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(10, 0, 0, 0)),
-    professor: "Dr. Williams",
-    status: "live" as const,
-    color: "bg-primary",
-  },
-  {
-    id: 2,
-    courseCode: "STAT2202",
-    courseName: "Advanced Statistics",
-    room: "Lab 4",
-    startTime: new Date(new Date().setHours(11, 30, 0, 0)),
-    endTime: new Date(new Date().setHours(13, 0, 0, 0)),
-    professor: "Prof. Miller",
-    status: "upcoming" as const,
-    color: "bg-teal-mid",
-  },
-  {
-    id: 3,
-    courseCode: "COMP3161",
-    courseName: "Database Management",
-    room: "FST 1",
-    startTime: new Date(new Date().setHours(14, 0, 0, 0)),
-    endTime: new Date(new Date().setHours(15, 30, 0, 0)),
-    professor: "Dr. Brown",
-    status: "upcoming" as const,
-    color: "bg-orange",
-  },
-];
-
-const MOCK_COURSES = [
-  { id: 1, code: "PSYC1001", name: "Introduction to Psychology", professor: "Dr. Williams", category: "Psychology", hours: 12, level: "Beginner" },
-  { id: 2, code: "STAT2202", name: "Advanced Statistics", professor: "Prof. Miller", category: "Mathematics", hours: 12, level: "Intermediate" },
-  { id: 3, code: "COMP3161", name: "Database Management", professor: "Dr. Brown", category: "Computer Science", hours: 12, level: "Advanced" },
-];
-
-const MOCK_ALERTS = [
-  { id: 1, type: "cancelled" as const, message: "Sociology lecture at 4 PM is CANCELLED", course: "SOCI2001", time: "2 min ago" },
-  { id: 2, type: "confirmed" as const, message: "Psych 101 confirmed as scheduled", course: "PSYC1001", time: "1 hr ago" },
-];
-
-const MOCK_TASKS = [
-  { id: 1, title: "Complete Lab Report", course: "STAT2202", due: "2 days remaining", color: "bg-teal-light" },
-  { id: 2, title: "Read Chapter 5", course: "PSYC1001", due: "3 days remaining", color: "bg-orange-light" },
-  { id: 3, title: "Database ER Diagram", course: "COMP3161", due: "4 days remaining", color: "bg-teal-light" },
-  { id: 4, title: "Statistics Problem Set", course: "STAT2202", due: "6 days remaining", color: "bg-orange-light" },
-];
-
-// ─── Main Dashboard ──────────────────────────────────────────────────────────
+// ─── Main Dashboard ───────────────────────────────────────────────────────────
 
 export default function DashboardHome() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
 
-  const currentClass = MOCK_SCHEDULE.find((c) => c.status === "live");
-  const nextClass = MOCK_SCHEDULE.find((c) => c.status === "upcoming");
+  const { data: timetable } = trpc.timetable.getMyTimetable.useQuery(undefined, { enabled: !!user });
+  const { data: myCourses } = trpc.courses.getMyCourses.useQuery(undefined, { enabled: !!user });
+
+  const todaySessions = (timetable ?? [])
+    .map((s) => ({ ...s, status: getSessionStatus(s) }))
+    .filter((s) => s.status !== "other" && s.status !== "done")
+    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+  const currentClass = todaySessions.find((s) => s.status === "live") ?? null;
+  const nextClass = todaySessions.find((s) => s.status === "upcoming") ?? null;
 
   if (loading) {
     return (
@@ -128,7 +88,7 @@ export default function DashboardHome() {
         <div className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4">
           <div className="flex items-center justify-between mb-1">
             <div>
-              <p className="text-sm text-muted-foreground">{getGreeting(displayName)}</p>
+              <p className="text-sm text-muted-foreground">{getGreeting()}</p>
               <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
                 Welcome, {displayName.split(" ")[0]}!
               </h1>
@@ -160,61 +120,64 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Main grid: left + right columns on desktop */}
+        {/* Main grid */}
         <div className="px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* LEFT column */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Current & Next class cards */}
+            {/* Today's Classes */}
             <div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Today's Classes
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Current class */}
-                {currentClass && (
-                  <button
-                    onClick={() => navigate(`/courses/${currentClass.id}`)}
-                    className="relative bg-gradient-to-br from-primary to-teal-mid rounded-2xl p-4 text-left overflow-hidden group"
-                  >
-                    <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
-                      LIVE
-                    </span>
-                    <div className="h-20 mb-3" />
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-full bg-white/20" />
-                      <span className="text-xs text-primary-foreground/70">{currentClass.professor}</span>
-                    </div>
-                    <p className="font-bold text-primary-foreground text-sm">{currentClass.courseName}</p>
-                    <p className="text-xs text-primary-foreground/60 mt-0.5">
-                      {currentClass.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · {currentClass.room}
-                    </p>
-                  </button>
-                )}
-
-                {/* Next class */}
-                {nextClass && (
-                  <button
-                    onClick={() => navigate(`/courses/${nextClass.id}`)}
-                    className="relative bg-gradient-to-br from-teal-mid to-primary/80 rounded-2xl p-4 text-left overflow-hidden group"
-                  >
-                    <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      UP NEXT
-                    </span>
-                    <div className="h-20 mb-3" />
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-full bg-white/20" />
-                      <span className="text-xs text-primary-foreground/70">{nextClass.professor}</span>
-                    </div>
-                    <p className="font-bold text-primary-foreground text-sm">{nextClass.courseName}</p>
-                    <p className="text-xs text-primary-foreground/60 mt-0.5">
-                      {nextClass.startTime.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} · {nextClass.room}
-                    </p>
-                  </button>
-                )}
-              </div>
+              {todaySessions.length === 0 ? (
+                <div className="bg-card rounded-2xl border border-border p-6 text-center">
+                  <BookOpen className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No classes scheduled for today</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {currentClass && (
+                    <button
+                      onClick={() => navigate(`/courses/${currentClass.courseId}`)}
+                      className="relative bg-gradient-to-br from-primary to-teal-mid rounded-2xl p-4 text-left overflow-hidden group"
+                    >
+                      <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary-foreground animate-pulse" />
+                        LIVE
+                      </span>
+                      <div className="h-20 mb-3" />
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-white/20" />
+                        <span className="text-xs text-primary-foreground/70">{currentClass.lecturer ?? "—"}</span>
+                      </div>
+                      <p className="font-bold text-primary-foreground text-sm">{currentClass.courseName ?? "—"}</p>
+                      <p className="text-xs text-primary-foreground/60 mt-0.5">
+                        {currentClass.startTime} · {currentClass.roomCode ?? "—"}
+                      </p>
+                    </button>
+                  )}
+                  {nextClass && (
+                    <button
+                      onClick={() => navigate(`/courses/${nextClass.courseId}`)}
+                      className="relative bg-gradient-to-br from-teal-mid to-primary/80 rounded-2xl p-4 text-left overflow-hidden group"
+                    >
+                      <span className="absolute top-3 right-3 bg-white/20 text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        UP NEXT
+                      </span>
+                      <div className="h-20 mb-3" />
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-6 h-6 rounded-full bg-white/20" />
+                        <span className="text-xs text-primary-foreground/70">{nextClass.lecturer ?? "—"}</span>
+                      </div>
+                      <p className="font-bold text-primary-foreground text-sm">{nextClass.courseName ?? "—"}</p>
+                      <p className="text-xs text-primary-foreground/60 mt-0.5">
+                        {nextClass.startTime} · {nextClass.roomCode ?? "—"}
+                      </p>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
-
 
             {/* Your courses */}
             <div>
@@ -227,7 +190,7 @@ export default function DashboardHome() {
                 </button>
               </div>
               <div className="space-y-2">
-                {MOCK_COURSES.map((course) => (
+                {(myCourses ?? []).slice(0, 3).map((course) => (
                   <button
                     key={course.id}
                     onClick={() => navigate(`/courses/${course.id}`)}
@@ -237,16 +200,23 @@ export default function DashboardHome() {
                       <BookOpen className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground text-sm">{course.name}</p>
+                      <p className="font-semibold text-foreground text-sm">{course.courseName}</p>
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                        {course.category} · {course.hours} hours · {course.level}
+                        {course.courseCode}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{course.professor}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{course.lecturer ?? "—"}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                   </button>
                 ))}
+                {(myCourses ?? []).length === 0 && (
+                  <div className="bg-card rounded-xl border border-border p-6 text-center">
+                    <BookOpen className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs text-muted-foreground">No courses enrolled yet</p>
+                    <button onClick={() => navigate("/courses")} className="text-xs text-primary font-medium mt-1">Browse Courses</button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -278,7 +248,7 @@ export default function DashboardHome() {
               })}
             </div>
 
-            {/* Course Tasks */}
+            {/* Course Tasks — placeholder until task system is built */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -286,26 +256,13 @@ export default function DashboardHome() {
                 </p>
                 <button className="text-xs text-primary font-medium">View All</button>
               </div>
-              <div className="space-y-2">
-                {MOCK_TASKS.map((task) => (
-                  <div
-                    key={task.id}
-                    className="bg-card rounded-xl border border-border p-3 flex items-center gap-3"
-                  >
-                    <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", task.color)}>
-                      <TrendingUp className="w-4 h-4 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{task.title}</p>
-                      <p className="text-xs text-muted-foreground">{task.due}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                ))}
+              <div className="bg-card rounded-xl border border-border p-6 text-center">
+                <TrendingUp className="w-6 h-6 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No pending tasks</p>
               </div>
             </div>
 
-            {/* Recent class updates */}
+            {/* Class Updates */}
             <div>
               <div className="flex items-center justify-between mb-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -316,27 +273,13 @@ export default function DashboardHome() {
                 </button>
               </div>
               <div className="bg-card rounded-xl border border-border divide-y divide-border">
-                {MOCK_ALERTS.map((alert) => {
-                  const Icon = alert.type === "cancelled" ? XCircle : CheckCircle;
-                  const iconClass = alert.type === "cancelled" ? "text-destructive" : "text-primary";
-                  const bgClass = alert.type === "cancelled" ? "bg-orange-light" : "bg-teal-light";
-                  const badge = alert.type === "cancelled" ? "CANCELLED" : "CONFIRMED";
-                  const badgeClass = alert.type === "cancelled" ? "text-destructive bg-orange-light" : "text-primary bg-teal-light";
-                  return (
-                    <div key={alert.id} className="flex items-center gap-3 p-3">
-                      <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", bgClass)}>
-                        <Icon className={cn("w-4 h-4", iconClass)} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-foreground truncate">{alert.message}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{alert.time}</p>
-                      </div>
-                      <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0", badgeClass)}>
-                        {badge}
-                      </span>
-                    </div>
-                  );
-                })}
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <MessageSquare className="w-6 h-6 text-muted-foreground/30 mb-2" />
+                  <p className="text-xs text-muted-foreground">No recent class updates</p>
+                  <button onClick={() => navigate("/class-chat")} className="text-xs text-primary font-medium mt-1">
+                    Go to Class Chat
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -159,7 +159,7 @@ export type InsertCourseMembership = typeof courseMemberships.$inferInsert;
 export const courseSessions = mysqlTable(
   "course_sessions",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseId: int("courseId").notNull(),
     sessionType: mysqlEnum("sessionType", ["lecture", "tutorial", "lab", "seminar", "other"]).default("lecture").notNull(),
     dayOfWeek: mysqlEnum("dayOfWeek", ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]).notNull(),
@@ -169,7 +169,7 @@ export const courseSessions = mysqlTable(
     roomCode: varchar("roomCode", { length: 64 }),
     lecturerId: int("lecturerId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdateFn(() => new Date()).notNull(),
   },
   (table) => ({
     courseIdIdx: index("idx_session_course_id").on(table.courseId),
@@ -186,7 +186,7 @@ export type InsertCourseSession = typeof courseSessions.$inferInsert;
 export const courseSessionOverrides = mysqlTable(
   "course_session_overrides",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseSessionId: int("courseSessionId").notNull(),
     classReportId: int("classReportId").notNull(),
     overrideDate: varchar("overrideDate", { length: 10 }).notNull(), // YYYY-MM-DD
@@ -221,7 +221,7 @@ export type InsertCourseSessionOverride = typeof courseSessionOverrides.$inferIn
 export const classReports = mysqlTable(
   "class_reports",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     courseId: int("courseId").notNull(),
     courseSessionId: int("courseSessionId"),
     reporterUserId: int("reporterUserId").notNull(),
@@ -241,7 +241,7 @@ export const classReports = mysqlTable(
     rejectionThreshold: int("rejectionThreshold").default(-3).notNull(),
     expiresAt: timestamp("expiresAt").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdateFn(() => new Date()).notNull(),
   },
   (table) => ({
     courseIdIdx: index("idx_class_report_course_id").on(table.courseId),
@@ -260,13 +260,13 @@ export type InsertClassReport = typeof classReports.$inferInsert;
 export const classReportVotes = mysqlTable(
   "class_report_votes",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     reportId: int("reportId").notNull(),
     userId: int("userId").notNull(),
     voteType: mysqlEnum("voteType", ["upvote", "downvote"]).notNull(),
     voteWeight: int("voteWeight").default(1).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdateFn(() => new Date()).notNull(),
   },
   (table) => ({
     reportIdIdx: index("idx_crv_report_id").on(table.reportId),
@@ -283,7 +283,7 @@ export type InsertClassReportVote = typeof classReportVotes.$inferInsert;
 export const trustScoreEvents = mysqlTable(
   "trust_score_events",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     relatedReportId: int("relatedReportId"),
     eventType: mysqlEnum("eventType", ["verified_report", "rejected_report", "correct_vote", "incorrect_vote", "expired_report", "manual_adjustment"]).notNull(),
@@ -306,12 +306,12 @@ export type InsertTrustScoreEvent = typeof trustScoreEvents.$inferInsert;
 export const classReportComments = mysqlTable(
   "class_report_comments",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     reportId: int("reportId").notNull(),
     userId: int("userId").notNull(),
     message: text("message").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdateFn(() => new Date()).notNull(),
   },
   (table) => ({
     reportIdIdx: index("idx_crc_report_id").on(table.reportId),
@@ -327,14 +327,14 @@ export type InsertClassReportComment = typeof classReportComments.$inferInsert;
 export const pushSubscriptions = mysqlTable(
   "push_subscriptions",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     endpoint: text("endpoint").notNull(),
     p256dhKey: text("p256dhKey").notNull(),
     authKey: text("authKey").notNull(),
     userAgent: varchar("userAgent", { length: 512 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().$onUpdateFn(() => new Date()).notNull(),
   },
   (table) => ({
     userIdIdx: index("idx_push_user_id").on(table.userId),
@@ -349,7 +349,7 @@ export type InsertPushSubscription = typeof pushSubscriptions.$inferInsert;
 export const userNotifications = mysqlTable(
   "user_notifications",
   {
-    id: int("id").autoincrement().primaryKey(),
+    id: idColumn(),
     userId: int("userId").notNull(),
     courseId: int("courseId"),
     classReportId: int("classReportId"),

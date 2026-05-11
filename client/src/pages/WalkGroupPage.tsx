@@ -1074,7 +1074,7 @@ export default function WalkGroupPage() {
   const visibleHazards = useMemo<Hazard[]>(
     () =>
       hazards.map((hazard) => ({
-        id: hazard.id,
+        id: typeof hazard.id === 'string' ? (parseInt(hazard.id, 10) || 0) : (hazard.id as number),
         reportType: hazard.reportType,
         lat: hazard.lat,
         lng: hazard.lng,
@@ -1186,7 +1186,6 @@ export default function WalkGroupPage() {
           userLat={userLat}
           userLng={userLng}
           hazards={visibleHazards}
-          campusData={campusData}
           onHazardClick={handleHazardClick}
         />
 

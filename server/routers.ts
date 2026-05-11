@@ -1363,8 +1363,8 @@ const pushRouter = router({
     .input(
       z.object({
         endpoint: z.string().url(),
-        p256dhKey: z.string(),
-        authKey: z.string(),
+        p256dhKey: z.string().min(1, "p256dhKey is required"),
+        authKey: z.string().min(1, "authKey is required"),
         userAgent: z.string().optional(),
       })
     )

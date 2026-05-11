@@ -235,18 +235,15 @@ export default function CoursesPage() {
     onError: (error) => toast.error(error.message),
   });
 
-  // Use mock data when backend data isn't available
-  const fallbackCourses = MOCK_COURSES;
-
   const displayCourses = useMemo(() => {
     const enrolledById = new Map(((myCourses as CourseWithRole[]) ?? []).map((course) => [course.id, course]));
     const savedIds = new Set(((savedCourses as CourseWithRole[]) ?? []).map((course) => course.id));
 
     let list: CourseWithRole[] = [];
-    if (activeTab === "ongoing") list = (myCourses as CourseWithRole[]) ?? fallbackCourses;
-    else if (activeTab === "saved") list = (savedCourses as CourseWithRole[]) ?? fallbackCourses.slice(0, 3);
+    if (activeTab === "ongoing") list = (myCourses as CourseWithRole[]) ?? [];
+    else if (activeTab === "saved") list = (savedCourses as CourseWithRole[]) ?? [];
     else {
-      list = ((allCourses as CourseWithRole[]) ?? fallbackCourses).map((course) => ({
+      list = ((allCourses as CourseWithRole[]) ?? []).map((course) => ({
         ...course,
         membershipRole: enrolledById.get(course.id)?.membershipRole,
         isSaved: savedIds.has(course.id),
@@ -271,7 +268,7 @@ export default function CoursesPage() {
       );
     }
     return list;
-  }, [activeTab, myCourses, savedCourses, allCourses, search, fallbackCourses]);
+  }, [activeTab, myCourses, savedCourses, allCourses, search]);
 
   const isLoading =
     (activeTab === "ongoing" && loadingMy) ||

@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Clock3, Crosshair, Loader2, MapPin, Users } from "lucide-react";
+import { Clock3, Crosshair, Loader2, Users } from "lucide-react";
 
 interface MeetingPointSelection {
   name: string;
@@ -61,113 +60,92 @@ export default function WalkGroupCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg rounded-3xl border border-gray-100 bg-white p-0 shadow-2xl">
+      <DialogContent className="max-w-lg rounded-2xl border border-border bg-card p-0 shadow-xl">
         {mode === "warning" ? (
           <>
             <DialogHeader className="px-6 pt-6">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8faf0] text-[#00c853]">
-                <Users className="h-6 w-6" />
+              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-teal-light">
+                <Users className="h-6 w-6 text-primary" />
               </div>
-              <DialogTitle className="text-left text-2xl font-bold text-gray-900">
+              <DialogTitle className="text-left text-xl font-bold text-foreground">
                 Start a Walk Group
               </DialogTitle>
-              <DialogDescription className="text-left text-sm leading-6 text-gray-500">
+              <DialogDescription className="text-left text-sm leading-6 text-muted-foreground">
                 Start your walk group at least 20 minutes before class time so
                 others have enough time to join and meet up.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter className="border-t border-gray-100 px-6 py-4">
-              <Button
+            <DialogFooter className="border-t border-border px-6 py-4 flex gap-3">
+              <button
                 type="button"
-                variant="outline"
-                className="rounded-xl"
                 onClick={onCancel}
+                className="px-4 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                className="rounded-xl bg-[#00c853] hover:bg-[#00b84a]"
                 onClick={onContinue}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors"
               >
                 Start Walk Group
-              </Button>
+              </button>
             </DialogFooter>
           </>
         ) : (
           <>
             <DialogHeader className="px-6 pt-6">
-              <DialogTitle className="text-left text-2xl font-bold text-gray-900">
+              <DialogTitle className="text-left text-xl font-bold text-foreground">
                 Create Walk Group
               </DialogTitle>
-              <DialogDescription className="text-left text-sm text-gray-500">
-                Set the destination, meeting point, and departure time.
+              <DialogDescription className="text-left text-sm text-muted-foreground">
+                Heading to{" "}
+                <span className="font-semibold text-primary">{destinationName}</span>
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-5 px-6 pb-6">
-              <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-500">
-                  Where is the group going?
-                </p>
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {destinationName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Using your selected Find My Way destination
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+            <div className="space-y-5 px-6 py-4">
+              {/* Meeting point */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                <label className="mb-2 block text-sm font-semibold text-foreground">
                   Where should people meet?
                 </label>
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <div className="rounded-xl border border-border bg-secondary p-4">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#00c853] shadow-sm">
-                      <Crosshair className="h-4 w-4" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-light">
+                      <Crosshair className="h-4 w-4 text-primary" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-gray-900">
-                        {selectedMeetingPoint
-                          ? selectedMeetingPoint.name
-                          : "No meeting point selected yet"}
+                      <p className="text-sm font-semibold text-foreground">
+                        {selectedMeetingPoint ? selectedMeetingPoint.name : "No meeting point selected yet"}
                       </p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {selectedMeetingPoint && meetingLat != null && meetingLng != null
                           ? `Lat ${meetingLat.toFixed(6)}, Lng ${meetingLng.toFixed(6)}`
-                          : "Tap the map to place the meeting marker. The coordinates will be saved to Supabase."}
+                          : "Tap the map to place the meeting marker."}
                       </p>
-                      {isPickingMeetingPoint ? (
-                        <p className="mt-2 text-xs font-semibold text-[#00a844]">
-                          Picking mode is active. Tap anywhere on the map behind
-                          this dialog.
+                      {isPickingMeetingPoint && (
+                        <p className="mt-2 text-xs font-semibold text-primary">
+                          Picking mode is active. Tap anywhere on the map.
                         </p>
-                      ) : null}
+                      )}
                     </div>
                   </div>
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    className="mt-4 w-full rounded-xl border-[#00c853]/20 text-[#00a844] hover:bg-[#e8faf0]"
                     onClick={onPickMeetingPoint}
                     disabled={isSubmitting}
+                    className="mt-3 w-full py-2 rounded-xl border border-primary/30 text-primary text-sm font-semibold hover:bg-teal-light transition-colors flex items-center justify-center gap-2"
                   >
-                    <Crosshair className="mr-2 h-4 w-4" />
+                    <Crosshair className="h-4 w-4" />
                     {selectedMeetingPoint ? "Change on Map" : "Pick on Map"}
-                  </Button>
+                  </button>
                 </div>
               </div>
 
+              {/* Leaving time */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                <label className="mb-2 block text-sm font-semibold text-foreground">
                   When are you leaving?
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -178,10 +156,10 @@ export default function WalkGroupCreateDialog({
                         key={option.value}
                         type="button"
                         onClick={() => onLeavingOffsetChange(option.value)}
-                        className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
+                        className={`rounded-xl border px-3 py-3 text-sm font-semibold transition-all ${
                           isSelected
-                            ? "border-[#00c853] bg-[#00c853] text-white"
-                            : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-secondary text-foreground hover:bg-secondary/80"
                         }`}
                       >
                         <div className="mb-1 flex justify-center">
@@ -194,8 +172,9 @@ export default function WalkGroupCreateDialog({
                 </div>
               </div>
 
+              {/* Note */}
               <div>
-                <label className="mb-2 block text-sm font-semibold text-gray-900">
+                <label className="mb-2 block text-sm font-semibold text-foreground">
                   Optional note
                 </label>
                 <textarea
@@ -203,36 +182,35 @@ export default function WalkGroupCreateDialog({
                   onChange={(event) => onNoteChange(event.currentTarget.value)}
                   rows={3}
                   placeholder="Meet beside the benches."
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#00c853] focus:ring-2 focus:ring-[#00c853]/10"
+                  className="w-full rounded-xl border border-border bg-secondary px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
               </div>
             </div>
 
-            <DialogFooter className="border-t border-gray-100 px-6 py-4">
-              <Button
+            <DialogFooter className="border-t border-border px-6 py-4 flex gap-3">
+              <button
                 type="button"
-                variant="outline"
-                className="rounded-xl"
                 onClick={onCancel}
                 disabled={isSubmitting}
+                className="px-4 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-semibold hover:bg-secondary/80 transition-colors disabled:opacity-50"
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                className="rounded-xl bg-[#00c853] hover:bg-[#00b84a]"
                 onClick={onCreate}
                 disabled={isSubmitting || !selectedMeetingPoint}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                     Creating...
                   </>
                 ) : (
                   "Create Walk Group"
                 )}
-              </Button>
+              </button>
             </DialogFooter>
           </>
         )}

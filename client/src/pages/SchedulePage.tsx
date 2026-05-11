@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import AppLayout from "@/components/AppLayout";
-import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, CheckCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc";
 
-// ─── Types & data ────────────────────────────────────────────────────────────
+// ─── Types & data ─────────────────────────────────────────────────────────────
 
 interface CalendarEvent {
   id: number;
@@ -30,6 +31,42 @@ const PASTEL_COLORS = [
   { bg: "hsl(130 30% 90%)", text: "hsl(130 40% 30%)" },
 ];
 
+const DAY_NAME_TO_INDEX: Record<string, number> = {
+  monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4,
+};
+
+function sessionsToCalendarEvents(sessions: Array<{
+  id: number;
+  dayOfWeek: string;
+  startTime: string;
+  endTime: string;
+  roomCode?: string | null;
+  courseName?: string | null;
+  lecturer?: string | null;
+  courseCode?: string | null;
+}>): CalendarEvent[] {
+  return sessions
+    .filter((s) => DAY_NAME_TO_INDEX[s.dayOfWeek] !== undefined)
+    .map((s, idx) => {
+      const [sh, sm] = s.startTime.split(":").map(Number);
+      const [eh, em] = s.endTime.split(":").map(Number);
+      const colorIdx = idx % PASTEL_COLORS.length;
+      return {
+        id: s.id,
+        title: s.courseCode ?? s.courseName ?? "Class",
+        startHour: sh,
+        startMin: sm,
+        endHour: eh,
+        endMin: em,
+        dayIndex: DAY_NAME_TO_INDEX[s.dayOfWeek],
+        room: s.roomCode ?? "—",
+        professor: s.lecturer ?? undefined,
+        color: PASTEL_COLORS[colorIdx].bg,
+        textColor: PASTEL_COLORS[colorIdx].text,
+      };
+    });
+}
+
 function getWeekDates(baseDate: Date) {
   const d = new Date(baseDate);
   const day = d.getDay();
@@ -42,36 +79,23 @@ function getWeekDates(baseDate: Date) {
   });
 }
 
-const MOCK_EVENTS: CalendarEvent[] = [
-  { id: 1, title: "Psych 101", startHour: 9, startMin: 0, endHour: 10, endMin: 0, dayIndex: 2, room: "SLT 2", professor: "Dr. Williams", color: PASTEL_COLORS[0].bg, textColor: PASTEL_COLORS[0].text },
-  { id: 2, title: "Stats 202", startHour: 10, startMin: 0, endHour: 11, endMin: 45, dayIndex: 1, room: "Lab 4", professor: "Prof. Miller", color: PASTEL_COLORS[1].bg, textColor: PASTEL_COLORS[1].text },
-  { id: 3, title: "Database Mgmt", startHour: 10, startMin: 0, endHour: 10, endMin: 45, dayIndex: 2, room: "FST 1", professor: "Dr. Brown", color: PASTEL_COLORS[2].bg, textColor: PASTEL_COLORS[2].text },
-  { id: 4, title: "Calculus II", startHour: 11, startMin: 0, endHour: 12, endMin: 0, dayIndex: 0, room: "FST 3", professor: "Dr. Clarke", color: PASTEL_COLORS[4].bg, textColor: PASTEL_COLORS[4].text },
-  { id: 5, title: "Sociology", startHour: 14, startMin: 0, endHour: 15, endMin: 30, dayIndex: 2, room: "Room 102", professor: "Dr. Thompson", color: PASTEL_COLORS[3].bg, textColor: PASTEL_COLORS[3].text },
-  { id: 6, title: "Web Development", startHour: 9, startMin: 0, endHour: 9, endMin: 30, dayIndex: 3, room: "CS Lab", color: PASTEL_COLORS[5].bg, textColor: PASTEL_COLORS[5].text },
-  { id: 7, title: "Linear Algebra", startHour: 11, startMin: 0, endHour: 11, endMin: 45, dayIndex: 3, room: "M201", color: PASTEL_COLORS[0].bg, textColor: PASTEL_COLORS[0].text },
-  { id: 8, title: "Design Thinking", startHour: 10, startMin: 0, endHour: 11, endMin: 0, dayIndex: 3, room: "Arts 301", color: PASTEL_COLORS[1].bg, textColor: PASTEL_COLORS[1].text },
-  { id: 9, title: "AI Fundamentals", startHour: 11, startMin: 0, endHour: 12, endMin: 0, dayIndex: 4, room: "CS 102", color: PASTEL_COLORS[2].bg, textColor: PASTEL_COLORS[2].text },
-  { id: 10, title: "Research Methods", startHour: 13, startMin: 0, endHour: 14, endMin: 0, dayIndex: 0, room: "SLT 1", color: PASTEL_COLORS[4].bg, textColor: PASTEL_COLORS[4].text },
-];
-
 const HOURS = Array.from({ length: 10 }, (_, i) => i + 8); // 8AM - 5PM
-const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri"];
 
-const MOCK_UPDATES = [
-  { id: 1, text: "Sociology cancelled — Dr. Thompson unwell", type: "cancelled" as const, time: "2h ago" },
-  { id: 2, text: "Stats 202 moved to Room 205", type: "updated" as const, time: "4h ago" },
-  { id: 3, text: "Psych 101 exam date confirmed: Mar 20", type: "confirmed" as const, time: "1d ago" },
-];
-
-// ─── Page ────────────────────────────────────────────────────────────────────
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
   const [baseDate, setBaseDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<"Daily" | "Weekly" | "Monthly">("Weekly");
+
+  const { data: timetable } = trpc.timetable.getMyTimetable.useQuery(undefined, { enabled: !!user });
+  const calendarEvents = sessionsToCalendarEvents(timetable ?? []);
+
+  const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const todayName = dayNames[new Date().getDay()];
+  const todayCount = (timetable ?? []).filter((s) => s.dayOfWeek === todayName).length;
 
   if (!loading && !user) {
     navigate("/login");
@@ -103,7 +127,6 @@ export default function SchedulePage() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              {/* View mode toggle */}
               <div className="hidden sm:flex bg-card border border-border rounded-xl overflow-hidden">
                 {(["Daily", "Weekly", "Monthly"] as const).map((mode) => (
                   <button
@@ -130,7 +153,7 @@ export default function SchedulePage() {
         </div>
 
         <div className="px-4 lg:px-8 grid grid-cols-1 lg:grid-cols-4 gap-6 pb-8">
-          {/* Calendar grid — takes 3 cols on desktop */}
+          {/* Calendar grid */}
           <div className="lg:col-span-3 bg-card border border-border rounded-2xl overflow-hidden">
             {/* Day headers */}
             <div className="grid grid-cols-[60px_repeat(5,1fr)] border-b border-border">
@@ -171,12 +194,9 @@ export default function SchedulePage() {
               ))}
 
               {/* Events */}
-              {MOCK_EVENTS.map((event) => {
+              {calendarEvents.map((event) => {
                 const startOffset = (event.startHour - 8) * 64 + (event.startMin / 60) * 64;
                 const duration = ((event.endHour - event.startHour) * 60 + (event.endMin - event.startMin)) / 60 * 64;
-                const colWidth = `calc((100% - 60px) / 5)`;
-                const left = `calc(60px + ${event.dayIndex} * ${colWidth})`;
-
                 return (
                   <div
                     key={event.id}
@@ -221,7 +241,7 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          {/* Right sidebar — class updates */}
+          {/* Right sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Today's summary */}
             <div className="bg-card border border-border rounded-2xl p-4">
@@ -229,15 +249,15 @@ export default function SchedulePage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Classes</span>
-                  <span className="text-sm font-bold text-foreground">3</span>
+                  <span className="text-sm font-bold text-foreground">{todayCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">Tasks Due</span>
-                  <span className="text-sm font-bold text-orange">2</span>
+                  <span className="text-sm font-bold text-orange">0</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Free Hours</span>
-                  <span className="text-sm font-bold text-primary">4</span>
+                  <span className="text-xs text-muted-foreground">Total Sessions</span>
+                  <span className="text-sm font-bold text-primary">{calendarEvents.length}</span>
                 </div>
               </div>
             </div>
@@ -247,26 +267,9 @@ export default function SchedulePage() {
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Recent Updates
               </h3>
-              <div className="space-y-2">
-                {MOCK_UPDATES.map((update) => {
-                  const colors = {
-                    cancelled: { bg: "bg-orange-light", text: "text-destructive", badge: "CANCELLED" },
-                    updated: { bg: "bg-orange-light", text: "text-orange", badge: "UPDATED" },
-                    confirmed: { bg: "bg-teal-light", text: "text-primary", badge: "CONFIRMED" },
-                  };
-                  const c = colors[update.type];
-                  return (
-                    <div key={update.id} className="bg-card border border-border rounded-xl p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full", c.bg, c.text)}>
-                          {c.badge}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">{update.time}</span>
-                      </div>
-                      <p className="text-xs text-foreground">{update.text}</p>
-                    </div>
-                  );
-                })}
+              <div className="bg-card border border-border rounded-xl p-4 text-center">
+                <Clock className="w-5 h-5 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No recent updates</p>
               </div>
             </div>
           </div>

@@ -15,79 +15,12 @@ import {
   Clock,
   ChevronRight,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-// ─── Mock enrolled courses ────────────────────────────────────────────────────
-const MOCK_COURSES = [
-  { id: 1, code: "PSYC1001", name: "Introduction to Psychology", room: "SLT 2", professor: "Dr. Williams" },
-  { id: 2, code: "STAT2202", name: "Advanced Statistics", room: "Lab 4", professor: "Prof. Miller" },
-  { id: 3, code: "COMP3161", name: "Database Management", room: "FST 1", professor: "Dr. Brown" },
-  { id: 4, code: "MATH2401", name: "Calculus II", room: "FST 3", professor: "Dr. Clarke" },
-];
-
 type ClaimType = "cancelled" | "room_change" | "time_change" | "late" | "other";
-
-type Claim = {
-  id: number;
-  courseId: number;
-  claimType: ClaimType;
-  message: string;
-  confirmCount: number;
-  denyCount: number;
-  status: "active" | "confirmed";
-  createdAt: Date;
-  userVote: "confirm" | "deny" | null;
-};
-
-// ─── Mock claims ──────────────────────────────────────────────────────────────
-const MOCK_CLAIMS: Claim[] = [
-  {
-    id: 1,
-    courseId: 1,
-    claimType: "cancelled" as const,
-    message: "Lecturer sent email — class is cancelled today",
-    confirmCount: 8,
-    denyCount: 1,
-    status: "confirmed" as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 20),
-    userVote: null as "confirm" | "deny" | null,
-  },
-  {
-    id: 2,
-    courseId: 2,
-    claimType: "room_change" as const,
-    message: "Stats moved to Room 205 due to maintenance",
-    confirmCount: 5,
-    denyCount: 2,
-    status: "active" as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 45),
-    userVote: "confirm" as "confirm" | "deny" | null,
-  },
-  {
-    id: 3,
-    courseId: 3,
-    claimType: "late" as const,
-    message: "Dr. Brown running 15 mins late",
-    confirmCount: 3,
-    denyCount: 0,
-    status: "active" as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 5),
-    userVote: null as "confirm" | "deny" | null,
-  },
-  {
-    id: 4,
-    courseId: 1,
-    claimType: "other" as const,
-    message: "Extra tutorial session announced for Friday 2PM in Room 301",
-    confirmCount: 12,
-    denyCount: 0,
-    status: "confirmed" as const,
-    createdAt: new Date(Date.now() - 1000 * 60 * 90),
-    userVote: "confirm" as "confirm" | "deny" | null,
-  },
-];
 
 const CLAIM_TYPE_LABELS: Record<ClaimType, string> = {
   cancelled: "Cancelled",
@@ -105,8 +38,6 @@ const CLAIM_TYPE_COLORS: Record<ClaimType, { color: string; bg: string; icon: ty
   other: { color: "hsl(0 0% 40%)", bg: "hsl(47 19% 90%)", icon: MessageSquare },
 };
 
-// ─── Filter tabs ──────────────────────────────────────────────────────────────
-
 const FILTER_TYPES = [
   { key: "all", label: "All" },
   { key: "cancelled", label: "Cancelled" },
@@ -115,32 +46,44 @@ const FILTER_TYPES = [
   { key: "other", label: "Other" },
 ];
 
-function timeAgo(date: Date) {
-  const diff = Date.now() - date.getTime();
+function timeAgo(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const diff = Date.now() - d.getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins / 60)}h ago`;
 }
 
-// ─── Claim Card ───────────────────────────────────────────────────────────────
 function ClaimCard({
   claim,
   courseName,
   onVote,
 }: {
-  claim: Claim;
+  claim: {
+    id: number;
+    claimType: string;
+    message: string;
+    confirmCount: number;
+    denyCount: number;
+    status: string;
+    createdAt: Date | string;
+    userVote?: number | null;
+  };
   courseName: string;
   onVote: (claimId: number, vote: "confirm" | "deny") => void;
 }) {
-  const typeConfig = CLAIM_TYPE_COLORS[claim.claimType];
+  const claimTypeKey = (claim.claimType as ClaimType) in CLAIM_TYPE_COLORS
+    ? (claim.claimType as ClaimType)
+    : "other";
+  const typeConfig = CLAIM_TYPE_COLORS[claimTypeKey];
   const Icon = typeConfig.icon;
   const total = claim.confirmCount + claim.denyCount;
   const confirmPct = total > 0 ? Math.round((claim.confirmCount / total) * 100) : 0;
+  const userVoteDir = claim.userVote != null ? (claim.userVote > 0 ? "confirm" : "deny") : null;
 
   return (
     <div className="bg-card rounded-xl border border-border p-4">
-      {/* Header */}
       <div className="flex items-start gap-3 mb-3">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5"
@@ -154,7 +97,7 @@ function ClaimCard({
               className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
               style={{ color: typeConfig.color, backgroundColor: typeConfig.bg }}
             >
-              {CLAIM_TYPE_LABELS[claim.claimType]}
+              {CLAIM_TYPE_LABELS[claimTypeKey]}
             </span>
             <span className="text-[10px] text-muted-foreground">{courseName}</span>
           </div>
@@ -162,8 +105,6 @@ function ClaimCard({
           <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(claim.createdAt)}</p>
         </div>
       </div>
-
-      {/* Confidence bar */}
       {total > 0 && (
         <div className="mb-3">
           <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
@@ -175,20 +116,19 @@ function ClaimCard({
               className="h-full rounded-full transition-all"
               style={{
                 width: `${confirmPct}%`,
-                backgroundColor: confirmPct >= 60 ? "hsl(185 100% 23%)" : confirmPct >= 40 ? "hsl(18 100% 50%)" : "hsl(0 60% 50%)",
+                backgroundColor:
+                  confirmPct >= 60 ? "hsl(185 100% 23%)" : confirmPct >= 40 ? "hsl(18 100% 50%)" : "hsl(0 60% 50%)",
               }}
             />
           </div>
         </div>
       )}
-
-      {/* Vote buttons — Approve / Disapprove */}
       <div className="flex gap-2">
         <button
           onClick={() => onVote(claim.id, "confirm")}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
-            claim.userVote === "confirm"
+            userVoteDir === "confirm"
               ? "bg-primary text-primary-foreground"
               : "bg-teal-light text-primary hover:bg-primary/20"
           )}
@@ -200,7 +140,7 @@ function ClaimCard({
           onClick={() => onVote(claim.id, "deny")}
           className={cn(
             "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-semibold transition-all",
-            claim.userVote === "deny"
+            userVoteDir === "deny"
               ? "bg-destructive text-primary-foreground"
               : "bg-orange-light text-destructive hover:bg-destructive/20"
           )}
@@ -213,9 +153,8 @@ function ClaimCard({
   );
 }
 
-// ─── New Claim Form ───────────────────────────────────────────────────────────
 function NewClaimForm({
-  courseId,
+  courseId: _courseId,
   onClose,
   onSubmit,
 }: {
@@ -225,14 +164,12 @@ function NewClaimForm({
 }) {
   const [claimType, setClaimType] = useState<ClaimType>("cancelled");
   const [message, setMessage] = useState("");
-
   return (
     <div className="bg-card rounded-2xl border border-border p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground">New Class Update</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">×</button>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-lg leading-none">&times;</button>
       </div>
-
       <div className="grid grid-cols-2 gap-2 mb-3">
         {(Object.keys(CLAIM_TYPE_LABELS) as ClaimType[]).map((type) => {
           const config = CLAIM_TYPE_COLORS[type];
@@ -242,9 +179,7 @@ function NewClaimForm({
               onClick={() => setClaimType(type)}
               className={cn(
                 "py-2 px-3 rounded-xl text-xs font-medium transition-all text-left",
-                claimType === type
-                  ? "text-primary-foreground"
-                  : "bg-secondary text-muted-foreground"
+                claimType === type ? "text-primary-foreground" : "bg-secondary text-muted-foreground"
               )}
               style={claimType === type ? { backgroundColor: config.color } : undefined}
             >
@@ -253,16 +188,14 @@ function NewClaimForm({
           );
         })}
       </div>
-
       <textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder="Describe the update (e.g. 'Lecturer confirmed class is cancelled via email')"
+        placeholder="Describe the update..."
         className="w-full p-3 bg-secondary rounded-xl text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 mb-3"
         rows={3}
         maxLength={500}
       />
-
       <button
         onClick={() => {
           if (!message.trim()) { toast.error("Please describe the update"); return; }
@@ -276,118 +209,90 @@ function NewClaimForm({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ClassChatPage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [showNewClaim, setShowNewClaim] = useState(false);
-  const [claims, setClaims] = useState<Claim[]>(MOCK_CLAIMS);
   const [activeFilter, setActiveFilter] = useState("all");
+  const utils = trpc.useUtils();
+
+  const { data: myCourses, isLoading: coursesLoading } = trpc.courses.getMyCourses.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+
+  const { data: rawClaims, isLoading: claimsLoading } = trpc.classes.getClaimsByCourse.useQuery(
+    { courseId: selectedCourse! },
+    { enabled: !!selectedCourse }
+  );
 
   const createClaimMutation = trpc.classes.createClaim.useMutation({
     onSuccess: () => {
       toast.success("Update posted!");
       setShowNewClaim(false);
+      if (selectedCourse) void utils.classes.getClaimsByCourse.invalidate({ courseId: selectedCourse });
     },
     onError: (err: any) => toast.error(err.message),
   });
 
   const voteClaimMutation = trpc.classes.voteClaim.useMutation({
+    onSuccess: () => {
+      if (selectedCourse) void utils.classes.getClaimsByCourse.invalidate({ courseId: selectedCourse });
+    },
     onError: (err: any) => toast.error(err.message),
   });
 
-  if (!loading && !user) {
-    navigate("/login");
-    return null;
-  }
+  if (!loading && !user) { navigate("/login"); return null; }
 
   const handleVote = (claimId: number, vote: "confirm" | "deny") => {
-    setClaims((prev) =>
-      prev.map((c) => {
-        if (c.id !== claimId) return c;
-        const wasConfirm = c.userVote === "confirm";
-        const wasDeny = c.userVote === "deny";
-        const newVote = c.userVote === vote ? null : vote;
-        return {
-          ...c,
-          userVote: newVote,
-          confirmCount: c.confirmCount
-            + (vote === "confirm" && !wasConfirm ? 1 : 0)
-            - (vote === "confirm" && wasConfirm ? 1 : 0)
-            - (vote === "deny" && wasConfirm ? 1 : 0),
-          denyCount: c.denyCount
-            + (vote === "deny" && !wasDeny ? 1 : 0)
-            - (vote === "deny" && wasDeny ? 1 : 0)
-            - (vote === "confirm" && wasDeny ? 1 : 0),
-        };
-      })
-    );
     voteClaimMutation.mutate({ claimId, vote });
   };
 
   const handleNewClaim = (type: ClaimType, message: string) => {
     if (!selectedCourse) return;
-    // Optimistic add for preview
-    const newClaim = {
-      id: Date.now(),
-      courseId: selectedCourse,
-      claimType: type,
-      message,
-      confirmCount: 1,
-      denyCount: 0,
-      status: "active" as const,
-      createdAt: new Date(),
-      userVote: "confirm" as "confirm" | "deny" | null,
-    };
-    setClaims((prev) => [newClaim, ...prev]);
-    setShowNewClaim(false);
-    toast.success("Update posted!");
-    createClaimMutation.mutate({
-      courseId: selectedCourse,
-      claimType: type,
-      message,
-    });
+    createClaimMutation.mutate({ courseId: selectedCourse, claimType: type, message });
   };
 
-  const selectedCourseData = MOCK_COURSES.find((c) => c.id === selectedCourse);
-  const courseClaims = claims
-    .filter((c) => c.courseId === selectedCourse)
-    .filter((c) => activeFilter === "all" || c.claimType === activeFilter);
+  const selectedCourseData = myCourses?.find((c) => c.id === selectedCourse);
+  const courseClaims = (rawClaims ?? []).filter(
+    (c) => activeFilter === "all" || c.claimType === activeFilter
+  );
 
   return (
     <AppLayout activeTab="courses">
-      {/* Header */}
-      <div className="bg-card border-b border-border px-4 pt-12 pb-3 sticky top-0 z-10">
-        <div className="flex items-center gap-3">
-          {selectedCourse && (
-            <button
-              onClick={() => { setSelectedCourse(null); setShowNewClaim(false); setActiveFilter("all"); }}
-              className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center"
-            >
-              <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-            </button>
-          )}
-          <h1 className="text-lg font-bold text-foreground flex-1">
-            {selectedCourseData ? selectedCourseData.name : "Class Chat"}
+      <div className="bg-card border-b border-border px-4 py-3 flex items-center gap-3">
+        {selectedCourse ? (
+          <button
+            onClick={() => { setSelectedCourse(null); setShowNewClaim(false); setActiveFilter("all"); }}
+            className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-teal-light flex items-center justify-center shrink-0">
+            <MessageSquare className="w-4 h-4 text-primary" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-sm font-semibold text-foreground truncate">
+            {selectedCourseData ? selectedCourseData.courseName : "Class Updates"}
           </h1>
-          {selectedCourse && (
-            <button
-              onClick={() => setShowNewClaim(!showNewClaim)}
-              className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
-            >
-              <Plus className="w-4 h-4 text-primary-foreground" />
-            </button>
-          )}
         </div>
-        {selectedCourseData && (
-          <p className="text-xs text-muted-foreground mt-0.5 ml-11">
-            {selectedCourseData.code} · {selectedCourseData.room}
-          </p>
+        {selectedCourse && (
+          <button
+            onClick={() => setShowNewClaim(!showNewClaim)}
+            className="w-8 h-8 rounded-full bg-primary flex items-center justify-center"
+          >
+            <Plus className="w-4 h-4 text-primary-foreground" />
+          </button>
         )}
       </div>
-
-      {/* Filter tabs (only when viewing a specific course) */}
+      {selectedCourseData && (
+        <p className="text-xs text-muted-foreground px-4 py-1 bg-card border-b border-border">
+          {selectedCourseData.courseCode} &middot; {selectedCourseData.room ?? "\u2014"}
+        </p>
+      )}
       {selectedCourse && (
         <div className="bg-card border-b border-border px-4 py-2">
           <div className="flex gap-2 overflow-x-auto no-scrollbar">
@@ -408,18 +313,24 @@ export default function ClassChatPage() {
           </div>
         </div>
       )}
-
       <div className="px-4 py-3">
         {!selectedCourse ? (
-          /* Course list */
           <div className="space-y-2">
-            <p className="text-xs text-muted-foreground mb-3">
-              Select a course to view and post class updates
-            </p>
-            {MOCK_COURSES.map((course) => {
-              const courseClaimsAll = claims.filter((c) => c.courseId === course.id);
-              const activeClaims = courseClaimsAll.filter((c) => c.status === "active");
-              return (
+            <p className="text-xs text-muted-foreground mb-3">Select a course to view and post class updates</p>
+            {coursesLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : (myCourses ?? []).length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center mb-3">
+                  <BookOpen className="w-6 h-6 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-foreground mb-1">No courses yet</p>
+                <p className="text-xs text-muted-foreground">Enrol in courses to see class updates</p>
+              </div>
+            ) : (
+              (myCourses ?? []).map((course) => (
                 <button
                   key={course.id}
                   onClick={() => setSelectedCourse(course.id)}
@@ -429,23 +340,15 @@ export default function ClassChatPage() {
                     <BookOpen className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{course.name}</p>
-                    <p className="text-xs text-muted-foreground">{course.code} · {course.professor}</p>
+                    <p className="text-sm font-semibold text-foreground truncate">{course.courseName}</p>
+                    <p className="text-xs text-muted-foreground">{course.courseCode} &middot; {course.lecturer ?? "\u2014"}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {activeClaims.length > 0 && (
-                      <span className="w-5 h-5 rounded-full bg-destructive text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                        {activeClaims.length}
-                      </span>
-                    )}
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
                 </button>
-              );
-            })}
+              ))
+            )}
           </div>
         ) : (
-          /* Claims for selected course */
           <div>
             {showNewClaim && (
               <NewClaimForm
@@ -454,8 +357,11 @@ export default function ClassChatPage() {
                 onSubmit={handleNewClaim}
               />
             )}
-
-            {courseClaims.length === 0 ? (
+            {claimsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              </div>
+            ) : courseClaims.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-12 h-12 rounded-2xl bg-secondary flex items-center justify-center mb-3">
                   <CheckCircle className="w-6 h-6 text-muted-foreground/40" />
@@ -472,17 +378,23 @@ export default function ClassChatPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {courseClaims.map((claim) => {
-                  const course = MOCK_COURSES.find((c) => c.id === claim.courseId);
-                  return (
-                    <ClaimCard
-                      key={claim.id}
-                      claim={claim}
-                      courseName={course?.code || ""}
-                      onVote={handleVote}
-                    />
-                  );
-                })}
+                {courseClaims.map((claim) => (
+                  <ClaimCard
+                    key={claim.id}
+                    claim={{
+                      id: claim.id,
+                      claimType: claim.claimType ?? "other",
+                      message: claim.message,
+                      confirmCount: claim.confirmCount,
+                      denyCount: claim.denyCount,
+                      status: claim.status ?? "active",
+                      createdAt: claim.createdAt,
+                      userVote: claim.userVote,
+                    }}
+                    courseName={selectedCourseData?.courseCode ?? ""}
+                    onVote={handleVote}
+                  />
+                ))}
               </div>
             )}
           </div>
