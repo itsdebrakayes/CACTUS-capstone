@@ -2,6 +2,13 @@ import { eq, and, or, gt, lt, lte, gte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
+  clampTrustScore,
+  getTrustTier,
+  getTrustScoreRatio,
+  TRUST_SCORE_DEFAULT,
+  type TrustTierKey,
+} from "../shared/trust";
+import {
   InsertUser,
   type User,
   users,

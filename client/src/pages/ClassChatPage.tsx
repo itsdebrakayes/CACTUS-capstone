@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import {
-  getCachedSupabaseCourses,
-  loadSupabaseCourses,
-  type SupabaseCourseRecord,
-} from "@/lib/supabaseCourses";
 import AppLayout from "@/components/AppLayout";
 import {
   ArrowLeft,
@@ -235,14 +230,7 @@ export default function ClassChatPage() {
     const value = Number(queryParams.get("courseId"));
     return Number.isInteger(value) && value > 0 ? value : null;
   }, [queryParams]);
-  const cachedCourses = getCachedSupabaseCourses();
-  const [courses, setCourses] = useState<ChatCourse[]>(() => {
-    const mappedCourses = mapSupabaseCourses(cachedCourses);
-    if (mappedCourses.length > 0) {
-      return mappedCourses;
-    }
-    return requestedCourseId == null ? MOCK_COURSES : [];
-  });
+  const [courses, _setCourses] = useState<{ id: number; name: string; code: string }[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | null>(
     requestedCourseId
   );

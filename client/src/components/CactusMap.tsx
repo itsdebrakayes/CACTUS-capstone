@@ -312,13 +312,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           el.addEventListener("click", () => onWalkerClick(cluster.items[0]));
         }
 
-        walkerMarkersRef.current.push({
-          baseSizePx:
-            cluster.count > 1 ? Math.min(36, 24 + cluster.count * 2) : 12,
-          element,
-          marker,
-          priority: cluster.count > 1 ? 18 : 12,
-        });
+        walkerMarkersRef.current.push(marker);
       });
     }, [walkers, onWalkerClick]);
 
@@ -358,12 +352,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
           el.addEventListener("click", () => onHazardClick(hazard));
         }
 
-        hazardMarkersRef.current.push({
-          baseSizePx: 34,
-          element,
-          marker,
-          priority: 30,
-        });
+        hazardMarkersRef.current.push(marker);
       });
     }, [hazards, onHazardClick]);
 
