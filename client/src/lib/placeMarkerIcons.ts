@@ -1,30 +1,41 @@
 import crowdReportIcon from "@/assets/image/multiple-users-silhouette.png";
 import { getCategoryMeta } from "@/lib/campusPlaces";
+import atmMarkerIcon from "@/assets/image/atm-marker.svg";
 import bathroomIcon from "@/assets/image/bathroom.png";
 import classroomIcon from "@/assets/image/classroom.png";
 import facultyIcon from "@/assets/image/faculty.png";
+import foodMarkerIcon from "@/assets/image/food-marker.svg";
 import highTideIcon from "@/assets/image/high-tide.png";
+import hallMarkerIcon from "@/assets/image/hall-marker.svg";
 import labIcon from "@/assets/image/lab.png";
 import lectureRoomIcon from "@/assets/image/lectureRoom.png";
 import obstructionIcon from "@/assets/image/obstruction.png";
 import potholeIcon from "@/assets/image/pothole.png";
 import roadCrackIcon from "@/assets/image/road (1).png";
 import roadHazardIcon from "@/assets/image/road.png";
+import studyAreaMarkerIcon from "@/assets/image/study-area-marker.svg";
 import suspiciousManIcon from "@/assets/image/suspicious-man.png";
 
 export function getPlaceMarkerIcon(category: string) {
-  switch (category) {
+  switch (normalizePlaceIconCategory(category)) {
+    case "atm":
+      return atmMarkerIcon;
     case "classroom":
       return classroomIcon;
+    case "food":
+      return foodMarkerIcon;
     case "lab":
       return labIcon;
     case "faculty":
       return facultyIcon;
+    case "study_area":
+      return studyAreaMarkerIcon;
     case "restroom":
     case "bathroom":
       return bathroomIcon;
     case "building":
     case "hall":
+      return hallMarkerIcon;
     case "library":
     case "office":
     case "landmark":
@@ -32,6 +43,10 @@ export function getPlaceMarkerIcon(category: string) {
     default:
       return lectureRoomIcon;
   }
+}
+
+function normalizePlaceIconCategory(category: string) {
+  return category.trim().toLowerCase().replace(/[\s-]+/g, "_");
 }
 
 export function createCampusPlaceMarkerElement(params: {

@@ -562,5 +562,254 @@
     "source_category": "restroom",
     "lat": 18.00638033,
     "lng": -76.75032002
+  },
+  {
+    "source_id": "food_places-social-welfare-canteen",
+    "name": "Social Welfare Canteen",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0037657,
+    "lng": -76.7430421
+  },
+  {
+    "source_id": "food_places-yao-chinese-restaurant",
+    "name": "Yao | Chinese Restaurant",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0008653,
+    "lng": -76.7433875
+  },
+  {
+    "source_id": "food_places-juici-patties",
+    "name": "Juici Patties",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0048967,
+    "lng": -76.7485753
+  },
+  {
+    "source_id": "food_places-nardo-s-one-stop-shop",
+    "name": "Nardo's One Stop Shop",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0045429,
+    "lng": -76.7463237
+  },
+  {
+    "source_id": "food_places-mary-seacole-cafeteria",
+    "name": "Mary Seacole Cafeteria",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0047163,
+    "lng": -76.7446411
+  },
+  {
+    "source_id": "food_places-kfc",
+    "name": "KFC",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0061916,
+    "lng": -76.7448106
+  },
+  {
+    "source_id": "food_places-burger-king",
+    "name": "Burger King",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0062649,
+    "lng": -76.7448375
+  },
+  {
+    "source_id": "food_places-julie-mango-express",
+    "name": "Julie Mango Express",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0074873,
+    "lng": -76.7471895
+  },
+  {
+    "source_id": "food_places-lawrence-kiosk-snack-shop",
+    "name": "Lawrence Kiosk Snack Shop",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.004959,
+    "lng": -76.7496858
+  },
+  {
+    "source_id": "food_places-sci-tech-food-shop-1",
+    "name": "sci tech food shop 1",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0050869,
+    "lng": -76.7494157
+  },
+  {
+    "source_id": "food_places-sci-tech-food-shop-2",
+    "name": "sci tech food shop 2",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0050404,
+    "lng": -76.7495283
+  },
+  {
+    "source_id": "food_places-sosci-food-shop-1",
+    "name": "sosci food shop 1",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0064627,
+    "lng": -76.7473528
+  },
+  {
+    "source_id": "food_places-bee-hive",
+    "name": "Bee Hive",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0045233,
+    "lng": -76.7463617
+  },
+  {
+    "source_id": "food_places-taylor-hall-food",
+    "name": "Taylor Hall Food",
+    "type": "food",
+    "source_category": "food",
+    "lat": 18.0077374,
+    "lng": -76.7450048
+  },
+  {
+    "source_id": "atms-sagicor-atm",
+    "name": "Sagicor ATM",
+    "type": "landmark",
+    "source_category": "atm",
+    "lat": 18.0015247,
+    "lng": -76.7433003
+  },
+  {
+    "source_id": "atms-national-commercial-bank-uwi-branch",
+    "name": "National Commercial Bank - UWI Branch",
+    "type": "landmark",
+    "source_category": "atm",
+    "lat": 18.0047652,
+    "lng": -76.7472064
+  },
+  {
+    "source_id": "atms-scotiabank-atm",
+    "name": "scotiabank atm",
+    "type": "landmark",
+    "source_category": "atm",
+    "lat": 18.0054666,
+    "lng": -76.7448997
+  },
+  {
+    "source_id": "atms-ncb-atm",
+    "name": "NCB ATM",
+    "type": "landmark",
+    "source_category": "atm",
+    "lat": 18.00714,
+    "lng": -76.7477977
+  },
+  {
+    "source_id": "study_area-gah-gazbeo",
+    "name": "GAH Gazbeo",
+    "type": "landmark",
+    "source_category": "study_area",
+    "lat": 17.9985248,
+    "lng": -76.7433352
+  },
+  {
+    "source_id": "study_area-carmac-gazebo",
+    "name": "CARMAC GAZEBO",
+    "type": "landmark",
+    "source_category": "study_area",
+    "lat": 18.0022117,
+    "lng": -76.7464068
+  },
+  {
+    "source_id": "study_area-chapel",
+    "name": "chapel",
+    "type": "building",
+    "source_category": "study_area",
+    "lat": 18.003832,
+    "lng": -76.7481984
+  },
+  {
+    "source_id": "study_area-scitech-libarary",
+    "name": "scitech libarary",
+    "type": "library",
+    "source_category": "study_area",
+    "lat": 18.0053198,
+    "lng": -76.7494396
+  },
+  {
+    "source_id": "halls-mary-seacole-hall",
+    "name": "Mary seacole Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0042713,
+    "lng": -76.74494
+  },
+  {
+    "source_id": "halls-irvine-hall",
+    "name": "Irvine Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0065497,
+    "lng": -76.7430161
+  },
+  {
+    "source_id": "halls-taylor-hall",
+    "name": "Taylor Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0074539,
+    "lng": -76.7448343
+  },
+  {
+    "source_id": "halls-rex-nettleford-hall",
+    "name": "Rex Nettleford Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0029629,
+    "lng": -76.7419667
+  },
+  {
+    "source_id": "halls-az-preston-hall",
+    "name": "AZ Preston Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0011675,
+    "lng": -76.742564
+  },
+  {
+    "source_id": "halls-138-student-living-leslie-robinson-hall",
+    "name": "138 Student Living (Leslie Robinson Hall)",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0017323,
+    "lng": -76.7438934
+  },
+  {
+    "source_id": "halls-george-allyne-hall",
+    "name": "George allyne Hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 17.9989004,
+    "lng": -76.7439286
+  },
+  {
+    "source_id": "halls-chancella-hall",
+    "name": "chancella hall",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0055991,
+    "lng": -76.7445863
+  },
+  {
+    "source_id": "halls-marlene-hamilton-hall-postgrad",
+    "name": "Marlene Hamilton Hall (Postgrad)",
+    "type": "hall",
+    "source_category": "hall",
+    "lat": 18.0007846,
+    "lng": -76.745729
   }
+
 ]

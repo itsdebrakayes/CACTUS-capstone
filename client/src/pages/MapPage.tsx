@@ -19,9 +19,12 @@ import {
 import WalkGroupPreviewCard from "@/components/WalkGroupPreviewCard";
 import {
   type Coord2,
+  DEFAULT_MAP_PLACE_FILTER_KEYS,
   getCachedCampusPlaceData,
   getCategoryMeta,
   loadCampusPlaceData,
+  MAP_PLACE_FILTERS,
+  type MapPlaceFilterKey,
   normalizeSearchText,
   type PlaceLocation,
 } from "@/lib/campusPlaces";
@@ -51,6 +54,7 @@ import {
 import MapHazardReportSheet, {
   type HazardReportOption,
 } from "@/components/MapHazardReportSheet";
+import MapFilterSheet from "@/components/MapFilterSheet";
 import {
   AlertTriangle,
   ChevronRight,
@@ -626,7 +630,7 @@ function SearchBottomSheet({
                   })
                 ) : (
                   <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5 text-center text-sm font-medium text-gray-500">
-                    Search for a classroom, lab, faculty, or hall to start.
+                    Search for a classroom, hall, food spot, ATM, or study area to start.
                   </div>
                 )}
               </div>
@@ -731,6 +735,9 @@ export default function MapPage() {
   const [recentIds, setRecentIds] = useState<string[]>([]);
   const [routeType, setRouteType] = useState<MapRouteType>("quick");
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  const [selectedFilters, setSelectedFilters] = useState<MapPlaceFilterKey[]>(
+    () => [...DEFAULT_MAP_PLACE_FILTER_KEYS]
+  );
   const [selectedWalkGroupId, setSelectedWalkGroupId] = useState<string | null>(
     null
   );
@@ -742,6 +749,7 @@ export default function MapPage() {
   const [isPlanningRoute, setIsPlanningRoute] = useState(false);
   const [isJoiningWalkGroup, setIsJoiningWalkGroup] = useState(false);
   const [activeSnap, setActiveSnap] = useState<SheetSnap>("collapsed");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -1503,6 +1511,18 @@ export default function MapPage() {
     }
   }, [navigate, selectedWalkGroup]);
 
+  const handleToggleFilter = useCallback((filterKey: MapPlaceFilterKey) => {
+    setSelectedFilters(current => {
+      const nextSelection = current.includes(filterKey)
+        ? current.filter(value => value !== filterKey)
+        : [...current, filterKey];
+
+      return DEFAULT_MAP_PLACE_FILTER_KEYS.filter(candidate =>
+        nextSelection.includes(candidate)
+      );
+    });
+  }, []);
+
   if (!loading && !user) {
     return null;
   }
@@ -1518,6 +1538,8 @@ export default function MapPage() {
           hazards={visibleHazards}
           walkGroups={visibleWalkGroups}
           places={campusPlaces}
+          selectedPlaceId={selectedPlaceId}
+          selectedFilters={selectedFilters}
           campusData={campusData}
           onHazardClick={handleHazardClick}
           onWalkGroupClick={handleWalkGroupClick}
@@ -1548,6 +1570,15 @@ export default function MapPage() {
             ) : null}
           </button>
         </div>
+
+        <MapFilterSheet
+          open={isFilterSheetOpen}
+          options={MAP_PLACE_FILTERS}
+          selectedFilters={selectedFilters}
+          onOpen={() => setIsFilterSheetOpen(true)}
+          onClose={() => setIsFilterSheetOpen(false)}
+          onToggleFilter={handleToggleFilter}
+        />
 
         <SearchBottomSheet
           mode={sheetMode}

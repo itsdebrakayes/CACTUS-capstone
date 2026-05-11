@@ -7,10 +7,16 @@ import {
 } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { getCategoryMeta, type PlaceLocation } from "@/lib/campusPlaces";
 import {
-  createCampusPlaceMarkerElement as createCampusPlaceMarkerButton,
+  DEFAULT_MAP_PLACE_FILTER_KEYS,
+  getCategoryMeta,
+  getPlaceFilterKey,
+  type MapPlaceFilterKey,
+  type PlaceLocation,
+} from "@/lib/campusPlaces";
+import {
   createCrowdReportMarkerElement,
+  getPlaceMarkerIcon,
   createWalkGroupMeetingMarkerElement,
 } from "@/lib/placeMarkerIcons";
 import { type CampusDataset } from "@/lib/findWayGeo";
@@ -79,6 +85,8 @@ interface CactusMapProps {
   walkGroups?: WalkGroupMapMarker[];
   footpaths?: Footpath[];
   places?: PlaceLocation[];
+  selectedPlaceId?: string | null;
+  selectedFilters?: MapPlaceFilterKey[];
   campusData?: CampusDataset | null;
   isSelectingDest?: boolean;
   onDestinationSelected?: (lat: number, lng: number) => void;
@@ -101,6 +109,32 @@ const REPORT_TYPE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const PLACE_SOURCE_ID = "campus-places";
+const SELECTED_PLACE_SOURCE_ID = "campus-selected-place";
+const PLACE_LAYER_ID = "campus-places-symbols";
+const SELECTED_PLACE_HALO_LAYER_ID = "campus-selected-place-halo";
+const SELECTED_PLACE_LAYER_ID = "campus-selected-place-symbol";
+const PLACE_INTERACTIVE_LAYER_IDS = [
+  PLACE_LAYER_ID,
+  SELECTED_PLACE_LAYER_ID,
+] as const;
+const PLACE_ICON_BASE_SIZE_PX = 18;
+const PLACE_MARKER_DISPLAY_SIZE_PX = 56;
+const PLACE_MARKER_CANVAS_SIZE_PX = 72;
+const PLACE_MARKER_RADIUS_PX = 16;
+const PLACE_MARKER_BORDER_WIDTH_PX = 2.25;
+
+interface PlaceLayerFeatureProperties {
+  featureKind: "place";
+  featureId: string;
+  name: string;
+  category: string;
+  filterKey: MapPlaceFilterKey;
+  iconKey: string;
+  markerColor?: string;
+  placeId: string;
+}
+
 const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
   (
     {
@@ -111,6 +145,8 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       walkGroups = [],
       footpaths = [],
       places = [],
+      selectedPlaceId = null,
+      selectedFilters = DEFAULT_MAP_PLACE_FILTER_KEYS,
       campusData = null,
       isSelectingDest = false,
       onDestinationSelected,
@@ -128,11 +164,19 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const walkerMarkersRef = useRef<ManagedMapMarker[]>([]);
     const hazardMarkersRef = useRef<ManagedMapMarker[]>([]);
     const walkGroupMarkersRef = useRef<ManagedMapMarker[]>([]);
-    const placeMarkersRef = useRef<ManagedMapMarker[]>([]);
     const markerVisibilityRef = useRef<MapMarkerVisibilityBinding | null>(null);
+    const placePopupRef = useRef<mapboxgl.Popup | null>(null);
+    const placeLookupRef = useRef<Map<string, PlaceLocation>>(new Map());
+    const loadedPlaceIconKeysRef = useRef<Set<string>>(new Set());
+    const placeLayerEventsBoundRef = useRef(false);
+    const onPlaceClickRef = useRef(onPlaceClick);
     const isSelectingRef = useRef(isSelectingDest);
     const mapReadyRef = useRef(false);
     const [mapReady, setMapReady] = useState(false);
+
+    useEffect(() => {
+      onPlaceClickRef.current = onPlaceClick;
+    }, [onPlaceClick]);
 
     useImperativeHandle(ref, () => ({
       showRoute: (fromLat, fromLng, toLat, toLng) => {
@@ -152,6 +196,59 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       },
       getMap: () => mapRef.current,
     }));
+
+    const showPlacePopup = (lng: number, lat: number, html: string) => {
+      const map = mapRef.current;
+      if (!map) {
+        return;
+      }
+
+      placePopupRef.current?.remove();
+      placePopupRef.current = new mapboxgl.Popup({ offset: 12 })
+        .setLngLat([lng, lat])
+        .setHTML(html)
+        .addTo(map);
+    };
+
+    const handlePlaceFeatureClick = (
+      event: mapboxgl.MapMouseEvent & {
+        features?: mapboxgl.MapboxGeoJSONFeature[];
+      }
+    ) => {
+      const feature = event.features?.[0];
+      if (!feature || feature.geometry.type !== "Point") {
+        return;
+      }
+
+      const properties = feature.properties as Partial<PlaceLayerFeatureProperties> | null;
+      const placeId = properties?.placeId;
+      const place = placeId ? placeLookupRef.current.get(placeId) ?? null : null;
+      const [lng, lat] = feature.geometry.coordinates as [number, number];
+
+      if (place) {
+        showPlacePopup(lng, lat, createCampusPlacePopupHtml(place));
+        onPlaceClickRef.current?.(place);
+        return;
+      }
+    };
+
+    const bindPlaceLayerEvents = (map: mapboxgl.Map) => {
+      if (placeLayerEventsBoundRef.current) {
+        return;
+      }
+
+      PLACE_INTERACTIVE_LAYER_IDS.forEach(layerId => {
+        map.on("click", layerId, handlePlaceFeatureClick);
+        map.on("mouseenter", layerId, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", layerId, () => {
+          map.getCanvas().style.cursor = "";
+        });
+      });
+
+      placeLayerEventsBoundRef.current = true;
+    };
 
     useEffect(() => {
       isSelectingRef.current = isSelectingDest;
@@ -190,7 +287,6 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         ...walkerMarkersRef.current,
         ...hazardMarkersRef.current,
         ...walkGroupMarkersRef.current,
-        ...placeMarkersRef.current,
       ]);
 
       map.on("load", () => {
@@ -261,13 +357,13 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       return () => {
         markerVisibilityRef.current?.destroy();
         markerVisibilityRef.current = null;
-        placeMarkersRef.current.forEach(({ marker }) => marker.remove());
         walkerMarkersRef.current.forEach(({ marker }) => marker.remove());
         hazardMarkersRef.current.forEach(({ marker }) => marker.remove());
         walkGroupMarkersRef.current.forEach(({ marker }) => marker.remove());
+        placePopupRef.current?.remove();
+        placePopupRef.current = null;
         userMarkerRef.current?.remove();
         destMarkerRef.current?.remove();
-        placeMarkersRef.current = [];
         walkerMarkersRef.current = [];
         hazardMarkersRef.current = [];
         walkGroupMarkersRef.current = [];
@@ -452,39 +548,45 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         return;
       }
 
-      placeMarkersRef.current.forEach(({ marker }) => marker.remove());
-      placeMarkersRef.current = [];
+      let cancelled = false;
+      placeLookupRef.current = new Map(places.map(place => [place.id, place]));
 
-      places.forEach(place => {
-        const markerElement = createCampusPlaceMarkerElement(place);
-        const popup = new mapboxgl.Popup({ offset: 12 }).setHTML(
-          createCampusPlacePopupHtml(place)
+      const syncPlaceLayers = async () => {
+        const selectedPlace = selectedPlaceId
+          ? placeLookupRef.current.get(selectedPlaceId) ?? null
+          : null;
+        const { categories, sourceData } = buildCampusPlaceLayerData(places);
+
+        await ensurePlaceLayerIcons(map, categories, loadedPlaceIconKeysRef.current);
+
+        if (cancelled) {
+          return;
+        }
+
+        ensurePlaceSourcesAndLayers(map);
+        bindPlaceLayerEvents(map);
+
+        const source = map.getSource(PLACE_SOURCE_ID) as
+          | mapboxgl.GeoJSONSource
+          | undefined;
+        source?.setData(sourceData);
+
+        const selectedSource = map.getSource(SELECTED_PLACE_SOURCE_ID) as
+          | mapboxgl.GeoJSONSource
+          | undefined;
+        selectedSource?.setData(
+          buildSelectedPlaceFeatureCollection(selectedPlace, selectedFilters)
         );
 
-        const marker = new mapboxgl.Marker({
-          element: markerElement,
-          anchor: "center",
-        })
-          .setLngLat(place.coordinates)
-          .setPopup(popup)
-          .addTo(map);
+        syncPlaceLayerFilter(map, selectedFilters);
+      };
 
-        markerElement.addEventListener("click", event => {
-          event.stopPropagation();
-          marker.togglePopup();
-          onPlaceClick?.(place);
-        });
+      void syncPlaceLayers();
 
-        placeMarkersRef.current.push({
-          baseSizePx: 32,
-          element: markerElement,
-          marker,
-          priority: 6,
-        });
-      });
-
-      markerVisibilityRef.current?.sync();
-    }, [mapReady, places, onPlaceClick]);
+      return () => {
+        cancelled = true;
+      };
+    }, [mapReady, places, selectedFilters, selectedPlaceId]);
 
     useEffect(() => {
       const map = mapRef.current;
@@ -562,13 +664,6 @@ function clearRoute(map: mapboxgl.Map) {
   source?.setData({ type: "FeatureCollection", features: [] });
 }
 
-function createCampusPlaceMarkerElement(place: PlaceLocation) {
-  return createCampusPlaceMarkerButton({
-    category: place.category,
-    title: place.name,
-  });
-}
-
 function createCampusPlacePopupHtml(place: PlaceLocation) {
   const meta = getCategoryMeta(place.category);
   return `
@@ -577,6 +672,269 @@ function createCampusPlacePopupHtml(place: PlaceLocation) {
       <div style="font-size:11px;color:${meta.color};margin-top:2px">${meta.label}</div>
     </div>
   `;
+}
+
+function buildCampusPlaceLayerData(places: PlaceLocation[]) {
+  const categories = Array.from(
+    new Set(places.map(place => normalizePlaceLayerCategory(place.category)))
+  );
+
+  return {
+    categories,
+    sourceData: {
+      type: "FeatureCollection" as const,
+      features: places.map(place => createPlaceFeature(place)),
+    },
+  };
+}
+
+function buildSelectedPlaceFeatureCollection(
+  selectedPlace: PlaceLocation | null,
+  selectedFilters: MapPlaceFilterKey[]
+) {
+  if (!selectedPlace) {
+    return {
+      type: "FeatureCollection" as const,
+      features: [],
+    };
+  }
+
+  const filterKey = getPlaceFilterKey(selectedPlace);
+  if (!selectedFilters.includes(filterKey)) {
+    return {
+      type: "FeatureCollection" as const,
+      features: [],
+    };
+  }
+
+  const meta = getCategoryMeta(selectedPlace.category);
+  return {
+    type: "FeatureCollection" as const,
+    features: [
+      {
+        type: "Feature" as const,
+        properties: {
+          featureKind: "place" as const,
+          featureId: `selected-${selectedPlace.id}`,
+          name: selectedPlace.name,
+          category: selectedPlace.category,
+          filterKey,
+          iconKey: getPlaceLayerIconKey(selectedPlace.category),
+          markerColor: meta.color,
+          placeId: selectedPlace.id,
+        },
+        geometry: {
+          type: "Point" as const,
+          coordinates: selectedPlace.coordinates,
+        },
+      },
+    ],
+  };
+}
+
+async function ensurePlaceLayerIcons(
+  map: mapboxgl.Map,
+  categories: string[],
+  loadedIconKeys: Set<string>
+) {
+  for (const category of categories) {
+    const normalizedCategory = normalizePlaceLayerCategory(category);
+    const iconKey = getPlaceLayerIconKey(normalizedCategory);
+
+    if (loadedIconKeys.has(iconKey) || map.hasImage(iconKey)) {
+      loadedIconKeys.add(iconKey);
+      continue;
+    }
+
+    const image = await loadMarkerImage(getPlaceMarkerIcon(normalizedCategory));
+    const markerCanvas = createPlaceMarkerCanvas(
+      image,
+      getCategoryMeta(normalizedCategory).color
+    );
+
+    if (!map.hasImage(iconKey)) {
+      map.addImage(iconKey, markerCanvas, {
+        pixelRatio:
+          PLACE_MARKER_CANVAS_SIZE_PX / PLACE_MARKER_DISPLAY_SIZE_PX,
+      });
+    }
+
+    loadedIconKeys.add(iconKey);
+  }
+}
+
+function ensurePlaceSourcesAndLayers(map: mapboxgl.Map) {
+  if (!map.getSource(PLACE_SOURCE_ID)) {
+    map.addSource(PLACE_SOURCE_ID, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+  }
+
+  if (!map.getSource(SELECTED_PLACE_SOURCE_ID)) {
+    map.addSource(SELECTED_PLACE_SOURCE_ID, {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: [] },
+    });
+  }
+
+  if (!map.getLayer(PLACE_LAYER_ID)) {
+    map.addLayer({
+      id: PLACE_LAYER_ID,
+      type: "symbol",
+      source: PLACE_SOURCE_ID,
+      filter: buildSelectedFiltersExpression([]),
+      layout: {
+        "icon-image": ["get", "iconKey"],
+        "icon-size": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          13,
+          0.92,
+          16,
+          1,
+          19,
+          1.06,
+        ],
+        "icon-allow-overlap": false,
+        "icon-ignore-placement": false,
+        "icon-padding": 10,
+      },
+    });
+  }
+
+  if (!map.getLayer(SELECTED_PLACE_HALO_LAYER_ID)) {
+    map.addLayer({
+      id: SELECTED_PLACE_HALO_LAYER_ID,
+      type: "circle",
+      source: SELECTED_PLACE_SOURCE_ID,
+      paint: {
+        "circle-radius": 24,
+        "circle-color": ["coalesce", ["get", "markerColor"], "#2563eb"],
+        "circle-opacity": 0.18,
+        "circle-stroke-width": 2,
+        "circle-stroke-color": ["coalesce", ["get", "markerColor"], "#2563eb"],
+        "circle-stroke-opacity": 0.3,
+      },
+    });
+  }
+
+  if (!map.getLayer(SELECTED_PLACE_LAYER_ID)) {
+    map.addLayer({
+      id: SELECTED_PLACE_LAYER_ID,
+      type: "symbol",
+      source: SELECTED_PLACE_SOURCE_ID,
+      layout: {
+        "icon-image": ["get", "iconKey"],
+        "icon-size": 1.06,
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+      },
+    });
+  }
+}
+
+function syncPlaceLayerFilter(
+  map: mapboxgl.Map,
+  selectedFilters: MapPlaceFilterKey[]
+) {
+  if (!map.getLayer(PLACE_LAYER_ID)) {
+    return;
+  }
+
+  map.setFilter(PLACE_LAYER_ID, buildSelectedFiltersExpression(selectedFilters));
+}
+
+function buildSelectedFiltersExpression(selectedFilters: MapPlaceFilterKey[]) {
+  if (selectedFilters.length === 0) {
+    return ["==", ["get", "filterKey"], "__hidden__"];
+  }
+
+  return [
+    "any",
+    ...selectedFilters.map(filterKey => ["==", ["get", "filterKey"], filterKey]),
+  ];
+}
+
+function createPlaceFeature(place: PlaceLocation) {
+  const meta = getCategoryMeta(place.category);
+  const filterKey = getPlaceFilterKey(place);
+
+  return {
+    type: "Feature" as const,
+    properties: {
+      featureKind: "place" as const,
+      featureId: place.id,
+      name: place.name,
+      category: place.category,
+      filterKey,
+      iconKey: getPlaceLayerIconKey(place.category),
+      markerColor: meta.color,
+      placeId: place.id,
+    },
+    geometry: {
+      type: "Point" as const,
+      coordinates: place.coordinates,
+    },
+  } satisfies GeoJSON.Feature<GeoJSON.Point, PlaceLayerFeatureProperties>;
+}
+
+function normalizePlaceLayerCategory(value: string) {
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
+function getPlaceLayerIconKey(category: string) {
+  return `campus-place-icon-${normalizePlaceLayerCategory(category)}`;
+}
+
+function loadMarkerImage(url: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () =>
+      reject(new Error(`Unable to load place icon for ${url}.`));
+    image.src = url;
+  });
+}
+
+function createPlaceMarkerCanvas(image: HTMLImageElement, ringColor: string) {
+  const canvas = document.createElement("canvas");
+  canvas.width = PLACE_MARKER_CANVAS_SIZE_PX;
+  canvas.height = PLACE_MARKER_CANVAS_SIZE_PX;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Unable to create place marker canvas.");
+  }
+
+  const center = PLACE_MARKER_CANVAS_SIZE_PX / 2;
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+
+  context.save();
+  context.shadowColor = "rgba(15, 23, 42, 0.18)";
+  context.shadowBlur = 10;
+  context.shadowOffsetY = 4;
+  context.beginPath();
+  context.arc(center, center, PLACE_MARKER_RADIUS_PX, 0, Math.PI * 2);
+  context.fillStyle = "#ffffff";
+  context.fill();
+  context.restore();
+
+  context.beginPath();
+  context.arc(center, center, PLACE_MARKER_RADIUS_PX, 0, Math.PI * 2);
+  context.fillStyle = "#ffffff";
+  context.fill();
+  context.lineWidth = PLACE_MARKER_BORDER_WIDTH_PX;
+  context.strokeStyle = ringColor;
+  context.stroke();
+
+  const iconSize = PLACE_ICON_BASE_SIZE_PX;
+  const iconOffset = (PLACE_MARKER_CANVAS_SIZE_PX - iconSize) / 2;
+  context.drawImage(image, iconOffset, iconOffset, iconSize, iconSize);
+
+  return context.getImageData(0, 0, canvas.width, canvas.height);
 }
 
 function createWalkGroupMarkerElement(walkGroup: WalkGroupMapMarker) {
