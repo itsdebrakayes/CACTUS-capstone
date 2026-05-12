@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Leaf, Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ArrowLeft } from "lucide-react";
+import cactusLogo from "@/assets/cactus-logo.png";
 
 export default function Signup() {
   const [, navigate] = useLocation();
@@ -72,8 +73,8 @@ export default function Signup() {
     <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d2040] to-[#0a1628] flex flex-col items-center justify-center px-4 py-8">
       {/* Logo */}
       <div className="mb-6 flex flex-col items-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-[#00c853] flex items-center justify-center shadow-lg shadow-[#00c853]/30">
-          <Leaf className="w-7 h-7 text-white" />
+        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-lg shadow-[#00c853]/30">
+          <img src={cactusLogo} alt="CACTUS Logo" className="w-full h-full object-contain" />
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white tracking-tight">CACTUS</h1>

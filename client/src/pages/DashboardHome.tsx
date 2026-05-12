@@ -37,6 +37,7 @@ import {
   CheckCircle,
   RefreshCw,
   Users,
+  GraduationCap,
 } from "lucide-react";
 
 type DashboardAlert = {
@@ -263,7 +264,7 @@ function CurrentClassCard({
               onClick={onViewDetails}
               className="flex-[4] bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
             >
-              View Details
+              Class Updates
             </button>
             <button className="flex-1 h-12 border border-gray-200 rounded-xl flex items-center justify-center text-gray-400 active:bg-gray-50 transition-colors">
               <span className="text-lg leading-none font-bold">...</span>
@@ -494,7 +495,7 @@ function RegisteredCoursesDeck({
                   onClick={() => onOpenCourse(course.id)}
                   className="w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
                 >
-                  View Course Details
+                  Class Updates
                 </button>
               </div>
             </div>
@@ -527,17 +528,17 @@ function QuickActions({
     },
     {
       icon: MessageSquare,
-      label: "Class Chat",
+      label: "Study Material",
       color: "#3b82f6", // Tailwind blue-500
       bg: "#eff6ff", // Tailwind blue-50
       onClick: onClassChat,
       disabled: isCourseActionsDisabled,
     },
     {
-      icon: AlertCircle,
-      label: "Emergency",
-      color: "#ef4444", // Tailwind red-500
-      bg: "#fef2f2", // Tailwind red-50
+      icon: GraduationCap,
+      label: "Open VLE",
+      color: "#6366f1", // Tailwind indigo-500
+      bg: "#f5f3ff", // Tailwind indigo-50
       onClick: onEmergency,
       disabled: false,
     },
@@ -823,9 +824,6 @@ export default function DashboardHome() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
-              <Search className="w-5 h-5" />
-            </button>
             <button 
               onClick={() => navigate("/notifications")}
               className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors relative"
@@ -899,8 +897,8 @@ export default function DashboardHome() {
               : "/find-way"
           )
         }
-        onClassChat={() => navigate("/empty")} // Standalone chat now goes to empty page
-        onEmergency={() => navigate("/map?emergency=true")}
+        onClassChat={() => navigate("/study-material")} // Standalone chat now goes to study material page
+        onEmergency={() => window.open("https://vle.mona.uwi.edu/login/index.php", "_blank")}
         isCourseActionsDisabled={!activeCourse}
       />
 

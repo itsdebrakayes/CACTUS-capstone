@@ -24,6 +24,8 @@ import ClassRepDashboard from "./pages/ClassRepDashboard";
 import CourseReportingPage from "./pages/CourseReportingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import EmptyPage from "./pages/EmptyPage";
+import StudyMaterialPage from "./pages/StudyMaterialPage";
+import CampusEventsPage from "./pages/CampusEventsPage";
 
 function Router() {
   return (
@@ -39,6 +41,8 @@ function Router() {
       <Route path="/profile" component={ProfilePage} />
       <Route path="/class-chat" component={ClassChatPage} />
       <Route path="/empty" component={EmptyPage} />
+      <Route path="/study-material" component={StudyMaterialPage} />
+      <Route path="/events" component={CampusEventsPage} />
 
       {/* Course management */}
       <Route path="/courses" component={CoursesPage} />

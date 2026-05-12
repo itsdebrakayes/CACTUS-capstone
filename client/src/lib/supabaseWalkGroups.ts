@@ -26,6 +26,15 @@ export interface WalkGroupMemberRecord {
   leftAt?: string;
 }
 
+export interface WalkGroupComment {
+  id: string;
+  walkGroupId: string;
+  userId: string;
+  message: string;
+  createdAt: string;
+  senderName?: string;
+}
+
 export interface WalkGroupRecord {
   id: string;
   creatorId: string;
@@ -292,6 +301,41 @@ export async function expireStaleWalkGroups() {
   const { error } = await supabase.rpc("expire_stale_walk_groups");
   if (error) {
     throw new Error(`Unable to expire stale walk groups: ${error.message}`);
+  }
+}
+
+export async function loadWalkGroupComments(groupId: string): Promise<WalkGroupComment[]> {
+  const { data, error } = await supabase
+    .from("walk_group_comments")
+    .select("*, profiles!user_id(full_name)")
+    .eq("walk_group_id", groupId)
+    .order("created_at", { ascending: true })
+    .limit(50);
+
+  if (error) {
+    throw new Error(`Unable to load comments: ${error.message}`);
+  }
+
+  return (data || []).map(row => ({
+    id: row.id,
+    walkGroupId: row.walk_group_id,
+    userId: row.user_id,
+    message: row.message,
+    createdAt: row.created_at,
+    senderName: row.profiles?.full_name || `User ${row.user_id.slice(0, 4)}`,
+  }));
+}
+
+export async function sendWalkGroupComment(groupId: string, message: string) {
+  const currentUserId = await getCurrentSupabaseUserId();
+  const { error } = await supabase.from("walk_group_comments").insert({
+    walk_group_id: groupId,
+    user_id: currentUserId,
+    message: message.trim(),
+  });
+
+  if (error) {
+    throw new Error(`Unable to post comment: ${error.message}`);
   }
 }
 

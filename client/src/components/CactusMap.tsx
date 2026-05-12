@@ -67,6 +67,14 @@ export interface WalkGroupMapMarker {
   status: string;
 }
 
+export interface CampusEventMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  tagline: string;
+}
+
 export interface FloorToggleMarker {
   id: string;
   lat: number;
@@ -108,6 +116,8 @@ interface CactusMapProps {
   floorToggles?: FloorToggleMarker[];
   activeFloorToggleId?: string | null;
   onFloorToggleClick?: (toggle: FloorToggleMarker) => void;
+  events?: CampusEventMarker[];
+  onEventClick?: (event: CampusEventMarker) => void;
 }
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
@@ -171,6 +181,8 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       floorToggles = [],
       activeFloorToggleId = null,
       onFloorToggleClick,
+      events = [],
+      onEventClick,
     },
     ref
   ) => {
@@ -182,6 +194,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const hazardMarkersRef = useRef<ManagedMapMarker[]>([]);
     const walkGroupMarkersRef = useRef<ManagedMapMarker[]>([]);
     const floorToggleMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const eventMarkersRef = useRef<ManagedMapMarker[]>([]);
     const markerVisibilityRef = useRef<MapMarkerVisibilityBinding | null>(null);
     const placePopupRef = useRef<mapboxgl.Popup | null>(null);
     const placeLookupRef = useRef<Map<string, PlaceLocation>>(new Map());
@@ -306,6 +319,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         ...hazardMarkersRef.current,
         ...walkGroupMarkersRef.current,
         ...floorToggleMarkersRef.current,
+        ...eventMarkersRef.current,
       ]);
 
       map.on("load", () => {
@@ -387,6 +401,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         hazardMarkersRef.current = [];
         walkGroupMarkersRef.current = [];
         floorToggleMarkersRef.current = [];
+        eventMarkersRef.current = [];
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
@@ -603,6 +618,61 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
 
       markerVisibilityRef.current?.sync();
     }, [mapReady, floorToggles, activeFloorToggleId, onFloorToggleClick]);
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady) {
+        return;
+      }
+
+      eventMarkersRef.current.forEach(({ marker }) => marker.remove());
+      eventMarkersRef.current = [];
+
+      events.forEach(event => {
+        const element = document.createElement("button");
+        element.type = "button";
+        element.className = "cactus-event-marker";
+        element.title = event.name;
+        element.style.cssText = [
+          "width:36px",
+          "height:36px",
+          "border-radius:999px",
+          "padding:0",
+          "display:flex",
+          "align-items:center",
+          "justify-content:center",
+          "background:#ffffff",
+          "border:2px solid #10b981",
+          "box-shadow:0 8px 20px rgba(15,23,42,0.18)",
+          "cursor:pointer",
+          "color: #10b981",
+        ].join(";");
+
+        // GiPartyPopper-like SVG
+        element.innerHTML = `
+          <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5.8 11.3 2 22l10.7-3.8"/><path d="M4 3h.01"/><path d="M9 2h.01"/><path d="M15 2h.01"/><path d="M4 8h.01"/><path d="M9 13h.01"/><path d="M18 3.3a3 3 0 0 0-4.4 0L4.6 12.3a3 3 0 0 0 0 4.4l1.1 1.1a3 3 0 0 0 4.4 0l9-9a3 3 0 0 0 0-4.4l-1.1-1.1Z"/><path d="m15 5 2 2"/><path d="m2 2 2.2 2.2"/><path d="m22 22-1.5-1.5"/><path d="m22 2-1.5 1.5"/><path d="m2 22 1.5-1.5"/><path d="M22 2 20.2 3.8"/>
+          </svg>
+        `;
+
+        const marker = new mapboxgl.Marker(element)
+          .setLngLat([event.lng, event.lat])
+          .addTo(map);
+
+        if (onEventClick) {
+          element.addEventListener("click", () => onEventClick(event));
+        }
+
+        eventMarkersRef.current.push({
+          baseSizePx: 36,
+          element,
+          marker,
+          priority: 40,
+        });
+      });
+
+      markerVisibilityRef.current?.sync();
+    }, [mapReady, events, onEventClick]);
 
     useEffect(() => {
       const map = mapRef.current;

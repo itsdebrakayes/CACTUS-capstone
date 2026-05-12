@@ -69,6 +69,7 @@ import {
   Search,
   X,
   Zap,
+  PartyPopper,
   type LucideIcon,
 } from "lucide-react";
 import mapboxgl from "mapbox-gl";
@@ -184,6 +185,30 @@ const CAMPUS_FLOOR_TOGGLES: FloorToggleMarker[] = [
     lng: -76.74975,
     targetFloor: 2,
     radiusM: 25,
+  },
+];
+
+const CAMPUS_EVENTS = [
+  {
+    id: "carnival-pin",
+    name: "UWI Carnival",
+    tagline: "The ultimate campus experience",
+    lat: 17.99986,
+    lng: -76.74492,
+  },
+  {
+    id: "homecoming-pin",
+    name: "Homecoming",
+    tagline: "Time to see who is the winning hall",
+    lat: 18.0054,
+    lng: -76.74762,
+  },
+  {
+    id: "sports-day-pin",
+    name: "Sports Day",
+    tagline: "Dust your shoes and make your move",
+    lat: 18.00063,
+    lng: -76.74033,
   },
 ];
 
@@ -753,6 +778,60 @@ function HazardInfoCard({
   );
 }
 
+function EventInfoCard({
+  event,
+  userLat,
+  userLng,
+  onClose,
+}: {
+  event: any;
+  userLat?: number;
+  userLng?: number;
+  onClose: () => void;
+}) {
+  const distance = formatDistanceKm(userLat, userLng, event.lat, event.lng);
+
+  return (
+    <div className="absolute left-4 right-4 top-4 z-30 animate-in slide-in-from-top-4 duration-500">
+      <div className="overflow-hidden rounded-[32px] bg-slate-900/90 backdrop-blur-md px-6 py-6 text-white shadow-2xl border border-white/10">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500 shadow-lg shadow-emerald-500/20">
+              <PartyPopper className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
+                CAMPUS EVENT
+              </p>
+              <p className="text-xl font-black tracking-tight text-white leading-none mt-1">
+                {event.name}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white/80 transition hover:bg-white/20 active:scale-95"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-base font-bold leading-relaxed text-emerald-50">
+            {event.tagline}
+          </p>
+          <div className="mt-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
+            <MapPin className="h-3 w-3" />
+            <span>{distance ?? "Nearby"}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MapPage() {
   const [, navigate] = useLocation();
   const { user, loading } = useAuth();
@@ -796,6 +875,7 @@ export default function MapPage() {
   const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(
     null
   );
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isPlanningRoute, setIsPlanningRoute] = useState(false);
   const [isJoiningWalkGroup, setIsJoiningWalkGroup] = useState(false);
@@ -1290,15 +1370,15 @@ export default function MapPage() {
     snapSheetTo("collapsed");
   }, [snapSheetTo, userLat, userLng]);
 
-  const handleHazardClick = useCallback(
-    (hazard: Hazard) => {
-      const fullHazard =
-        hazards.find(item => String(item.id) === String(hazard.id)) ?? null;
-      setSelectedHazard(fullHazard);
-      setSelectedWalkGroupId(null);
-    },
-    [hazards]
-  );
+    const handleHazardClick = useCallback((hazard: HazardRecord) => {
+    setSelectedHazard(hazard);
+    setSelectedEvent(null);
+  }, []);
+
+  const handleEventClick = useCallback((event: any) => {
+    setSelectedEvent(event);
+    setSelectedHazard(null);
+  }, []);
 
   const handleSheetPointerDown = useCallback(
     (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -1722,7 +1802,18 @@ const handleStartNavigation = useCallback(async () => {
           floorToggles={CAMPUS_FLOOR_TOGGLES}
           activeFloorToggleId={activeFloorToggleId}
           onFloorToggleClick={handleFloorToggleClick}
+          events={CAMPUS_EVENTS}
+          onEventClick={handleEventClick}
         />
+
+        {selectedEvent ? (
+          <EventInfoCard
+            event={selectedEvent}
+            userLat={userLat}
+            userLng={userLng}
+            onClose={() => setSelectedEvent(null)}
+          />
+        ) : null}
 
         {selectedHazard ? (
           <HazardInfoCard

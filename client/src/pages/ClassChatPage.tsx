@@ -311,7 +311,7 @@ function NewReportForm({
         }}
         className="w-full py-4 bg-emerald-500 text-white text-sm font-black uppercase tracking-widest rounded-2xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
       >
-        Post to Class Chat
+        Post Update
       </button>
     </div>
   );
@@ -521,16 +521,27 @@ export default function ClassChatPage() {
         return;
       }
 
-      const { error } = await supabase.from("class_reports").insert({
+      const { data: newReport, error } = await supabase.from("class_reports").insert({
         course_id: courseId,
         reporter_id: reporterUuid,
         report_type: reportType,
         message: data.message || `Class update: ${REPORT_TYPE_LABELS[data.type] || reportType}`,
         old_room: reportType === "room_changed" ? selectedCourseData?.room : null,
         new_room: reportType === "room_changed" ? data.newRoom : null,
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      // Create a notification for the user to confirm it's working
+      // In a production scenario, this would be sent to all enrolled students
+      await supabase.from("notifications").insert({
+        user_id: reporterUuid,
+        title: `Report Posted: ${selectedCourseData?.courseCode || 'Course Update'}`,
+        message: data.message || `You reported a ${REPORT_TYPE_LABELS[reportType]} for ${selectedCourseData?.courseName || 'this course'}.`,
+        report_id: newReport?.id,
+        course_id: courseId,
+        is_read: false
+      });
 
       toast.success("Update posted to the class!");
       setShowNewForm(false);
@@ -567,7 +578,7 @@ export default function ClassChatPage() {
           )}
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-black text-gray-900 truncate tracking-tight">
-              {selectedCourseData ? selectedCourseData.courseName : "Class Chat"}
+              {selectedCourseData ? selectedCourseData.courseName : "Class Updates"}
             </h1>
             {selectedCourseData && (
               <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.2em] mt-1">

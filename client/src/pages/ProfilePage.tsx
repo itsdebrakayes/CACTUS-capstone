@@ -111,19 +111,13 @@ export default function ProfilePage() {
   }, [cachedCourses, loading, user]);
 
   const menuSections = [
-    
     {
       title: "Safety",
       items: [
         {
-          icon: Shield,
-          label: "My Check-Ins",
-          onClick: () => navigate("/check-in"),
-        },
-        {
           icon: Award,
-          label: "Walking History",
-          onClick: () => navigate("/walking"),
+          label: "Campus Events",
+          onClick: () => navigate("/events"),
         },
       ],
     },
@@ -133,7 +127,7 @@ export default function ProfilePage() {
         {
           icon: Bell,
           label: "Notifications",
-          onClick: () => toast.info("Notification settings coming soon"),
+          onClick: () => navigate('/notifications')
         },
         {
           icon: HelpCircle,
@@ -225,7 +219,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      {/* <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       
 
         {loadingSupabaseCourses ? (
@@ -307,7 +301,7 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Menu sections */}
       <div className="px-4 space-y-3 mb-4">

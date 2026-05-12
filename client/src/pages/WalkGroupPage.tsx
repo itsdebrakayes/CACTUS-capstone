@@ -1,4 +1,5 @@
 import { useAuth } from "@/_core/hooks/useAuth";
+import { supabase } from "@/lib/supabase";
 import AppLayout from "@/components/AppLayout";
 import {
   CactusMap,
@@ -34,8 +35,11 @@ import {
   loadWalkGroup,
   removeWalkGroupMember,
   updateWalkGroupStatus,
+  loadWalkGroupComments,
+  sendWalkGroupComment,
   type WalkGroupRecord,
   type WalkGroupMemberRecord,
+  type WalkGroupComment,
 } from "@/lib/supabaseWalkGroups";
 import { trpc } from "@/lib/trpc";
 import {
@@ -51,6 +55,7 @@ import {
   MapPin,
   MessageSquare,
   Play,
+  Send,
   ShieldAlert,
   Users,
   X,
@@ -73,8 +78,9 @@ import {
   getTrustTier,
   type TrustTierKey,
 } from "@shared/trust";
-import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { useLocation, useRoute } from "wouter";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 const REFRESH_MS = 15000;
@@ -383,6 +389,10 @@ export default function WalkGroupPage() {
   const [memberActionKey, setMemberActionKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<WalkGroupTab>("main");
   const [activeSnap, setActiveSnap] = useState<SheetSnap>("mid");
+  const [comments, setComments] = useState<WalkGroupComment[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [isSendingComment, setIsSendingComment] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const downvoteWalkGroupMember =
     trpc.trust.downvoteWalkGroupMember.useMutation();
 
@@ -536,6 +546,82 @@ export default function WalkGroupPage() {
       window.clearInterval(interval);
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "comments" || !groupId) return;
+
+    let isCancelled = false;
+    
+    void loadWalkGroupComments(groupId).then(data => {
+      if (!isCancelled) setComments(data);
+    });
+
+    const channel = supabase
+      .channel(`walk-group-chat:${groupId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "walk_group_comments",
+          filter: `walk_group_id=eq.${groupId}`,
+        },
+        async (payload) => {
+          console.log("New comment received:", payload);
+          // Fetch sender name from profiles since payload only has user_id
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", payload.new.user_id)
+            .single();
+
+          const newComment: WalkGroupComment = {
+            id: payload.new.id,
+            walkGroupId: payload.new.walk_group_id,
+            userId: payload.new.user_id,
+            message: payload.new.message,
+            createdAt: payload.new.created_at,
+            senderName: profile?.full_name || `User ${payload.new.user_id.slice(0, 4)}`,
+          };
+
+          setComments(prev => {
+            // Prevent duplicate messages if the insert comes back while we're also fetching
+            if (prev.find(c => c.id === newComment.id)) return prev;
+            return [...prev, newComment];
+          });
+        }
+      )
+      .subscribe((status) => {
+        console.log(`Chat channel status for ${groupId}:`, status);
+      });
+
+    return () => {
+      isCancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [activeTab, groupId]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [comments, activeTab]);
+
+  const handleSendComment = async () => {
+    if (!groupId || !newMessage.trim() || isSendingComment) return;
+
+    setIsSendingComment(true);
+    try {
+      console.log("Sending comment...");
+      await sendWalkGroupComment(groupId, newMessage);
+      setNewMessage("");
+    } catch (error) {
+      console.error("Send error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to post comment");
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
 
   useEffect(() => {
     hasFittedRef.current = false;
@@ -1435,8 +1521,9 @@ export default function WalkGroupPage() {
               </div>
             </div>
 
+            {/* Added overscroll-contain so nested scrolling in sheet feels native */}
             <div
-              className="cactus-scrollbar flex-1 overflow-y-auto px-4 pb-28 pt-4"
+              className="cactus-scrollbar flex-1 overflow-y-auto overscroll-contain px-4 pb-12 pt-4 relative"
               style={{
                 maxHeight: Math.max(220, sheetVisibleHeight - 150),
               }}
@@ -1500,17 +1587,18 @@ export default function WalkGroupPage() {
                     ) : null}
                   </div>
 
+                  {/* Fix: Restored your InfoTiles! */}
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {/* <InfoTile
+                    <InfoTile
                       icon={Clock3}
                       label="Estimated walk"
                       value={estimatedWalkTimeLabel}
-                    /> */}
-                    {/* <InfoTile
+                    />
+                    <InfoTile
                       icon={MapPin}
                       label="Meeting point"
                       value={group.meetingPointName}
-                    /> */}
+                    />
                   </div>
 
                   <div className="rounded-[26px] border border-gray-100 bg-white p-4 shadow-sm">
@@ -1573,18 +1661,70 @@ export default function WalkGroupPage() {
                   ) : null}
                 </div>
               ) : (
-                <div className="flex min-h-[320px] flex-col items-center justify-center rounded-[26px] border border-dashed border-gray-200 bg-[#f8fafc] px-6 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm">
-                    <MessageSquare className="h-6 w-6" />
+                <div className="flex h-full flex-col relative pb-safe">
+                  <div 
+                    ref={scrollRef}
+                    className="cactus-scrollbar flex-1 overflow-y-auto space-y-4 pr-2 pb-20"
+                  >
+                    {comments.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-50 text-slate-400">
+                          <MessageSquare className="h-5 w-5" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-slate-900">No messages yet</p>
+                        <p className="mt-1 text-xs text-slate-500">Be the first to say something!</p>
+                      </div>
+                    ) : (
+                      comments.map(comment => {
+                        const isOwn = comment.userId === user?.id;
+                        return (
+                          <div 
+                            key={comment.id}
+                            className={`flex flex-col ${isOwn ? "items-end" : "items-start"}`}
+                          >
+                            <span className="mb-1 px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              {comment.senderName}
+                            </span>
+                            <div className={cn(
+                              "max-w-[85%] px-4 py-2.5 rounded-[22px] text-sm font-medium shadow-sm",
+                              isOwn 
+                                ? "bg-slate-900 text-white rounded-tr-none" 
+                                : "bg-white border border-slate-100 text-slate-800 rounded-tl-none"
+                            )}>
+                              {comment.message}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
-                  <h2 className="mt-4 text-lg font-bold text-slate-900">
-                    Comments coming soon
-                  </h2>
-                  <p className="mt-2 max-w-sm text-sm text-slate-500">
-                    This tab is reserved for quick Walk Group messages like
-                    “Wait for me”, “I’m coming”, or “Where exactly are you
-                    meeting?”
-                  </p>
+
+                  {/* Fix: Made the comment input sticky with a clean backdrop */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md pb-4 pt-2 px-1">
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={e => setNewMessage(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleSendComment()}
+                        placeholder={group?.isCurrentUserMember ? "Send a message..." : "Join group to chat"}
+                        disabled={!group?.isCurrentUserMember || isSendingComment}
+                        className="w-full rounded-2xl border border-slate-100 bg-white px-4 py-3.5 pr-12 text-sm font-medium shadow-sm focus:border-slate-300 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleSendComment}
+                        disabled={!newMessage.trim() || isSendingComment || !group?.isCurrentUserMember}
+                        className="absolute right-2 flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white transition hover:bg-slate-800 disabled:bg-slate-100 disabled:text-slate-400"
+                      >
+                        {isSendingComment ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1607,12 +1747,13 @@ export default function WalkGroupPage() {
   );
 }
 
+// Fix: typed correctly to match the LucideIcon interface
 function InfoTile({
   icon: Icon,
   label,
   value,
 }: {
-  icon: typeof MapPin;
+  icon: LucideIcon;
   label: string;
   value: string;
 }) {

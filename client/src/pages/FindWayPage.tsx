@@ -1062,7 +1062,7 @@ export default function FindWayPage() {
       </div>
 
       {/* ── GPS status pill (top-left) ─────────────────────────────────────── */}
-      <div className="absolute left-4 top-10 z-20 pointer-events-none">
+      {/* <div className="absolute left-4 top-10 z-20 pointer-events-none">
         <div className="flex items-center gap-2 bg-white/95 backdrop-blur border border-gray-100 rounded-full px-3 py-2 shadow-md">
           <span className="w-2 h-2 rounded-full shrink-0 animate-pulse" style={{ backgroundColor: locationStatusMeta.dotColor }} />
           <div>
@@ -1072,7 +1072,7 @@ export default function FindWayPage() {
             <p className="text-[10px] text-gray-400 leading-tight">{locationStatusMeta.description}</p>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* ── Map ────────────────────────────────────────────────────────────── */}
       <div className="relative flex-1 min-h-0 bg-gray-100">
