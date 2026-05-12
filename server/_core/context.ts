@@ -1,9 +1,7 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { User } from "../../drizzle/schema";
-import { TRUST_SCORE_DEFAULT } from "@shared/trust";
-import * as db from "../db";
 import { sdk } from "./sdk";
-import { getBearerToken, getSupabaseUserForAccessToken } from "./supabaseAuth";
+import { TRUST_SCORE_DEFAULT } from "../../shared/trust";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];
@@ -77,52 +75,6 @@ export async function createContext(
   opts: CreateExpressContextOptions
 ): Promise<TrpcContext> {
   let user: User | null = getDevBypassUser();
-
-  if (!user) {
-    const accessToken = getBearerToken(opts.req.headers.authorization);
-    if (accessToken) {
-      const supabaseUser = await getSupabaseUserForAccessToken(accessToken);
-      if (supabaseUser) {
-        const fullName =
-          typeof supabaseUser.user_metadata?.full_name === "string"
-            ? supabaseUser.user_metadata.full_name
-            : typeof supabaseUser.user_metadata?.name === "string"
-              ? supabaseUser.user_metadata.name
-              : null;
-        const avatarUrl =
-          typeof supabaseUser.user_metadata?.avatar_url === "string"
-            ? supabaseUser.user_metadata.avatar_url
-            : null;
-
-        try {
-          user =
-            (await db.syncSupabaseAuthUser({
-              supabaseUserId: supabaseUser.id,
-              email: supabaseUser.email ?? null,
-              name: fullName,
-              avatarUrl,
-            })) ??
-            buildSupabaseFallbackUser({
-              supabaseUserId: supabaseUser.id,
-              email: supabaseUser.email ?? null,
-              name: fullName,
-              avatarUrl,
-            });
-        } catch (error) {
-          console.warn(
-            "[Auth] Falling back to Supabase-only context user:",
-            error
-          );
-          user = buildSupabaseFallbackUser({
-            supabaseUserId: supabaseUser.id,
-            email: supabaseUser.email ?? null,
-            name: fullName,
-            avatarUrl,
-          });
-        }
-      }
-    }
-  }
 
   if (!user) {
     try {

@@ -1072,7 +1072,8 @@ const localAuthRouter = router({
       await sendVerificationEmail(input.email, input.name, code).catch(err =>
         console.error("[signup] email send failed:", err)
       );
-      return { success: true, userId: user.id, email: input.email };
+      const isDev = process.env.NODE_ENV !== "production";
+      return { success: true, userId: user.id, email: input.email, devCode: isDev ? code : undefined };
     }),
 
   sendVerificationCode: publicProcedure
@@ -1095,7 +1096,8 @@ const localAuthRouter = router({
       ).catch(err =>
         console.error("[sendVerificationCode] email send failed:", err)
       );
-      return { success: true, alreadyVerified: false };
+      const isDev = process.env.NODE_ENV !== "production";
+      return { success: true, alreadyVerified: false, devCode: isDev ? code : undefined };
     }),
 
   verifyEmail: publicProcedure
@@ -1225,6 +1227,12 @@ const coursesRouter = router({
     .input(z.object({ courseId: z.number() }))
     .mutation(async ({ ctx, input }) => {
       await db.enrollUserInCourse(ctx.user.id, input.courseId, "student");
+      return { success: true };
+    }),
+  unenroll: protectedProcedure
+    .input(z.object({ courseId: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await db.unenrollUserFromCourse(ctx.user.id, input.courseId);
       return { success: true };
     }),
   getAnnouncements: protectedProcedure
@@ -1876,8 +1884,8 @@ const pushRouter = router({
     .input(
       z.object({
         endpoint: z.string().url(),
-        p256dhKey: z.string(),
-        authKey: z.string(),
+        p256dhKey: z.string().min(1, "p256dhKey is required"),
+        authKey: z.string().min(1, "authKey is required"),
         userAgent: z.string().optional(),
       })
     )

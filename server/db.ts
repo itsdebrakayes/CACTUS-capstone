@@ -1,5 +1,13 @@
 import { eq, and, or, gt, lt, lte, gte, inArray, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import {
+  clampTrustScore,
+  getTrustTier,
+  getTrustScoreRatio,
+  TRUST_SCORE_DEFAULT,
+  type TrustTierKey,
+} from "../shared/trust";
 import {
   InsertUser,
   type User,
@@ -30,32 +38,22 @@ import {
   pushSubscriptions,
   userNotifications,
 } from "../drizzle/schema";
-import {
-  TRUST_SCORE_DEFAULT,
-  clampTrustScore,
-  getTrustScoreRatio,
-  getTrustTier,
-  type TrustTierKey,
-} from "@shared/trust";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
-let loggedSqlDisabled = false;
+let _client: ReturnType<typeof postgres> | null = null;
 
 export async function getDb() {
-  if (ENV.sqlDisabled) {
-    if (!loggedSqlDisabled) {
-      console.warn("[Database] SQL disabled via DISABLE_SQL=true");
-      loggedSqlDisabled = true;
-    }
-    return null;
-  }
-
-  if (!_db && ENV.databaseUrl) {
+  if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(ENV.databaseUrl);
+      _client = postgres(process.env.DATABASE_URL, {
+        prepare: false,
+        max: 1,
+      });
+      _db = drizzle(_client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
+      _client = null;
       _db = null;
     }
   }
@@ -112,7 +110,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       updateSet.lastSignedIn = new Date();
     }
 
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
+    await db.insert(users).values(values).onConflictDoUpdate({
+      target: users.openId,
       set: updateSet,
     });
   } catch (error) {
@@ -172,78 +171,6 @@ export async function getUserByEmail(email: string) {
     .where(eq(users.email, email))
     .limit(1);
   return result.length > 0 ? result[0] : undefined;
-}
-
-export async function syncSupabaseAuthUser(data: {
-  supabaseUserId: string;
-  email?: string | null;
-  name?: string | null;
-  avatarUrl?: string | null;
-}) {
-  const db = await getDb();
-  if (!db) {
-    throw new Error("Database not available");
-  }
-
-  const openId = `supabase:${data.supabaseUserId}`;
-  const signedInAt = new Date();
-  const displayName = data.name?.trim() || null;
-  const avatarUrl = data.avatarUrl?.trim() || null;
-
-  let user = await getUserByOpenId(openId);
-  if (user) {
-    await db
-      .update(users)
-      .set({
-        name: displayName ?? user.name,
-        email: data.email ?? user.email,
-        avatarUrl: avatarUrl ?? user.avatarUrl,
-        loginMethod: "supabase",
-        emailVerified: true,
-        isVerified: true,
-        lastSignedIn: signedInAt,
-      })
-      .where(eq(users.id, user.id));
-    return getUserByOpenId(openId);
-  }
-
-  if (data.email) {
-    const existingUser = await getUserByEmail(data.email);
-    if (existingUser) {
-      await db
-        .update(users)
-        .set({
-          openId,
-          name: displayName ?? existingUser.name,
-          email: data.email,
-          avatarUrl: avatarUrl ?? existingUser.avatarUrl,
-          loginMethod: "supabase",
-          emailVerified: true,
-          isVerified: true,
-          lastSignedIn: signedInAt,
-        })
-        .where(eq(users.id, existingUser.id));
-      return getUserByOpenId(openId);
-    }
-  }
-
-  await db.insert(users).values({
-    openId,
-    name: displayName,
-    email: data.email ?? null,
-    avatarUrl,
-    loginMethod: "supabase",
-    emailVerified: true,
-    isVerified: true,
-    lastSignedIn: signedInAt,
-  });
-
-  user = await getUserByOpenId(openId);
-  if (user) {
-    await enrollUserInAllActiveCourses(user.id, "student");
-  }
-
-  return user;
 }
 
 export async function createLocalUser(data: {
@@ -329,7 +256,8 @@ export async function upsertWalkingAvailability(
       geohash,
       geohash5,
     })
-    .onDuplicateKeyUpdate({
+    .onConflictDoUpdate({
+      target: walkingAvailability.userId,
       set: {
         isAvailable,
         lat,
@@ -1222,10 +1150,9 @@ export async function getSavedCoursesByUser(userId: number) {
 export async function saveCourse(userId: number, courseId: number) {
   const db = await getDb();
   if (!db) return;
-  await db
-    .insert(savedCourses)
-    .values({ userId, courseId })
-    .onDuplicateKeyUpdate({ set: { userId } });
+  await db.insert(savedCourses).values({ userId, courseId }).onConflictDoNothing({
+    target: [savedCourses.userId, savedCourses.courseId],
+  });
 }
 
 export async function unsaveCourse(userId: number, courseId: number) {
@@ -1264,36 +1191,16 @@ export async function enrollUserInCourse(
 ) {
   const db = await getDb();
   if (!db) return;
-  await db
-    .insert(courseMemberships)
-    .values({ userId, courseId, membershipRole })
-    .onDuplicateKeyUpdate({ set: { membershipRole } });
+  await db.insert(courseMemberships).values({ userId, courseId, membershipRole }).onConflictDoUpdate({
+    target: [courseMemberships.courseId, courseMemberships.userId],
+    set: { membershipRole },
+  });
 }
 
-export async function enrollUserInAllActiveCourses(
-  userId: number,
-  membershipRole: "student" | "class_rep" | "lecturer" = "student"
-) {
+export async function unenrollUserFromCourse(userId: number, courseId: number) {
   const db = await getDb();
-  if (!db) return [];
-
-  const activeCourses = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.isActive, true));
-
-  if (activeCourses.length === 0) {
-    return [];
-  }
-
-  for (const course of activeCourses) {
-    await db
-      .insert(courseMemberships)
-      .values({ userId, courseId: course.id, membershipRole })
-      .onDuplicateKeyUpdate({ set: { membershipRole } });
-  }
-
-  return activeCourses.map(course => course.id);
+  if (!db) return;
+  await db.delete(courseMemberships).where(and(eq(courseMemberships.userId, userId), eq(courseMemberships.courseId, courseId)));
 }
 
 // ============================================================================
@@ -1470,21 +1377,20 @@ export async function upsertCourse(data: {
 }) {
   const db = await getDb();
   if (!db) return null;
-  await db
-    .insert(courses)
-    .values({ ...data, isActive: true })
-    .onDuplicateKeyUpdate({
-      set: {
-        courseName: data.courseName,
-        room: data.room,
-        lecturer: data.lecturer,
-      },
-    });
-  const result = await db
-    .select()
-    .from(courses)
-    .where(eq(courses.courseCode, data.courseCode))
-    .limit(1);
+  await db.insert(courses).values({ ...data, isActive: true }).onConflictDoUpdate({
+    target: courses.courseCode,
+    set: {
+      courseName: data.courseName,
+      description: data.description,
+      thumbnailUrl: data.thumbnailUrl,
+      room: data.room,
+      lecturer: data.lecturer,
+      department: data.department,
+      classSize: data.classSize,
+      isActive: true,
+    },
+  });
+  const result = await db.select().from(courses).where(eq(courses.courseCode, data.courseCode)).limit(1);
   return result.length > 0 ? result[0] : null;
 }
 
@@ -1550,11 +1456,26 @@ export async function getCourseSessionsByUser(userId: number) {
     .from(courseMemberships)
     .where(eq(courseMemberships.userId, userId));
   if (memberships.length === 0) return [];
-  const courseIds = memberships.map(m => m.courseId);
-  return db
-    .select()
+  const courseIds = memberships.map((m) => m.courseId);
+  const rows = await db
+    .select({
+      id: courseSessions.id,
+      courseId: courseSessions.courseId,
+      sessionType: courseSessions.sessionType,
+      dayOfWeek: courseSessions.dayOfWeek,
+      startTime: courseSessions.startTime,
+      endTime: courseSessions.endTime,
+      roomCode: courseSessions.roomCode,
+      lecturerId: courseSessions.lecturerId,
+      createdAt: courseSessions.createdAt,
+      courseName: courses.courseName,
+      courseCode: courses.courseCode,
+      lecturer: courses.lecturer,
+    })
     .from(courseSessions)
+    .leftJoin(courses, eq(courseSessions.courseId, courses.id))
     .where(inArray(courseSessions.courseId, courseIds));
+  return rows;
 }
 
 export async function getSessionOverridesByDate(
@@ -1731,9 +1652,7 @@ export async function createOrUpdateClassReportVote(
   await db
     .insert(classReportVotes)
     .values({ reportId, userId, voteType, voteWeight })
-    .onDuplicateKeyUpdate({
-      set: { voteType, voteWeight, updatedAt: new Date() },
-    });
+    .onConflictDoUpdate({ target: [classReportVotes.reportId, classReportVotes.userId], set: { voteType, voteWeight, updatedAt: new Date() } });
   const result = await db
     .select()
     .from(classReportVotes)
@@ -2083,13 +2002,7 @@ export async function upsertPushSubscription(data: {
   await db
     .insert(pushSubscriptions)
     .values(data as any)
-    .onDuplicateKeyUpdate({
-      set: {
-        p256dhKey: data.p256dhKey,
-        authKey: data.authKey,
-        updatedAt: new Date(),
-      },
-    });
+    .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: { p256dhKey: data.p256dhKey, authKey: data.authKey, updatedAt: new Date() } });
   const result = await db
     .select()
     .from(pushSubscriptions)
@@ -2307,4 +2220,21 @@ export async function getRequiredThresholdForReport(
   const required = Math.max(1, Math.ceil(raw));
   const rejection = -Math.max(2, Math.ceil(0.25 * course.classSize));
   return { required, rejection };
+}
+
+// ============================================================================
+// CONVENIENCE HELPERS
+// ============================================================================
+
+export async function enrollUserInAllActiveCourses(userId: number, role: "student" | "class_rep" | "lecturer" = "student") {
+  const db = await getDb();
+  if (!db) return [];
+  const activeCourses = await db.select({ id: courses.id }).from(courses).where(eq(courses.isActive, true));
+  for (const course of activeCourses) {
+    await db.insert(courseMemberships).values({ userId, courseId: course.id, membershipRole: role }).onConflictDoUpdate({
+      target: [courseMemberships.courseId, courseMemberships.userId],
+      set: { membershipRole: role },
+    });
+  }
+  return activeCourses.map((c) => c.id);
 }
