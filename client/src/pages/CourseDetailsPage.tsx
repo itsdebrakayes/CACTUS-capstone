@@ -333,10 +333,30 @@ export default function CourseDetailsPage() {
         )}
       </div>
 
-      {/* Quick report buttons */}
-      <div className="px-4 pt-4 pb-2">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Quick Report
+      {/* Real-time Class Chat & Updates Button */}
+      <div className="px-4 pt-4">
+        <button
+          onClick={() => navigate(`/class-chat?courseId=${courseId}`)}
+          className="w-full bg-emerald-500 rounded-2xl p-4 flex items-center gap-4 shadow-lg shadow-emerald-500/20 active:scale-[0.98] transition-all group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+            <MessageSquare className="w-6 h-6" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-white font-black text-base leading-none tracking-tight">Class Updates & Chat</p>
+            <p className="text-emerald-100 text-[10px] font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" />
+              Live Class Status
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-emerald-200" />
+        </button>
+      </div>
+
+      {/* Legacy Quick report buttons (Optional context) */}
+      <div className="px-4 pt-6 pb-2 opacity-60">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+          Legacy Options
         </p>
         <div className="flex gap-2">
           {QUICK_REPORTS.map((r) => {
@@ -345,21 +365,14 @@ export default function CourseDetailsPage() {
               <button
                 key={r.type}
                 onClick={() => openReportSheet(r.type as ReportCategory)}
-                className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-xs font-medium transition-all ${r.color} active:scale-95`}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl border text-[10px] font-bold uppercase tracking-widest transition-all ${r.color} active:scale-95`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5" />
                 {r.label}
               </button>
             );
           })}
         </div>
-        <button
-          onClick={() => openReportSheet()}
-          className="mt-2 w-full flex items-center justify-center gap-1.5 py-2.5 rounded-2xl border border-dashed border-gray-300 text-xs text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
-        >
-          <MessageSquare className="w-3.5 h-3.5" />
-          More report options...
-        </button>
       </div>
 
       {/* Community updates feed */}

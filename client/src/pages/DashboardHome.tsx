@@ -587,7 +587,7 @@ function UpNextSection({ classes }: { classes: ScheduledCourse[] }) {
         {upcoming.slice(0, 2).map(course => (
           <div
             key={course.id}
-            onClick={() => navigate(`/courses/${course.id}`)}
+            onClick={() => navigate(`/class-chat?courseId=${course.id}`)}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 cursor-pointer active:bg-gray-50 transition-colors"
           >
             <div className="text-center shrink-0 w-14 border-r border-gray-100 pr-3">
@@ -826,7 +826,10 @@ export default function DashboardHome() {
             <button className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors">
               <Search className="w-5 h-5" />
             </button>
-            <button className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors relative">
+            <button 
+              onClick={() => navigate("/notifications")}
+              className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors relative"
+            >
               <Bell className="w-5 h-5" />
               {activeAlerts.length > 0 && (
                 <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
@@ -875,7 +878,7 @@ export default function DashboardHome() {
           courses={mergedCourses}
           activeCourseId={activeCourseId}
           onActiveCourseChange={setActiveCourseId}
-          onOpenCourse={courseId => navigate(`/courses/${courseId}`)}
+          onOpenCourse={courseId => navigate(`/class-chat?courseId=${courseId}`)}
         />
       ) : (
         <div className="mx-4 mb-8 bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
@@ -896,13 +899,7 @@ export default function DashboardHome() {
               : "/find-way"
           )
         }
-        onClassChat={() =>
-          navigate(
-            activeCourse
-              ? `/class-chat?courseId=${encodeURIComponent(String(activeCourse.id))}`
-              : "/class-chat"
-          )
-        }
+        onClassChat={() => navigate("/empty")} // Standalone chat now goes to empty page
         onEmergency={() => navigate("/map?emergency=true")}
         isCourseActionsDisabled={!activeCourse}
       />

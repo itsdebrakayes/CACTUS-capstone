@@ -1,4 +1,4 @@
-export type RouteMode = "shortest" | "scenic" | "accessible" | "safe_night";
+export type RouteMode = "shortest" | "scenic" | "accessible" | "safe_night" | "shortcut";
 
 type Coord2 = [number, number];
 type Coord3 = [number, number, number?];
@@ -572,6 +572,13 @@ export function planAllCampusRoutes(
       "shortest",
       options
     ),
+    shortcut: planCampusRoute(
+      dataset,
+      fromLocationId,
+      toLocationId,
+      "shortcut",
+      options
+    ),
     scenic: planCampusRoute(
       dataset,
       fromLocationId,
@@ -719,6 +726,37 @@ function dijkstra(
       if (candidate < (distances.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
         distances.set(edge.to, candidate);
         previous.set(edge.to, { nodeId: currentNodeId, edge });
+      }
+    }
+
+    // --- NODE HOPPING FOR SHORTCUT MODE ---
+    if (mode === "shortcut") {
+      const HOP_THRESHOLD_M = 60; // Increased distance for hopping
+      for (const [targetId, targetNode] of dataset.graph.entries()) {
+        if (!queue.has(targetId) || targetId === currentNodeId) continue;
+        
+        const dist = haversineMeters(
+          [currentNode.coordinates[0], currentNode.coordinates[1]],
+          [targetNode.coordinates[0], targetNode.coordinates[1]]
+        );
+
+        if (dist <= HOP_THRESHOLD_M) {
+          // Create a virtual edge for hopping
+          const virtualEdge: GraphEdge = {
+            to: targetId,
+            distanceM: dist,
+            elevationDeltaM: (targetNode.coordinates[2] ?? 0) - (currentNode.coordinates[2] ?? 0),
+            grade: 0,
+            scenicScore: 0,
+            activityScore: 0
+          };
+
+          const candidate = currentDistance + (dist * 0.9); // Slight discount for hopping
+          if (candidate < (distances.get(targetId) ?? Number.POSITIVE_INFINITY)) {
+            distances.set(targetId, candidate);
+            previous.set(targetId, { nodeId: currentNodeId, edge: virtualEdge });
+          }
+        }
       }
     }
   }
@@ -932,10 +970,12 @@ function getEdgeCost(
     case "shortest":
       return edge.distanceM * (1 + edge.grade * 1.4 * rainSlopeMultiplier);
     case "scenic":
-      return (
-        edge.distanceM * (1 + edge.grade * 0.65 * rainSlopeMultiplier) -
-        Math.min(edge.distanceM * 0.24, edge.scenicScore * 8)
-      );
+      // Favor longer distances by making them 'cheaper' in the search
+      // Using (1000 / distance) forces the algorithm to maximize total path length
+      return (1000 / Math.max(1, edge.distanceM)) * (1 + edge.grade * 0.4);
+    case "shortcut":
+      // Shortcuts favor direct distance with minimal penalties
+      return edge.distanceM * 0.8;
     case "accessible":
       return edge.distanceM * (1 + edge.grade * 10 * rainSlopeMultiplier);
     case "safe_night":

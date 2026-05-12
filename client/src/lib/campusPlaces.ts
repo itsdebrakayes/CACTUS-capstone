@@ -127,74 +127,74 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
 };
 
 const MAP_PLACE_FILTERS_BY_KEY: Record<MapPlaceFilterKey, MapPlaceFilterOption> =
-  {
-    atm: {
-      key: "atm",
-      label: "ATM",
-      color: CATEGORY_META.atm.color,
-      icon: CircleDollarSign,
-    },
-    classroom: {
-      key: "classroom",
-      label: "Classrooms",
-      color: CATEGORY_META.classroom.color,
-      icon: GraduationCap,
-    },
-    food: {
-      key: "food",
-      label: "Food",
-      color: CATEGORY_META.food.color,
-      icon: UtensilsCrossed,
-    },
-    study_area: {
-      key: "study_area",
-      label: "Study Areas",
-      color: CATEGORY_META.study_area.color,
-      icon: BookOpen,
-    },
-    hall: {
-      key: "hall",
-      label: "Halls",
-      color: CATEGORY_META.hall.color,
-      icon: Building,
-    },
-    faculty: {
-      key: "faculty",
-      label: "Faculty",
-      color: CATEGORY_META.faculty.color,
-      icon: Building2,
-    },
-    library: {
-      key: "library",
-      label: "Libraries",
-      color: CATEGORY_META.library.color,
-      icon: BookOpen,
-    },
-    landmark: {
-      key: "landmark",
-      label: "Landmarks",
-      color: CATEGORY_META.landmark.color,
-      icon: MapPin,
-    },
-    office: {
-      key: "office",
-      label: "Offices",
-      color: CATEGORY_META.office.color,
-      icon: BriefcaseBusiness,
-    },
-    parking: {
-      key: "parking",
-      label: "Parking",
-      color: CATEGORY_META.parking.color,
-      icon: CarFront,
-    },
-    restroom: {
-      key: "restroom",
-      label: "Restrooms",
-      color: CATEGORY_META.restroom.color,
-      icon: Bath,
-    },
-  };
+{
+  atm: {
+    key: "atm",
+    label: "ATM",
+    color: CATEGORY_META.atm.color,
+    icon: CircleDollarSign,
+  },
+  classroom: {
+    key: "classroom",
+    label: "Classrooms",
+    color: CATEGORY_META.classroom.color,
+    icon: GraduationCap,
+  },
+  food: {
+    key: "food",
+    label: "Food",
+    color: CATEGORY_META.food.color,
+    icon: UtensilsCrossed,
+  },
+  study_area: {
+    key: "study_area",
+    label: "Study Areas",
+    color: CATEGORY_META.study_area.color,
+    icon: BookOpen,
+  },
+  hall: {
+    key: "hall",
+    label: "Halls",
+    color: CATEGORY_META.hall.color,
+    icon: Building,
+  },
+  faculty: {
+    key: "faculty",
+    label: "Faculty",
+    color: CATEGORY_META.faculty.color,
+    icon: Building2,
+  },
+  library: {
+    key: "library",
+    label: "Libraries",
+    color: CATEGORY_META.library.color,
+    icon: BookOpen,
+  },
+  landmark: {
+    key: "landmark",
+    label: "Landmarks",
+    color: CATEGORY_META.landmark.color,
+    icon: MapPin,
+  },
+  office: {
+    key: "office",
+    label: "Offices",
+    color: CATEGORY_META.office.color,
+    icon: BriefcaseBusiness,
+  },
+  parking: {
+    key: "parking",
+    label: "Parking",
+    color: CATEGORY_META.parking.color,
+    icon: CarFront,
+  },
+  restroom: {
+    key: "restroom",
+    label: "Restrooms",
+    color: CATEGORY_META.restroom.color,
+    icon: Bath,
+  },
+};
 
 export const MAP_PLACE_FILTERS: MapPlaceFilterOption[] = [
   MAP_PLACE_FILTERS_BY_KEY.atm,
@@ -309,15 +309,15 @@ export function buildPlaceDataset(
           `Place ${index + 1}`,
         category: normalizePlaceCategory(
           sourceFeature?.properties?.category?.trim() ||
-            location.category ||
-            "landmark"
+          location.category ||
+          "landmark"
         ),
         coordinates: location.coordinates,
         parentName: null,
         sourceCategory: normalizePlaceCategory(
           sourceFeature?.properties?.category?.trim() ||
-            location.category ||
-            "landmark"
+          location.category ||
+          "landmark"
         ),
         nearestNodeId: location.snapNodeId,
         nearestNodeName: "Campus Path",

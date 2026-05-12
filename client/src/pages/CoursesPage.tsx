@@ -331,7 +331,7 @@ export default function CoursesPage() {
               <CatalogCourseCard
                 key={course.id}
                 course={course}
-                onClick={() => navigate(`/courses/${course.id}`)}
+                onClick={() => navigate(`/class-chat?courseId=${course.id}`)}
               />
             ))}
           </div>

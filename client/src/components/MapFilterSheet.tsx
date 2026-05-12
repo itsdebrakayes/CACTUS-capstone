@@ -104,26 +104,7 @@ export default function MapFilterSheet({
 
   return (
     <>
-      <div className="absolute right-4 top-4 z-[48]">
-        <button
-          type="button"
-          onClick={open ? onClose : onOpen}
-          className={`relative flex h-14 w-14 items-center justify-center rounded-full border shadow-[0_14px_32px_rgba(15,23,42,0.18)] backdrop-blur-md transition-all active:scale-95 ${
-            open
-              ? "border-emerald-600 bg-emerald-600 text-white"
-              : "border-white/70 bg-white/92 text-slate-900"
-          }`}
-          aria-label={open ? "Close map filters" : "Open map filters"}
-          aria-pressed={open}
-        >
-          <HamburgerMenuGlyph className="h-6 w-6" />
-          {!allSelected ? (
-            <span className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-slate-900 px-1.5 text-[10px] font-extrabold text-white shadow-sm">
-              {selectedCount}
-            </span>
-          ) : null}
-        </button>
-      </div>
+
 
       <div
         className={`absolute inset-0 z-[70] transition-opacity duration-300 ${

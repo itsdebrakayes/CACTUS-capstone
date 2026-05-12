@@ -22,6 +22,8 @@ import CoursesPage from "./pages/CoursesPage";
 import CourseDetailsPage from "./pages/CourseDetailsPage";
 import ClassRepDashboard from "./pages/ClassRepDashboard";
 import CourseReportingPage from "./pages/CourseReportingPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import EmptyPage from "./pages/EmptyPage";
 
 function Router() {
   return (
@@ -36,6 +38,7 @@ function Router() {
       <Route path="/map" component={MapPage} />
       <Route path="/profile" component={ProfilePage} />
       <Route path="/class-chat" component={ClassChatPage} />
+      <Route path="/empty" component={EmptyPage} />
 
       {/* Course management */}
       <Route path="/courses" component={CoursesPage} />
@@ -58,6 +61,7 @@ function Router() {
         <Redirect to="/dashboard" />
       </Route>
 
+      <Route path="/notifications" component={NotificationsPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -300,3 +300,46 @@
 
 /* Cursor crosshair when selecting destination */
 .map-selecting-dest .mapboxgl-canvas { cursor: crosshair !important; }
+
+/* Floor toggle markers (Stairs) */
+.cactus-floor-toggle-marker {
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  z-index: 40;
+}
+.floor-toggle-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: white;
+  border: 2px solid #3b82f6;
+  border-radius: 12px;
+  color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.cactus-floor-toggle-marker:hover .floor-toggle-inner {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(59,130,246,0.35);
+  background: #eff6ff;
+}
+.cactus-floor-toggle-marker.active .floor-toggle-inner {
+  background: #3b82f6;
+  color: white;
+  box-shadow: 0 0 0 4px rgba(59,130,246,0.2);
+  animation: pulse-floor 2s infinite;
+}
+.floor-label {
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  margin-top: -1px;
+}
+@keyframes pulse-floor {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}

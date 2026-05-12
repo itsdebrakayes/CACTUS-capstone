@@ -37,6 +37,8 @@ export interface Walker {
   name?: string;
 }
 
+
+
 export interface Hazard {
   id: string | number;
   lat: number;
@@ -63,6 +65,15 @@ export interface WalkGroupMapMarker {
   meetingPointName: string;
   memberCount: number;
   status: string;
+}
+
+export interface FloorToggleMarker {
+  id: string;
+  lat: number;
+  lng: number;
+  buildingName: string;
+  targetFloor: number;
+  radiusM: number;
 }
 
 export interface CactusMapHandle {
@@ -94,6 +105,9 @@ interface CactusMapProps {
   onHazardClick?: (hazard: Hazard) => void;
   onWalkGroupClick?: (walkGroup: WalkGroupMapMarker) => void;
   onPlaceClick?: (place: PlaceLocation) => void;
+  floorToggles?: FloorToggleMarker[];
+  activeFloorToggleId?: string | null;
+  onFloorToggleClick?: (toggle: FloorToggleMarker) => void;
 }
 
 const REPORT_TYPE_LABELS: Record<string, string> = {
@@ -154,6 +168,9 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
       onHazardClick,
       onWalkGroupClick,
       onPlaceClick,
+      floorToggles = [],
+      activeFloorToggleId = null,
+      onFloorToggleClick,
     },
     ref
   ) => {
@@ -164,6 +181,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
     const walkerMarkersRef = useRef<ManagedMapMarker[]>([]);
     const hazardMarkersRef = useRef<ManagedMapMarker[]>([]);
     const walkGroupMarkersRef = useRef<ManagedMapMarker[]>([]);
+    const floorToggleMarkersRef = useRef<ManagedMapMarker[]>([]);
     const markerVisibilityRef = useRef<MapMarkerVisibilityBinding | null>(null);
     const placePopupRef = useRef<mapboxgl.Popup | null>(null);
     const placeLookupRef = useRef<Map<string, PlaceLocation>>(new Map());
@@ -287,6 +305,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         ...walkerMarkersRef.current,
         ...hazardMarkersRef.current,
         ...walkGroupMarkersRef.current,
+        ...floorToggleMarkersRef.current,
       ]);
 
       map.on("load", () => {
@@ -367,6 +386,7 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
         walkerMarkersRef.current = [];
         hazardMarkersRef.current = [];
         walkGroupMarkersRef.current = [];
+        floorToggleMarkersRef.current = [];
         map.remove();
         mapRef.current = null;
         mapReadyRef.current = false;
@@ -541,6 +561,48 @@ const CactusMap = forwardRef<CactusMapHandle, CactusMapProps>(
 
       markerVisibilityRef.current?.sync();
     }, [mapReady, onWalkGroupClick, walkGroups]);
+
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!map || !mapReady) {
+        return;
+      }
+
+      floorToggleMarkersRef.current.forEach(({ marker }) => marker.remove());
+      floorToggleMarkersRef.current = [];
+
+      floorToggles.forEach(toggle => {
+        const isActive = activeFloorToggleId === toggle.id;
+        const element = document.createElement("div");
+        element.className = `cactus-floor-toggle-marker ${isActive ? "active" : ""}`;
+        element.innerHTML = `
+          <div class="floor-toggle-inner">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 15h-8L4 9h8z"/><path d="M18 15V9h-8"/>
+            </svg>
+            <span class="floor-label">${isActive ? "G" : toggle.targetFloor}</span>
+          </div>
+        `;
+
+        const marker = new mapboxgl.Marker({ element, anchor: "center" })
+          .setLngLat([toggle.lng, toggle.lat])
+          .addTo(map);
+
+        element.addEventListener("click", event => {
+          event.stopPropagation();
+          onFloorToggleClick?.(toggle);
+        });
+
+        floorToggleMarkersRef.current.push({
+          baseSizePx: 34,
+          element,
+          marker,
+          priority: 75,
+        });
+      });
+
+      markerVisibilityRef.current?.sync();
+    }, [mapReady, floorToggles, activeFloorToggleId, onFloorToggleClick]);
 
     useEffect(() => {
       const map = mapRef.current;

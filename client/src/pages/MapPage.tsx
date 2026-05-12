@@ -85,6 +85,9 @@ type MapRouteType = "quick" | "shortcut" | "scenic";
 const DISCONNECTED_CAMPUS_ROUTE_PREFIX = "Campus graph disconnect:";
 const CROSS_COMPONENT_ENTRY_NODE_LIMIT = 8;
 
+const MAPBOX_DIRECT_MAX_DETOUR_RATIO = 2.4;
+const MAPBOX_DIRECT_EXTRA_DISTANCE_M = 100;
+
 interface ActiveMapRoute {
   mode: MapRouteType;
   destinationId: string;
@@ -169,8 +172,54 @@ const ROUTE_TYPE_META: Record<
   { label: string; subtitle: string; disabled?: boolean }
 > = {
   quick: { label: "Quick", subtitle: "Fastest route" },
-  shortcut: { label: "Shortcut", subtitle: "Footpaths soon", disabled: true },
-  scenic: { label: "Scenic", subtitle: "Via Ring Road" },
+  shortcut: { label: "Shortcut", subtitle: "Most direct" },
+  scenic: { label: "Scenic", subtitle: "Longest walk" },
+};
+
+const CAMPUS_FLOOR_TOGGLES: FloorToggleMarker[] = [
+  {
+    id: "computing-dept-stairs",
+    buildingName: "Computing Department",
+    lat: 18.00587,
+    lng: -76.74975,
+    targetFloor: 2,
+    radiusM: 25,
+  },
+];
+
+const SECOND_FLOOR_ROOM_DATA: Record<string, PlaceLocation[]> = {
+  "computing-dept-stairs": [
+    {
+      id: "comp-lab-1",
+      name: "Computing Lab 1",
+      category: "classroom",
+      coordinates: [-76.74969, 18.00592],
+      floor: 2,
+      nearestNodeId: "point_163", // Snapping to a nearby node
+      nearestNodeName: "Computing Entrance",
+      nearestNodeDistanceM: 5,
+    },
+    {
+      id: "comp-dept-office",
+      name: "Computing Department",
+      category: "office",
+      coordinates: [-76.74964, 18.00594],
+      floor: 2,
+      nearestNodeId: "point_163",
+      nearestNodeName: "Computing Entrance",
+      nearestNodeDistanceM: 8,
+    },
+    {
+      id: "clr-room",
+      name: "CLR",
+      category: "classroom",
+      coordinates: [-76.74982, 18.00587],
+      floor: 2,
+      nearestNodeId: "point_163",
+      nearestNodeName: "Computing Entrance",
+      nearestNodeDistanceM: 3,
+    },
+  ],
 };
 
 function clampValue(value: number, min: number, max: number) {
@@ -178,7 +227,9 @@ function clampValue(value: number, min: number, max: number) {
 }
 
 function getCampusRouteMode(routeType: MapRouteType) {
-  return routeType === "scenic" ? "scenic" : "shortest";
+  if (routeType === "scenic") return "scenic";
+  if (routeType === "shortcut") return "shortcut";
+  return "shortest";
 }
 
 function buildDisconnectedCampusRouteMessage(
@@ -750,6 +801,9 @@ export default function MapPage() {
   const [isJoiningWalkGroup, setIsJoiningWalkGroup] = useState(false);
   const [activeSnap, setActiveSnap] = useState<SheetSnap>("collapsed");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [activeFloorToggleId, setActiveFloorToggleId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     if (!loading && !user) {
@@ -1261,192 +1315,281 @@ export default function MapPage() {
     [sheetMode]
   );
 
-  const handleStartNavigation = useCallback(async () => {
-    if (!selectedPlace) {
-      toast.error("Select a destination first.");
-      return;
-    }
-    if (!campusData) {
-      toast.error("Campus routes are still loading.");
-      return;
-    }
-    if (userLat == null || userLng == null) {
-      toast.error("Your location is needed before routing.");
-      return;
-    }
-    if (routeType === "shortcut") {
-      toast.error("Shortcut mode is coming soon.");
-      return;
-    }
+const handleStartNavigation = useCallback(async () => {
+  if (!selectedPlace) {
+    toast.error("Select a destination first.");
+    return;
+  }
 
-    setIsPlanningRoute(true);
-    setSelectedHazard(null);
-    setSelectedWalkGroupId(null);
-    setIsReportOpen(false);
+  if (!campusData) {
+    toast.error("Campus routes are still loading.");
+    return;
+  }
 
+  if (userLat == null || userLng == null) {
+    toast.error("Your location is needed before routing.");
+    return;
+  }
+
+  if (routeType === "shortcut") {
+    toast.error("Shortcut mode is coming soon.");
+    return;
+  }
+
+  setIsPlanningRoute(true);
+  setSelectedHazard(null);
+  setSelectedWalkGroupId(null);
+  setIsReportOpen(false);
+
+  try {
+    const origin: Coord2 = [userLng, userLat];
+
+    const routeOptions: Array<{
+      source: "mapbox_direct" | "campus_graph";
+      coordinates: Coord2[];
+      distanceM: number;
+      durationSec: number;
+    }> = [];
+
+    /**
+     * OPTION 1:
+     * Try a direct Mapbox walking route from the user's location
+     * straight to the selected destination.
+     *
+     * This helps when the destination is beside the user and the
+     * campus graph would create an unnecessary detour.
+     */
     try {
-      const origin: Coord2 = [userLng, userLat];
-      const userSnap = findNearestCampusPathSnap(campusData, origin);
-      const destinationComponentId = getCampusNodeComponentId(
-        campusData,
-        selectedPlace.nearestNodeId
+      const directRoute = await requestWalkingRoute([
+        origin,
+        selectedPlace.coordinates,
+      ]);
+
+      const straightLineDistanceM = haversineMeters(
+        origin,
+        selectedPlace.coordinates
       );
-      const startOptions = userSnap
-        ? [
-            {
-              nodeId: userSnap.startNodeId,
-              connectorDistanceM: userSnap.distanceToStartM,
-            },
-            {
-              nodeId: userSnap.endNodeId,
-              connectorDistanceM: userSnap.distanceToEndM,
-            },
-          ].filter(
-            (option, index, options) =>
-              options.findIndex(
-                candidate => candidate.nodeId === option.nodeId
-              ) === index
-          )
-        : [];
-      const connectedStartOptions =
-        destinationComponentId === null
-          ? []
-          : startOptions.filter(
-              option =>
-                getCampusNodeComponentId(campusData, option.nodeId) ===
-                destinationComponentId
+
+      const directRouteLooksReasonable =
+        directRoute.distanceM <=
+        Math.max(
+          straightLineDistanceM * MAPBOX_DIRECT_MAX_DETOUR_RATIO,
+          straightLineDistanceM + MAPBOX_DIRECT_EXTRA_DISTANCE_M
+        );
+
+      if (directRouteLooksReasonable) {
+        routeOptions.push({
+          source: "mapbox_direct",
+          coordinates: directRoute.coordinates,
+          distanceM: directRoute.distanceM,
+          durationSec: directRoute.durationSec,
+        });
+      }
+    } catch {
+      /**
+       * Mapbox may fail for internal campus paths/classrooms.
+       * If it fails, the campus graph route below can still work.
+       */
+    }
+
+    /**
+     * OPTION 2:
+     * Build the custom campus graph route.
+     *
+     * This is your existing system:
+     * user location → nearest graph snap → Dijkstra campus route
+     * → final connector to the destination.
+     */
+    const userSnap = findNearestCampusPathSnap(campusData, origin);
+
+    const destinationComponentId = getCampusNodeComponentId(
+      campusData,
+      selectedPlace.nearestNodeId
+    );
+
+    const startOptions = userSnap
+      ? [
+          {
+            nodeId: userSnap.startNodeId,
+            connectorDistanceM: userSnap.distanceToStartM,
+          },
+          {
+            nodeId: userSnap.endNodeId,
+            connectorDistanceM: userSnap.distanceToEndM,
+          },
+        ].filter(
+          (option, index, options) =>
+            options.findIndex(candidate => candidate.nodeId === option.nodeId) ===
+            index
+        )
+      : [];
+
+    const connectedStartOptions =
+      destinationComponentId === null
+        ? []
+        : startOptions.filter(
+            option =>
+              getCampusNodeComponentId(campusData, option.nodeId) ===
+              destinationComponentId
+          );
+
+    const campusGraphRouteOptions: Array<{
+      coordinates: Coord2[];
+      distanceM: number;
+      durationSec: number;
+    }> = [];
+
+    if (userSnap && connectedStartOptions.length > 0) {
+      const roadConnectorDistanceM = haversineMeters(
+        origin,
+        userSnap.coordinates
+      );
+
+      const roadRoute =
+        roadConnectorDistanceM < 3
+          ? {
+              coordinates: mergeRouteCoordinates(
+                [origin],
+                [userSnap.coordinates]
+              ),
+              distanceM: roadConnectorDistanceM,
+              durationSec: roadConnectorDistanceM / 1.35,
+            }
+          : await requestWalkingRoute([origin, userSnap.coordinates]);
+
+      campusGraphRouteOptions.push(
+        ...connectedStartOptions
+          .map(option => {
+            const campusRoute = planCampusRouteBetweenNodes(
+              campusData,
+              option.nodeId,
+              selectedPlace.nearestNodeId,
+              getCampusRouteMode(routeType)
             );
 
-      const routeOptions: Array<{
-        coordinates: Coord2[];
-        distanceM: number;
-        durationSec: number;
-      }> = [];
+            if (!campusRoute) {
+              return null;
+            }
 
-      if (userSnap && connectedStartOptions.length > 0) {
-        const roadConnectorDistanceM = haversineMeters(
-          origin,
-          userSnap.coordinates
-        );
-        const roadRoute =
-          roadConnectorDistanceM < 3
-            ? {
-                coordinates: mergeRouteCoordinates(
-                  [origin],
-                  [userSnap.coordinates]
-                ),
-                distanceM: roadConnectorDistanceM,
-                durationSec: roadConnectorDistanceM / 1.35,
-              }
-            : await requestWalkingRoute([origin, userSnap.coordinates]);
+            const lastCampusCoordinate =
+              campusRoute.coordinates[campusRoute.coordinates.length - 1];
 
-        routeOptions.push(
-          ...connectedStartOptions
-            .map(option => {
-              const campusRoute = planCampusRouteBetweenNodes(
-                campusData,
-                option.nodeId,
-                selectedPlace.nearestNodeId,
-                getCampusRouteMode(routeType)
-              );
-              if (!campusRoute) {
-                return null;
-              }
+            const finalConnectorDistanceM = lastCampusCoordinate
+              ? haversineMeters(lastCampusCoordinate, selectedPlace.coordinates)
+              : 0;
 
-              const lastCampusCoordinate =
-                campusRoute.coordinates[campusRoute.coordinates.length - 1];
-              const finalConnectorDistanceM = lastCampusCoordinate
-                ? haversineMeters(
-                    lastCampusCoordinate,
-                    selectedPlace.coordinates
-                  )
-                : 0;
-              const finalConnectorCoordinates =
-                finalConnectorDistanceM > 1 ? [selectedPlace.coordinates] : [];
+            const finalConnectorCoordinates =
+              finalConnectorDistanceM > 1 ? [selectedPlace.coordinates] : [];
 
-              return {
-                coordinates: mergeRouteCoordinates(
-                  roadRoute.coordinates,
-                  [userSnap.coordinates],
-                  campusRoute.coordinates,
-                  finalConnectorCoordinates
-                ),
-                distanceM:
-                  roadRoute.distanceM +
-                  option.connectorDistanceM +
-                  campusRoute.distanceM +
-                  finalConnectorDistanceM,
-                durationSec:
-                  roadRoute.durationSec +
-                  option.connectorDistanceM / 1.35 +
-                  campusRoute.walkTimeSec +
-                  finalConnectorDistanceM / 1.2,
-              };
-            })
-            .filter(
-              (route): route is NonNullable<typeof route> => route !== null
-            )
-        );
-      }
-
-      if (routeOptions.length === 0) {
-        const fallbackRoute = await buildDestinationComponentEntryRoute({
-          campusData,
-          origin,
-          destination: selectedPlace,
-          routeType,
-          requestWalkingRoute,
-        });
-        if (fallbackRoute) {
-          routeOptions.push(fallbackRoute);
-        }
-      }
-
-      const bestRoute = routeOptions.sort(
-        (left, right) => left.distanceM - right.distanceM
-      )[0];
-      if (!bestRoute) {
-        const disconnectedMessage = buildDisconnectedCampusRouteMessage(
-          campusData,
-          startOptions.map(option => option.nodeId),
-          selectedPlace.nearestNodeId,
-          selectedPlace.name
-        );
-        if (disconnectedMessage) {
-          throw new Error(disconnectedMessage);
-        }
-
-        throw new Error("No route could be built to the selected destination.");
-      }
-
-      setActiveRoute({
-        mode: routeType,
-        destinationId: selectedPlace.id,
-        destinationName: selectedPlace.name,
-        coordinates: bestRoute.coordinates,
-        distanceM: bestRoute.distanceM,
-        durationSec: bestRoute.durationSec,
-      });
-      snapSheetTo("collapsed");
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        isDisconnectedCampusRouteError(error)
-          ? "Those nodes are on a disconnected part of the campus graph."
-          : "Unable to build the route right now."
+            return {
+              coordinates: mergeRouteCoordinates(
+                roadRoute.coordinates,
+                [userSnap.coordinates],
+                campusRoute.coordinates,
+                finalConnectorCoordinates
+              ),
+              distanceM:
+                roadRoute.distanceM +
+                option.connectorDistanceM +
+                campusRoute.distanceM +
+                finalConnectorDistanceM,
+              durationSec:
+                roadRoute.durationSec +
+                option.connectorDistanceM / 1.35 +
+                campusRoute.walkTimeSec +
+                finalConnectorDistanceM / 1.2,
+            };
+          })
+          .filter((route): route is NonNullable<typeof route> => route !== null)
       );
-    } finally {
-      setIsPlanningRoute(false);
     }
-  }, [
-    campusData,
-    requestWalkingRoute,
-    routeType,
-    selectedPlace,
-    snapSheetTo,
-    userLat,
-    userLng,
-  ]);
+
+    /**
+     * Fallback:
+     * If the user and destination are on disconnected graph components,
+     * try entering the destination's graph component from a nearby node.
+     */
+    if (campusGraphRouteOptions.length === 0) {
+      const fallbackRoute = await buildDestinationComponentEntryRoute({
+        campusData,
+        origin,
+        destination: selectedPlace,
+        routeType,
+        requestWalkingRoute,
+      });
+
+      if (fallbackRoute) {
+        campusGraphRouteOptions.push(fallbackRoute);
+      }
+    }
+
+    const bestCampusGraphRoute = campusGraphRouteOptions.sort(
+      (left, right) => left.distanceM - right.distanceM
+    )[0];
+
+    if (bestCampusGraphRoute) {
+      routeOptions.push({
+        source: "campus_graph",
+        coordinates: bestCampusGraphRoute.coordinates,
+        distanceM: bestCampusGraphRoute.distanceM,
+        durationSec: bestCampusGraphRoute.durationSec,
+      });
+    }
+
+    /**
+     * Final decision:
+     * Pick the shortest successful route, whether it came from Mapbox
+     * or from your custom campus graph.
+     */
+    const bestRoute = routeOptions.sort(
+      (left, right) => left.distanceM - right.distanceM
+    )[0];
+
+    if (!bestRoute) {
+      const disconnectedMessage = buildDisconnectedCampusRouteMessage(
+        campusData,
+        startOptions.map(option => option.nodeId),
+        selectedPlace.nearestNodeId,
+        selectedPlace.name
+      );
+
+      if (disconnectedMessage) {
+        throw new Error(disconnectedMessage);
+      }
+
+      throw new Error("No route could be built to the selected destination.");
+    }
+
+    setActiveRoute({
+      mode: routeType,
+      destinationId: selectedPlace.id,
+      destinationName: selectedPlace.name,
+      coordinates: bestRoute.coordinates,
+      distanceM: bestRoute.distanceM,
+      durationSec: bestRoute.durationSec,
+    });
+
+    snapSheetTo("collapsed");
+  } catch (error) {
+    console.error(error);
+
+    toast.error(
+      isDisconnectedCampusRouteError(error)
+        ? "Those nodes are on a disconnected part of the campus graph."
+        : "Unable to build the route right now."
+    );
+  } finally {
+    setIsPlanningRoute(false);
+  }
+}, [
+  campusData,
+  requestWalkingRoute,
+  routeType,
+  selectedPlace,
+  snapSheetTo,
+  userLat,
+  userLng,
+]);
 
   const handleSubmitHazardWithOption = useCallback(
     async (nextType: HazardType) => {
@@ -1523,6 +1666,38 @@ export default function MapPage() {
     });
   }, []);
 
+  const handleFloorToggleClick = useCallback((toggle: FloorToggleMarker) => {
+    setActiveFloorToggleId(current => (current === toggle.id ? null : toggle.id));
+  }, []);
+
+  const visiblePlacesByFloor = useMemo(() => {
+    const activeToggle = activeFloorToggleId
+      ? CAMPUS_FLOOR_TOGGLES.find(t => t.id === activeFloorToggleId)
+      : null;
+
+    if (!activeToggle) {
+      // Show all ground floor (or floor-less) places
+      return campusPlaces.filter(p => (p.floor ?? 0) === 0);
+    }
+
+    // Filter logic:
+    // 1. Hide ground floor places within radius of the toggle
+    // 2. Add second floor places for this specific toggle
+    const basePlaces = campusPlaces.filter(p => {
+      const isGround = (p.floor ?? 0) === 0;
+      if (!isGround) return false;
+
+      const distance = haversineMeters(
+        [activeToggle.lng, activeToggle.lat],
+        p.coordinates
+      );
+      return distance > activeToggle.radiusM;
+    });
+
+    const upperFloorPlaces = SECOND_FLOOR_ROOM_DATA[activeToggle.id] ?? [];
+    return [...basePlaces, ...upperFloorPlaces];
+  }, [activeFloorToggleId, campusPlaces]);
+
   if (!loading && !user) {
     return null;
   }
@@ -1537,13 +1712,16 @@ export default function MapPage() {
           walkers={[]}
           hazards={visibleHazards}
           walkGroups={visibleWalkGroups}
-          places={campusPlaces}
+          places={visiblePlacesByFloor}
           selectedPlaceId={selectedPlaceId}
           selectedFilters={selectedFilters}
           campusData={campusData}
           onHazardClick={handleHazardClick}
           onWalkGroupClick={handleWalkGroupClick}
           onPlaceClick={handlePlaceClick}
+          floorToggles={CAMPUS_FLOOR_TOGGLES}
+          activeFloorToggleId={activeFloorToggleId}
+          onFloorToggleClick={handleFloorToggleClick}
         />
 
         {selectedHazard ? (
@@ -1555,21 +1733,38 @@ export default function MapPage() {
           />
         ) : null}
 
-        <div className="absolute left-4 top-4 z-20 flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setIsReportOpen(true)}
-            className="relative flex h-14 w-14 items-center justify-center rounded-[24px] bg-white/90 backdrop-blur-md shadow-lg shadow-amber-500/20 border-2 border-amber-500 text-amber-500 transition-all hover:scale-105 active:scale-95"
-            aria-label="Report a hazard"
-          >
-            <AlertTriangle className="h-6 w-6" />
-            {activeHazardCount > 0 ? (
-              <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
-                {activeHazardCount}
-              </span>
-            ) : null}
-          </button>
-        </div>
+       <div className="absolute left-4 top-4 z-20 flex flex-col gap-3">
+  <button
+    type="button"
+    onClick={() => setIsReportOpen(true)}
+    className="relative flex h-14 w-14 items-center justify-center rounded-[24px] bg-white/90 backdrop-blur-md shadow-lg shadow-amber-500/20 border-2 border-amber-500 text-amber-500 transition-all hover:scale-105 active:scale-95"
+    aria-label="Report a hazard"
+  >
+    <AlertTriangle className="h-6 w-6" />
+    {activeHazardCount > 0 ? (
+      <span className="absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+        {activeHazardCount}
+      </span>
+    ) : null}
+  </button>
+  <button
+    type="button"
+    onClick={() => setIsFilterSheetOpen(true)}
+    className="relative flex h-14 w-14 items-center justify-center rounded-[24px] bg-white/90 backdrop-blur-md shadow-lg border border-gray-200 text-gray-700 transition-all hover:scale-105 active:scale-95"
+    aria-label="Open menu"
+  >
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="5" width="18" height="2" rx="1" fill="currentColor"/>
+      <rect x="2" y="10" width="18" height="2" rx="1" fill="currentColor"/>
+      <rect x="2" y="15" width="18" height="2" rx="1" fill="currentColor"/>
+    </svg>
+    {selectedFilters.length < MAP_PLACE_FILTERS.length ? (
+      <span className="absolute -right-1.5 -top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-white bg-slate-900 px-1.5 text-[10px] font-extrabold text-white shadow-sm">
+        {selectedFilters.length}
+      </span>
+    ) : null}
+  </button>
+</div>
 
         <MapFilterSheet
           open={isFilterSheetOpen}

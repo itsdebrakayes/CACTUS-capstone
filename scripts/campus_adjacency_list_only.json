@@ -1,16 +1,66 @@
 {
   "metadata": {
-    "source_file": "Untitled map (7).geojson",
-    "node_count": 86,
+    "source_file": "Untitled map (7).geojson + new.geojson + newer.kml",
+    "node_count": 280,
     "edge_rule": "Connect each node to up to its 3 nearest nodes, only when distance <= 35 meters. Edges are undirected and weighted by Haversine distance in meters.",
     "k_nearest": 3,
-    "max_distance_m": 35,
-    "connected_components": 2,
+    "max_distance_m": 35.0,
+    "connected_components": 50,
     "component_sizes": [
-      53,
-      33
+      102,
+      82,
+      9,
+      8,
+      7,
+      5,
+      4,
+      4,
+      4,
+      3,
+      3,
+      3,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
     ],
-    "warning": "This is an auto-suggested graph. Manually remove edges that cross walls, fences, locked doors, or non-walkable spaces."
+    "warning": "This is an auto-suggested graph. Manually remove edges that cross walls, fences, locked doors, or non-walkable spaces. New KML node IDs/names were renamed to 'newer_node_###' / 'Newer Node ###' to avoid collisions with existing point_* IDs.",
+    "previous_nodes": 166,
+    "newer_kml_nodes_added": 114
   },
   "nodes": [
     {
@@ -958,6 +1008,2334 @@
       "lat": 18.0062766,
       "lng": -76.7464341,
       "source_index": 85
+    },
+    {
+      "id": "new_point_1",
+      "name": "Point 1",
+      "location": [
+        18.0050754,
+        -76.7496397
+      ],
+      "lat": 18.0050754,
+      "lng": -76.7496397,
+      "source_index": 86,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_2",
+      "name": "Point 2",
+      "location": [
+        18.0051417,
+        -76.7495485
+      ],
+      "lat": 18.0051417,
+      "lng": -76.7495485,
+      "source_index": 87,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_3",
+      "name": "Point 3",
+      "location": [
+        18.0052182,
+        -76.7494117
+      ],
+      "lat": 18.0052182,
+      "lng": -76.7494117,
+      "source_index": 88,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_4",
+      "name": "Point 4",
+      "location": [
+        18.0052692,
+        -76.7492964
+      ],
+      "lat": 18.0052692,
+      "lng": -76.7492964,
+      "source_index": 89,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_5",
+      "name": "Point 5",
+      "location": [
+        18.0042369,
+        -76.7492385
+      ],
+      "lat": 18.0042369,
+      "lng": -76.7492385,
+      "source_index": 90,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_6",
+      "name": "Point 6",
+      "location": [
+        18.0041718,
+        -76.7492975
+      ],
+      "lat": 18.0041718,
+      "lng": -76.7492975,
+      "source_index": 91,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_7",
+      "name": "Point 7",
+      "location": [
+        18.0041348,
+        -76.7493472
+      ],
+      "lat": 18.0041348,
+      "lng": -76.7493472,
+      "source_index": 92,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_8",
+      "name": "Point 8",
+      "location": [
+        18.0041017,
+        -76.7493968
+      ],
+      "lat": 18.0041017,
+      "lng": -76.7493968,
+      "source_index": 93,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_9",
+      "name": "Point 9",
+      "location": [
+        18.0040098,
+        -76.7494772
+      ],
+      "lat": 18.0040098,
+      "lng": -76.7494772,
+      "source_index": 94,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_10",
+      "name": "Point 10",
+      "location": [
+        18.0044486,
+        -76.749441
+      ],
+      "lat": 18.0044486,
+      "lng": -76.749441,
+      "source_index": 95,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_11",
+      "name": "Point 11",
+      "location": [
+        18.0043912,
+        -76.7495269
+      ],
+      "lat": 18.0043912,
+      "lng": -76.7495269,
+      "source_index": 96,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_12",
+      "name": "Point 12",
+      "location": [
+        18.0042394,
+        -76.7497991
+      ],
+      "lat": 18.0042394,
+      "lng": -76.7497991,
+      "source_index": 97,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_13",
+      "name": "Point 13",
+      "location": [
+        18.0041935,
+        -76.7499534
+      ],
+      "lat": 18.0041935,
+      "lng": -76.7499534,
+      "source_index": 98,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_14",
+      "name": "Point 14",
+      "location": [
+        18.0039563,
+        -76.7501639
+      ],
+      "lat": 18.0039563,
+      "lng": -76.7501639,
+      "source_index": 99,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_15",
+      "name": "Point 15",
+      "location": [
+        18.0040188,
+        -76.7500714
+      ],
+      "lat": 18.0040188,
+      "lng": -76.7500714,
+      "source_index": 100,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_16",
+      "name": "Point 16",
+      "location": [
+        18.0041055,
+        -76.7500137
+      ],
+      "lat": 18.0041055,
+      "lng": -76.7500137,
+      "source_index": 101,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_17",
+      "name": "Point 17",
+      "location": [
+        18.0053843,
+        -76.746056
+      ],
+      "lat": 18.0053843,
+      "lng": -76.746056,
+      "source_index": 102,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_18",
+      "name": "Point 18",
+      "location": [
+        18.0054864,
+        -76.7460694
+      ],
+      "lat": 18.0054864,
+      "lng": -76.7460694,
+      "source_index": 103,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_19",
+      "name": "Point 19",
+      "location": [
+        18.0056114,
+        -76.7460882
+      ],
+      "lat": 18.0056114,
+      "lng": -76.7460882,
+      "source_index": 104,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_20",
+      "name": "Point 20",
+      "location": [
+        18.0057619,
+        -76.7461257
+      ],
+      "lat": 18.0057619,
+      "lng": -76.7461257,
+      "source_index": 105,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_21",
+      "name": "Point 21",
+      "location": [
+        18.0058941,
+        -76.746131
+      ],
+      "lat": 18.0058941,
+      "lng": -76.746131,
+      "source_index": 106,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_22",
+      "name": "Point 22",
+      "location": [
+        18.0059961,
+        -76.7460586
+      ],
+      "lat": 18.0059961,
+      "lng": -76.7460586,
+      "source_index": 107,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_23",
+      "name": "Point 23",
+      "location": [
+        18.0051991,
+        -76.746138
+      ],
+      "lat": 18.0051991,
+      "lng": -76.746138,
+      "source_index": 108,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_24",
+      "name": "Point 24",
+      "location": [
+        18.0050767,
+        -76.7459503
+      ],
+      "lat": 18.0050767,
+      "lng": -76.7459503,
+      "source_index": 109,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_25",
+      "name": "Point 25",
+      "location": [
+        18.0052807,
+        -76.7462105
+      ],
+      "lat": 18.0052807,
+      "lng": -76.7462105,
+      "source_index": 110,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_26",
+      "name": "Point 26",
+      "location": [
+        18.0053624,
+        -76.7463043
+      ],
+      "lat": 18.0053624,
+      "lng": -76.7463043,
+      "source_index": 111,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_27",
+      "name": "Point 27",
+      "location": [
+        18.0054465,
+        -76.7463902
+      ],
+      "lat": 18.0054465,
+      "lng": -76.7463902,
+      "source_index": 112,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_28",
+      "name": "Point 28",
+      "location": [
+        18.0055409,
+        -76.7465001
+      ],
+      "lat": 18.0055409,
+      "lng": -76.7465001,
+      "source_index": 113,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_29",
+      "name": "Point 29",
+      "location": [
+        18.0055945,
+        -76.7465967
+      ],
+      "lat": 18.0055945,
+      "lng": -76.7465967,
+      "source_index": 114,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_30",
+      "name": "Point 30",
+      "location": [
+        18.0055613,
+        -76.7466772
+      ],
+      "lat": 18.0055613,
+      "lng": -76.7466772,
+      "source_index": 115,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_31",
+      "name": "Point 31",
+      "location": [
+        18.0056253,
+        -76.7467886
+      ],
+      "lat": 18.0056253,
+      "lng": -76.7467886,
+      "source_index": 116,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_32",
+      "name": "Point 32",
+      "location": [
+        18.0056712,
+        -76.7468409
+      ],
+      "lat": 18.0056712,
+      "lng": -76.7468409,
+      "source_index": 117,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_33",
+      "name": "Point 33",
+      "location": [
+        18.0057184,
+        -76.7468932
+      ],
+      "lat": 18.0057184,
+      "lng": -76.7468932,
+      "source_index": 118,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_34",
+      "name": "Point 34",
+      "location": [
+        18.0057592,
+        -76.7469415
+      ],
+      "lat": 18.0057592,
+      "lng": -76.7469415,
+      "source_index": 119,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_35",
+      "name": "Point 35",
+      "location": [
+        18.0057988,
+        -76.746989
+      ],
+      "lat": 18.0057988,
+      "lng": -76.746989,
+      "source_index": 120,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_36",
+      "name": "Point 36",
+      "location": [
+        18.0058409,
+        -76.7470319
+      ],
+      "lat": 18.0058409,
+      "lng": -76.7470319,
+      "source_index": 121,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_37",
+      "name": "Point 37",
+      "location": [
+        18.0058919,
+        -76.7470882
+      ],
+      "lat": 18.0058919,
+      "lng": -76.7470882,
+      "source_index": 122,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_38",
+      "name": "Point 38",
+      "location": [
+        18.0059811,
+        -76.7471915
+      ],
+      "lat": 18.0059811,
+      "lng": -76.7471915,
+      "source_index": 123,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_39",
+      "name": "Point 39",
+      "location": [
+        18.0061316,
+        -76.7473926
+      ],
+      "lat": 18.0061316,
+      "lng": -76.7473926,
+      "source_index": 124,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_40",
+      "name": "Point 40",
+      "location": [
+        18.006189,
+        -76.7474798
+      ],
+      "lat": 18.006189,
+      "lng": -76.7474798,
+      "source_index": 125,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_41",
+      "name": "Point 41",
+      "location": [
+        18.0062683,
+        -76.7475558
+      ],
+      "lat": 18.0062683,
+      "lng": -76.7475558,
+      "source_index": 126,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_42",
+      "name": "Point 42",
+      "location": [
+        18.0063193,
+        -76.7476135
+      ],
+      "lat": 18.0063193,
+      "lng": -76.7476135,
+      "source_index": 127,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_43",
+      "name": "Point 43",
+      "location": [
+        18.0063308,
+        -76.7476939
+      ],
+      "lat": 18.0063308,
+      "lng": -76.7476939,
+      "source_index": 128,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_44",
+      "name": "Point 44",
+      "location": [
+        18.0062883,
+        -76.7477563
+      ],
+      "lat": 18.0062883,
+      "lng": -76.7477563,
+      "source_index": 129,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_45",
+      "name": "Point 45",
+      "location": [
+        18.0064844,
+        -76.7473986
+      ],
+      "lat": 18.0064844,
+      "lng": -76.7473986,
+      "source_index": 130,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_46",
+      "name": "Point 46",
+      "location": [
+        18.0065112,
+        -76.7473141
+      ],
+      "lat": 18.0065112,
+      "lng": -76.7473141,
+      "source_index": 131,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_47",
+      "name": "Point 47",
+      "location": [
+        18.006524,
+        -76.7469668
+      ],
+      "lat": 18.006524,
+      "lng": -76.7469668,
+      "source_index": 132,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_48",
+      "name": "Point 48",
+      "location": [
+        18.0064882,
+        -76.7469721
+      ],
+      "lat": 18.0064882,
+      "lng": -76.7469721,
+      "source_index": 133,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_49",
+      "name": "Point 49",
+      "location": [
+        18.0064513,
+        -76.7469708
+      ],
+      "lat": 18.0064513,
+      "lng": -76.7469708,
+      "source_index": 134,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_50",
+      "name": "Point 50",
+      "location": [
+        18.0064206,
+        -76.7469842
+      ],
+      "lat": 18.0064206,
+      "lng": -76.7469842,
+      "source_index": 135,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_51",
+      "name": "Point 51",
+      "location": [
+        18.0063888,
+        -76.7469989
+      ],
+      "lat": 18.0063888,
+      "lng": -76.7469989,
+      "source_index": 136,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_52",
+      "name": "Point 52",
+      "location": [
+        18.0063556,
+        -76.7470177
+      ],
+      "lat": 18.0063556,
+      "lng": -76.7470177,
+      "source_index": 137,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_53",
+      "name": "Point 53",
+      "location": [
+        18.0063186,
+        -76.7470606
+      ],
+      "lat": 18.0063186,
+      "lng": -76.7470606,
+      "source_index": 138,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_54",
+      "name": "Point 54",
+      "location": [
+        18.0062829,
+        -76.7470875
+      ],
+      "lat": 18.0062829,
+      "lng": -76.7470875,
+      "source_index": 139,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_55",
+      "name": "Point 55",
+      "location": [
+        18.0062306,
+        -76.7471277
+      ],
+      "lat": 18.0062306,
+      "lng": -76.7471277,
+      "source_index": 140,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_56",
+      "name": "Point 56",
+      "location": [
+        18.0061954,
+        -76.7471534
+      ],
+      "lat": 18.0061954,
+      "lng": -76.7471534,
+      "source_index": 141,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_57",
+      "name": "Point 57",
+      "location": [
+        18.0061687,
+        -76.7471843
+      ],
+      "lat": 18.0061687,
+      "lng": -76.7471843,
+      "source_index": 142,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_58",
+      "name": "Point 58",
+      "location": [
+        18.0066808,
+        -76.7468558
+      ],
+      "lat": 18.0066808,
+      "lng": -76.7468558,
+      "source_index": 143,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_59",
+      "name": "Point 59",
+      "location": [
+        18.0067676,
+        -76.7467163
+      ],
+      "lat": 18.0067676,
+      "lng": -76.7467163,
+      "source_index": 144,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_60",
+      "name": "Point 60",
+      "location": [
+        18.006816,
+        -76.7465795
+      ],
+      "lat": 18.006816,
+      "lng": -76.7465795,
+      "source_index": 145,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_61",
+      "name": "Point 61",
+      "location": [
+        18.0068721,
+        -76.7464562
+      ],
+      "lat": 18.0068721,
+      "lng": -76.7464562,
+      "source_index": 146,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_62",
+      "name": "Point 62",
+      "location": [
+        18.0068262,
+        -76.7466385
+      ],
+      "lat": 18.0068262,
+      "lng": -76.7466385,
+      "source_index": 147,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_63",
+      "name": "Point 63",
+      "location": [
+        18.0069563,
+        -76.7462389
+      ],
+      "lat": 18.0069563,
+      "lng": -76.7462389,
+      "source_index": 148,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_64",
+      "name": "Point 64",
+      "location": [
+        18.0070303,
+        -76.7460967
+      ],
+      "lat": 18.0070303,
+      "lng": -76.7460967,
+      "source_index": 149,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_65",
+      "name": "Point 65",
+      "location": [
+        18.0070941,
+        -76.7459439
+      ],
+      "lat": 18.0070941,
+      "lng": -76.7459439,
+      "source_index": 150,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_66",
+      "name": "Point 66",
+      "location": [
+        18.0071655,
+        -76.7458232
+      ],
+      "lat": 18.0071655,
+      "lng": -76.7458232,
+      "source_index": 151,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_67",
+      "name": "Point 67",
+      "location": [
+        18.0072089,
+        -76.7457534
+      ],
+      "lat": 18.0072089,
+      "lng": -76.7457534,
+      "source_index": 152,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_68",
+      "name": "Point 68",
+      "location": [
+        18.0062006,
+        -76.7495609
+      ],
+      "lat": 18.0062006,
+      "lng": -76.7495609,
+      "source_index": 153,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_69",
+      "name": "Point 69",
+      "location": [
+        18.0063026,
+        -76.7494349
+      ],
+      "lat": 18.0063026,
+      "lng": -76.7494349,
+      "source_index": 154,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_70",
+      "name": "Point 70",
+      "location": [
+        18.0062796,
+        -76.749282
+      ],
+      "lat": 18.0062796,
+      "lng": -76.749282,
+      "source_index": 155,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_71",
+      "name": "Point 71",
+      "location": [
+        18.006253,
+        -76.7491452
+      ],
+      "lat": 18.006253,
+      "lng": -76.7491452,
+      "source_index": 156,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_72",
+      "name": "Point 72",
+      "location": [
+        18.0062211,
+        -76.7490245
+      ],
+      "lat": 18.0062211,
+      "lng": -76.7490245,
+      "source_index": 157,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_73",
+      "name": "Point 73",
+      "location": [
+        18.0061816,
+        -76.7489118
+      ],
+      "lat": 18.0061816,
+      "lng": -76.7489118,
+      "source_index": 158,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_74",
+      "name": "Point 74",
+      "location": [
+        18.0062058,
+        -76.7488555
+      ],
+      "lat": 18.0062058,
+      "lng": -76.7488555,
+      "source_index": 159,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_75",
+      "name": "Point 75",
+      "location": [
+        18.0062249,
+        -76.7488019
+      ],
+      "lat": 18.0062249,
+      "lng": -76.7488019,
+      "source_index": 160,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_76",
+      "name": "Point 76",
+      "location": [
+        18.0062211,
+        -76.7487455
+      ],
+      "lat": 18.0062211,
+      "lng": -76.7487455,
+      "source_index": 161,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_77",
+      "name": "Point 77",
+      "location": [
+        18.0062083,
+        -76.748704
+      ],
+      "lat": 18.0062083,
+      "lng": -76.748704,
+      "source_index": 162,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_78",
+      "name": "Point 78",
+      "location": [
+        18.0061828,
+        -76.7486664
+      ],
+      "lat": 18.0061828,
+      "lng": -76.7486664,
+      "source_index": 163,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_79",
+      "name": "Point 79",
+      "location": [
+        18.0061535,
+        -76.7486101
+      ],
+      "lat": 18.0061535,
+      "lng": -76.7486101,
+      "source_index": 164,
+      "source": "new.geojson"
+    },
+    {
+      "id": "new_point_80",
+      "name": "Point 80",
+      "location": [
+        18.0061344,
+        -76.748539
+      ],
+      "lat": 18.0061344,
+      "lng": -76.748539,
+      "source_index": 165,
+      "source": "new.geojson"
+    },
+    {
+      "id": "newer_node_001",
+      "name": "Newer Node 001",
+      "location": [
+        18.0039921,
+        -76.7486322
+      ],
+      "lat": 18.0039921,
+      "lng": -76.7486322,
+      "source_index": 166,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_002",
+      "name": "Newer Node 002",
+      "location": [
+        18.0039895,
+        -76.74825
+      ],
+      "lat": 18.0039895,
+      "lng": -76.74825,
+      "source_index": 167,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_003",
+      "name": "Newer Node 003",
+      "location": [
+        18.0037572,
+        -76.7479356
+      ],
+      "lat": 18.0037572,
+      "lng": -76.7479356,
+      "source_index": 168,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_004",
+      "name": "Newer Node 004",
+      "location": [
+        18.0036095,
+        -76.74767
+      ],
+      "lat": 18.0036095,
+      "lng": -76.74767,
+      "source_index": 169,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_005",
+      "name": "Newer Node 005",
+      "location": [
+        18.0036082,
+        -76.7472811
+      ],
+      "lat": 18.0036082,
+      "lng": -76.7472811,
+      "source_index": 170,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_006",
+      "name": "Newer Node 006",
+      "location": [
+        18.0035911,
+        -76.7470822
+      ],
+      "lat": 18.0035911,
+      "lng": -76.7470822,
+      "source_index": 171,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_007",
+      "name": "Newer Node 007",
+      "location": [
+        18.0034699,
+        -76.7468053
+      ],
+      "lat": 18.0034699,
+      "lng": -76.7468053,
+      "source_index": 172,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_008",
+      "name": "Newer Node 008",
+      "location": [
+        18.0033221,
+        -76.746497
+      ],
+      "lat": 18.0033221,
+      "lng": -76.746497,
+      "source_index": 173,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_009",
+      "name": "Newer Node 009",
+      "location": [
+        18.0031206,
+        -76.7460995
+      ],
+      "lat": 18.0031206,
+      "lng": -76.7460995,
+      "source_index": 174,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_010",
+      "name": "Newer Node 010",
+      "location": [
+        18.0029846,
+        -76.7457003
+      ],
+      "lat": 18.0029846,
+      "lng": -76.7457003,
+      "source_index": 175,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_011",
+      "name": "Newer Node 011",
+      "location": [
+        18.0026975,
+        -76.7453392
+      ],
+      "lat": 18.0026975,
+      "lng": -76.7453392,
+      "source_index": 176,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_012",
+      "name": "Newer Node 012",
+      "location": [
+        18.0024186,
+        -76.7451483
+      ],
+      "lat": 18.0024186,
+      "lng": -76.7451483,
+      "source_index": 177,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_013",
+      "name": "Newer Node 013",
+      "location": [
+        18.002229,
+        -76.7449686
+      ],
+      "lat": 18.002229,
+      "lng": -76.7449686,
+      "source_index": 178,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_014",
+      "name": "Newer Node 014",
+      "location": [
+        18.0019387,
+        -76.7447985
+      ],
+      "lat": 18.0019387,
+      "lng": -76.7447985,
+      "source_index": 179,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_015",
+      "name": "Newer Node 015",
+      "location": [
+        18.0017313,
+        -76.7446965
+      ],
+      "lat": 18.0017313,
+      "lng": -76.7446965,
+      "source_index": 180,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_016",
+      "name": "Newer Node 016",
+      "location": [
+        18.0015325,
+        -76.7445383
+      ],
+      "lat": 18.0015325,
+      "lng": -76.7445383,
+      "source_index": 181,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_017",
+      "name": "Newer Node 017",
+      "location": [
+        18.0013208,
+        -76.7443573
+      ],
+      "lat": 18.0013208,
+      "lng": -76.7443573,
+      "source_index": 182,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_018",
+      "name": "Newer Node 018",
+      "location": [
+        18.0009865,
+        -76.7439179
+      ],
+      "lat": 18.0009865,
+      "lng": -76.7439179,
+      "source_index": 183,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_019",
+      "name": "Newer Node 019",
+      "location": [
+        18.0013995,
+        -76.7433338
+      ],
+      "lat": 18.0013995,
+      "lng": -76.7433338,
+      "source_index": 184,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_020",
+      "name": "Newer Node 020",
+      "location": [
+        18.0033859,
+        -76.7475736
+      ],
+      "lat": 18.0033859,
+      "lng": -76.7475736,
+      "source_index": 185,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_021",
+      "name": "Newer Node 021",
+      "location": [
+        18.0030567,
+        -76.7474178
+      ],
+      "lat": 18.0030567,
+      "lng": -76.7474178,
+      "source_index": 186,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_022",
+      "name": "Newer Node 022",
+      "location": [
+        18.0027056,
+        -76.7470755
+      ],
+      "lat": 18.0027056,
+      "lng": -76.7470755,
+      "source_index": 187,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_023",
+      "name": "Newer Node 023",
+      "location": [
+        18.0023536,
+        -76.7466732
+      ],
+      "lat": 18.0023536,
+      "lng": -76.7466732,
+      "source_index": 188,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_024",
+      "name": "Newer Node 024",
+      "location": [
+        18.0018792,
+        -76.7461797
+      ],
+      "lat": 18.0018792,
+      "lng": -76.7461797,
+      "source_index": 189,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_025",
+      "name": "Newer Node 025",
+      "location": [
+        18.0014524,
+        -76.7457381
+      ],
+      "lat": 18.0014524,
+      "lng": -76.7457381,
+      "source_index": 190,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_026",
+      "name": "Newer Node 026",
+      "location": [
+        18.0012432,
+        -76.7455128
+      ],
+      "lat": 18.0012432,
+      "lng": -76.7455128,
+      "source_index": 191,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_027",
+      "name": "Newer Node 027",
+      "location": [
+        18.0009746,
+        -76.7452133
+      ],
+      "lat": 18.0009746,
+      "lng": -76.7452133,
+      "source_index": 192,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_028",
+      "name": "Newer Node 028",
+      "location": [
+        18.0006072,
+        -76.7448753
+      ],
+      "lat": 18.0006072,
+      "lng": -76.7448753,
+      "source_index": 193,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_029",
+      "name": "Newer Node 029",
+      "location": [
+        18.0002807,
+        -76.744532
+      ],
+      "lat": 18.0002807,
+      "lng": -76.744532,
+      "source_index": 194,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_030",
+      "name": "Newer Node 030",
+      "location": [
+        17.9997897,
+        -76.7439576
+      ],
+      "lat": 17.9997897,
+      "lng": -76.7439576,
+      "source_index": 195,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_031",
+      "name": "Newer Node 031",
+      "location": [
+        17.9994611,
+        -76.7435891
+      ],
+      "lat": 17.9994611,
+      "lng": -76.7435891,
+      "source_index": 196,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_032",
+      "name": "Newer Node 032",
+      "location": [
+        17.9990479,
+        -76.7435676
+      ],
+      "lat": 17.9990479,
+      "lng": -76.7435676,
+      "source_index": 197,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_033",
+      "name": "Newer Node 033",
+      "location": [
+        17.9993029,
+        -76.7435569
+      ],
+      "lat": 17.9993029,
+      "lng": -76.7435569,
+      "source_index": 198,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_034",
+      "name": "Newer Node 034",
+      "location": [
+        17.9989866,
+        -76.7437339
+      ],
+      "lat": 17.9989866,
+      "lng": -76.7437339,
+      "source_index": 199,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_035",
+      "name": "Newer Node 035",
+      "location": [
+        17.9998822,
+        -76.7436825
+      ],
+      "lat": 17.9998822,
+      "lng": -76.7436825,
+      "source_index": 200,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_036",
+      "name": "Newer Node 036",
+      "location": [
+        18.0003873,
+        -76.7438274
+      ],
+      "lat": 18.0003873,
+      "lng": -76.7438274,
+      "source_index": 201,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_037",
+      "name": "Newer Node 037",
+      "location": [
+        18.0007017,
+        -76.7437604
+      ],
+      "lat": 18.0007017,
+      "lng": -76.7437604,
+      "source_index": 202,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_038",
+      "name": "Newer Node 038",
+      "location": [
+        18.0007663,
+        -76.7433979
+      ],
+      "lat": 18.0007663,
+      "lng": -76.7433979,
+      "source_index": 203,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_039",
+      "name": "Newer Node 039",
+      "location": [
+        18.0011861,
+        -76.7435011
+      ],
+      "lat": 18.0011861,
+      "lng": -76.7435011,
+      "source_index": 204,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_040",
+      "name": "Newer Node 040",
+      "location": [
+        18.001876,
+        -76.7431492
+      ],
+      "lat": 18.001876,
+      "lng": -76.7431492,
+      "source_index": 205,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_041",
+      "name": "Newer Node 041",
+      "location": [
+        18.0022229,
+        -76.7431224
+      ],
+      "lat": 18.0022229,
+      "lng": -76.7431224,
+      "source_index": 206,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_042",
+      "name": "Newer Node 042",
+      "location": [
+        18.0024243,
+        -76.7430998
+      ],
+      "lat": 18.0024243,
+      "lng": -76.7430998,
+      "source_index": 207,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_043",
+      "name": "Newer Node 043",
+      "location": [
+        18.0029957,
+        -76.7434378
+      ],
+      "lat": 18.0029957,
+      "lng": -76.7434378,
+      "source_index": 208,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_044",
+      "name": "Newer Node 044",
+      "location": [
+        18.0027917,
+        -76.7433251
+      ],
+      "lat": 18.0027917,
+      "lng": -76.7433251,
+      "source_index": 209,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_045",
+      "name": "Newer Node 045",
+      "location": [
+        18.003247,
+        -76.7435677
+      ],
+      "lat": 18.003247,
+      "lng": -76.7435677,
+      "source_index": 210,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_046",
+      "name": "Newer Node 046",
+      "location": [
+        18.0035684,
+        -76.7437823
+      ],
+      "lat": 18.0035684,
+      "lng": -76.7437823,
+      "source_index": 211,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_047",
+      "name": "Newer Node 047",
+      "location": [
+        18.0039102,
+        -76.743954
+      ],
+      "lat": 18.0039102,
+      "lng": -76.743954,
+      "source_index": 212,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_048",
+      "name": "Newer Node 048",
+      "location": [
+        18.0042189,
+        -76.7440929
+      ],
+      "lat": 18.0042189,
+      "lng": -76.7440929,
+      "source_index": 213,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_049",
+      "name": "Newer Node 049",
+      "location": [
+        18.0046262,
+        -76.7441506
+      ],
+      "lat": 18.0046262,
+      "lng": -76.7441506,
+      "source_index": 214,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_050",
+      "name": "Newer Node 050",
+      "location": [
+        18.0049624,
+        -76.7443374
+      ],
+      "lat": 18.0049624,
+      "lng": -76.7443374,
+      "source_index": 215,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_051",
+      "name": "Newer Node 051",
+      "location": [
+        18.0051971,
+        -76.7446271
+      ],
+      "lat": 18.0051971,
+      "lng": -76.7446271,
+      "source_index": 216,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_052",
+      "name": "Newer Node 052",
+      "location": [
+        18.0053654,
+        -76.7449436
+      ],
+      "lat": 18.0053654,
+      "lng": -76.7449436,
+      "source_index": 217,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_053",
+      "name": "Newer Node 053",
+      "location": [
+        18.0027958,
+        -76.7429816
+      ],
+      "lat": 18.0027958,
+      "lng": -76.7429816,
+      "source_index": 218,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_054",
+      "name": "Newer Node 054",
+      "location": [
+        18.0032448,
+        -76.7430889
+      ],
+      "lat": 18.0032448,
+      "lng": -76.7430889,
+      "source_index": 219,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_055",
+      "name": "Newer Node 055",
+      "location": [
+        18.0035203,
+        -76.7431479
+      ],
+      "lat": 18.0035203,
+      "lng": -76.7431479,
+      "source_index": 220,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_056",
+      "name": "Newer Node 056",
+      "location": [
+        18.003158,
+        -76.7428904
+      ],
+      "lat": 18.003158,
+      "lng": -76.7428904,
+      "source_index": 221,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_057",
+      "name": "Newer Node 057",
+      "location": [
+        18.0035662,
+        -76.7427241
+      ],
+      "lat": 18.0035662,
+      "lng": -76.7427241,
+      "source_index": 222,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_058",
+      "name": "Newer Node 058",
+      "location": [
+        18.0039078,
+        -76.7426174
+      ],
+      "lat": 18.0039078,
+      "lng": -76.7426174,
+      "source_index": 223,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_059",
+      "name": "Newer Node 059",
+      "location": [
+        18.0041884,
+        -76.7428213
+      ],
+      "lat": 18.0041884,
+      "lng": -76.7428213,
+      "source_index": 224,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_060",
+      "name": "Newer Node 060",
+      "location": [
+        18.0044996,
+        -76.7430949
+      ],
+      "lat": 18.0044996,
+      "lng": -76.7430949,
+      "source_index": 225,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_061",
+      "name": "Newer Node 061",
+      "location": [
+        18.0043925,
+        -76.7432612
+      ],
+      "lat": 18.0043925,
+      "lng": -76.7432612,
+      "source_index": 226,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_062",
+      "name": "Newer Node 062",
+      "location": [
+        18.0042088,
+        -76.743465
+      ],
+      "lat": 18.0042088,
+      "lng": -76.743465,
+      "source_index": 227,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_063",
+      "name": "Newer Node 063",
+      "location": [
+        18.004066,
+        -76.7436957
+      ],
+      "lat": 18.004066,
+      "lng": -76.7436957,
+      "source_index": 228,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_064",
+      "name": "Newer Node 064",
+      "location": [
+        18.0022836,
+        -76.7430423
+      ],
+      "lat": 18.0022836,
+      "lng": -76.7430423,
+      "source_index": 229,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_065",
+      "name": "Newer Node 065",
+      "location": [
+        18.0024086,
+        -76.7427741
+      ],
+      "lat": 18.0024086,
+      "lng": -76.7427741,
+      "source_index": 230,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_066",
+      "name": "Newer Node 066",
+      "location": [
+        18.0025438,
+        -76.7426118
+      ],
+      "lat": 18.0025438,
+      "lng": -76.7426118,
+      "source_index": 231,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_067",
+      "name": "Newer Node 067",
+      "location": [
+        18.0026118,
+        -76.7425336
+      ],
+      "lat": 18.0026118,
+      "lng": -76.7425336,
+      "source_index": 232,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_068",
+      "name": "Newer Node 068",
+      "location": [
+        18.0026194,
+        -76.7422546
+      ],
+      "lat": 18.0026194,
+      "lng": -76.7422546,
+      "source_index": 233,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_069",
+      "name": "Newer Node 069",
+      "location": [
+        18.0028184,
+        -76.7426302
+      ],
+      "lat": 18.0028184,
+      "lng": -76.7426302,
+      "source_index": 234,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_070",
+      "name": "Newer Node 070",
+      "location": [
+        18.000258,
+        -76.7436569
+      ],
+      "lat": 18.000258,
+      "lng": -76.7436569,
+      "source_index": 235,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_071",
+      "name": "Newer Node 071",
+      "location": [
+        18.0001457,
+        -76.7434477
+      ],
+      "lat": 18.0001457,
+      "lng": -76.7434477,
+      "source_index": 236,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_072",
+      "name": "Newer Node 072",
+      "location": [
+        18.0000284,
+        -76.7432707
+      ],
+      "lat": 18.0000284,
+      "lng": -76.7432707,
+      "source_index": 237,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_073",
+      "name": "Newer Node 073",
+      "location": [
+        17.9998804,
+        -76.7430561
+      ],
+      "lat": 17.9998804,
+      "lng": -76.7430561,
+      "source_index": 238,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_074",
+      "name": "Newer Node 074",
+      "location": [
+        17.9997121,
+        -76.7429273
+      ],
+      "lat": 17.9997121,
+      "lng": -76.7429273,
+      "source_index": 239,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_075",
+      "name": "Newer Node 075",
+      "location": [
+        17.9995574,
+        -76.7426976
+      ],
+      "lat": 17.9995574,
+      "lng": -76.7426976,
+      "source_index": 240,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_076",
+      "name": "Newer Node 076",
+      "location": [
+        17.9993329,
+        -76.7425045
+      ],
+      "lat": 17.9993329,
+      "lng": -76.7425045,
+      "source_index": 241,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_077",
+      "name": "Newer Node 077",
+      "location": [
+        17.9992266,
+        -76.7423382
+      ],
+      "lat": 17.9992266,
+      "lng": -76.7423382,
+      "source_index": 242,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_078",
+      "name": "Newer Node 078",
+      "location": [
+        17.998873,
+        -76.7421291
+      ],
+      "lat": 17.998873,
+      "lng": -76.7421291,
+      "source_index": 243,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_079",
+      "name": "Newer Node 079",
+      "location": [
+        17.9986026,
+        -76.741995
+      ],
+      "lat": 17.9986026,
+      "lng": -76.741995,
+      "source_index": 244,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_080",
+      "name": "Newer Node 080",
+      "location": [
+        17.9981077,
+        -76.7415659
+      ],
+      "lat": 17.9981077,
+      "lng": -76.7415659,
+      "source_index": 245,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_081",
+      "name": "Newer Node 081",
+      "location": [
+        17.9976995,
+        -76.74148
+      ],
+      "lat": 17.9976995,
+      "lng": -76.74148,
+      "source_index": 246,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_082",
+      "name": "Newer Node 082",
+      "location": [
+        18.0028945,
+        -76.7454456
+      ],
+      "lat": 18.0028945,
+      "lng": -76.7454456,
+      "source_index": 247,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_083",
+      "name": "Newer Node 083",
+      "location": [
+        18.003164,
+        -76.7454987
+      ],
+      "lat": 18.003164,
+      "lng": -76.7454987,
+      "source_index": 248,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_084",
+      "name": "Newer Node 084",
+      "location": [
+        18.0034293,
+        -76.7455846
+      ],
+      "lat": 18.0034293,
+      "lng": -76.7455846,
+      "source_index": 249,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_085",
+      "name": "Newer Node 085",
+      "location": [
+        18.0035925,
+        -76.745724
+      ],
+      "lat": 18.0035925,
+      "lng": -76.745724,
+      "source_index": 250,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_086",
+      "name": "Newer Node 086",
+      "location": [
+        18.0039547,
+        -76.7459976
+      ],
+      "lat": 18.0039547,
+      "lng": -76.7459976,
+      "source_index": 251,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_087",
+      "name": "Newer Node 087",
+      "location": [
+        18.0043272,
+        -76.746239
+      ],
+      "lat": 18.0043272,
+      "lng": -76.746239,
+      "source_index": 252,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_088",
+      "name": "Newer Node 088",
+      "location": [
+        18.0060059,
+        -76.7454767
+      ],
+      "lat": 18.0060059,
+      "lng": -76.7454767,
+      "source_index": 253,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_089",
+      "name": "Newer Node 089",
+      "location": [
+        18.0061309,
+        -76.7454418
+      ],
+      "lat": 18.0061309,
+      "lng": -76.7454418,
+      "source_index": 254,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_090",
+      "name": "Newer Node 090",
+      "location": [
+        18.0063605,
+        -76.745364
+      ],
+      "lat": 18.0063605,
+      "lng": -76.745364,
+      "source_index": 255,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_091",
+      "name": "Newer Node 091",
+      "location": [
+        18.0065951,
+        -76.745305
+      ],
+      "lat": 18.0065951,
+      "lng": -76.745305,
+      "source_index": 256,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_092",
+      "name": "Newer Node 092",
+      "location": [
+        18.0067391,
+        -76.7453104
+      ],
+      "lat": 18.0067391,
+      "lng": -76.7453104,
+      "source_index": 257,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_093",
+      "name": "Newer Node 093",
+      "location": [
+        18.0068565,
+        -76.7452997
+      ],
+      "lat": 18.0068565,
+      "lng": -76.7452997,
+      "source_index": 258,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_094",
+      "name": "Newer Node 094",
+      "location": [
+        18.0069891,
+        -76.7451494
+      ],
+      "lat": 18.0069891,
+      "lng": -76.7451494,
+      "source_index": 259,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_095",
+      "name": "Newer Node 095",
+      "location": [
+        18.0071013,
+        -76.7450583
+      ],
+      "lat": 18.0071013,
+      "lng": -76.7450583,
+      "source_index": 260,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_096",
+      "name": "Newer Node 096",
+      "location": [
+        18.0072809,
+        -76.7448519
+      ],
+      "lat": 18.0072809,
+      "lng": -76.7448519,
+      "source_index": 261,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_097",
+      "name": "Newer Node 097",
+      "location": [
+        18.0055273,
+        -76.7449599
+      ],
+      "lat": 18.0055273,
+      "lng": -76.7449599,
+      "source_index": 262,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_098",
+      "name": "Newer Node 098",
+      "location": [
+        18.0056676,
+        -76.7449867
+      ],
+      "lat": 18.0056676,
+      "lng": -76.7449867,
+      "source_index": 263,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_099",
+      "name": "Newer Node 099",
+      "location": [
+        18.0058079,
+        -76.7449894
+      ],
+      "lat": 18.0058079,
+      "lng": -76.7449894,
+      "source_index": 264,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_100",
+      "name": "Newer Node 100",
+      "location": [
+        18.0060728,
+        -76.7450156
+      ],
+      "lat": 18.0060728,
+      "lng": -76.7450156,
+      "source_index": 265,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_101",
+      "name": "Newer Node 101",
+      "location": [
+        18.0063337,
+        -76.7450644
+      ],
+      "lat": 18.0063337,
+      "lng": -76.7450644,
+      "source_index": 266,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_102",
+      "name": "Newer Node 102",
+      "location": [
+        18.0065727,
+        -76.7451446
+      ],
+      "lat": 18.0065727,
+      "lng": -76.7451446,
+      "source_index": 267,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_103",
+      "name": "Newer Node 103",
+      "location": [
+        18.0067562,
+        -76.7452344
+      ],
+      "lat": 18.0067562,
+      "lng": -76.7452344,
+      "source_index": 268,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_104",
+      "name": "Newer Node 104",
+      "location": [
+        18.0073343,
+        -76.7457224
+      ],
+      "lat": 18.0073343,
+      "lng": -76.7457224,
+      "source_index": 269,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_105",
+      "name": "Newer Node 105",
+      "location": [
+        18.0079057,
+        -76.746047
+      ],
+      "lat": 18.0079057,
+      "lng": -76.746047,
+      "source_index": 270,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_106",
+      "name": "Newer Node 106",
+      "location": [
+        18.0083521,
+        -76.7463635
+      ],
+      "lat": 18.0083521,
+      "lng": -76.7463635,
+      "source_index": 271,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_107",
+      "name": "Newer Node 107",
+      "location": [
+        18.0087726,
+        -76.7468211
+      ],
+      "lat": 18.0087726,
+      "lng": -76.7468211,
+      "source_index": 272,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_108",
+      "name": "Newer Node 108",
+      "location": [
+        18.002754,
+        -76.7434479
+      ],
+      "lat": 18.002754,
+      "lng": -76.7434479,
+      "source_index": 273,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_109",
+      "name": "Newer Node 109",
+      "location": [
+        18.0028076,
+        -76.7441506
+      ],
+      "lat": 18.0028076,
+      "lng": -76.7441506,
+      "source_index": 274,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_110",
+      "name": "Newer Node 110",
+      "location": [
+        18.0029356,
+        -76.7447818
+      ],
+      "lat": 18.0029356,
+      "lng": -76.7447818,
+      "source_index": 275,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_111",
+      "name": "Newer Node 111",
+      "location": [
+        18.0031142,
+        -76.7453397
+      ],
+      "lat": 18.0031142,
+      "lng": -76.7453397,
+      "source_index": 276,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_112",
+      "name": "Newer Node 112",
+      "location": [
+        18.0007139,
+        -76.7446866
+      ],
+      "lat": 18.0007139,
+      "lng": -76.7446866,
+      "source_index": 277,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_113",
+      "name": "Newer Node 113",
+      "location": [
+        18.000821,
+        -76.7442118
+      ],
+      "lat": 18.000821,
+      "lng": -76.7442118,
+      "source_index": 278,
+      "source": "newer.kml"
+    },
+    {
+      "id": "newer_node_114",
+      "name": "Newer Node 114",
+      "location": [
+        18.0008618,
+        -76.7438551
+      ],
+      "lat": 18.0008618,
+      "lng": -76.7438551,
+      "source_index": 279,
+      "source": "newer.kml"
     }
   ],
   "adjacency": {
@@ -1081,6 +3459,15 @@
     ],
     "point_6": [
       {
+        "to": "new_point_44",
+        "name": "Point 44",
+        "location": [
+          18.0062883,
+          -76.7477563
+        ],
+        "distance_m": 11.48
+      },
+      {
         "to": "point_23",
         "name": "Point 23",
         "location": [
@@ -1090,6 +3477,15 @@
         "distance_m": 17.3
       },
       {
+        "to": "new_point_43",
+        "name": "Point 43",
+        "location": [
+          18.0063308,
+          -76.7476939
+        ],
+        "distance_m": 19.29
+      },
+      {
         "to": "point_5",
         "name": "Point 5",
         "location": [
@@ -1097,15 +3493,6 @@
           -76.7480023
         ],
         "distance_m": 24.11
-      },
-      {
-        "to": "point_24",
-        "name": "Point 24",
-        "location": [
-          18.0064816,
-          -76.747677
-        ],
-        "distance_m": 34.38
       }
     ],
     "ab1": [
@@ -1139,6 +3526,24 @@
         "distance_m": 16.65
       },
       {
+        "to": "new_point_39",
+        "name": "Point 39",
+        "location": [
+          18.0061316,
+          -76.7473926
+        ],
+        "distance_m": 22.6
+      },
+      {
+        "to": "new_point_38",
+        "name": "Point 38",
+        "location": [
+          18.0059811,
+          -76.7471915
+        ],
+        "distance_m": 26.12
+      },
+      {
         "to": "ab1",
         "name": "ab1",
         "location": [
@@ -1146,18 +3551,18 @@
           -76.7475323
         ],
         "distance_m": 26.95
-      },
-      {
-        "to": "ab4",
-        "name": "ab4",
-        "location": [
-          18.0060094,
-          -76.7471511
-        ],
-        "distance_m": 31.03
       }
     ],
     "ab3": [
+      {
+        "to": "new_point_39",
+        "name": "Point 39",
+        "location": [
+          18.0061316,
+          -76.7473926
+        ],
+        "distance_m": 11.03
+      },
       {
         "to": "ab2",
         "name": "ab2",
@@ -1168,53 +3573,71 @@
         "distance_m": 16.65
       },
       {
-        "to": "ab4",
-        "name": "ab4",
+        "to": "new_point_38",
+        "name": "Point 38",
         "location": [
-          18.0060094,
-          -76.7471511
+          18.0059811,
+          -76.7471915
         ],
-        "distance_m": 19.92
+        "distance_m": 16.93
       }
     ],
     "ab4": [
       {
-        "to": "ab3",
-        "name": "ab3",
+        "to": "new_point_38",
+        "name": "Point 38",
         "location": [
-          18.006049,
-          -76.7473348
+          18.0059811,
+          -76.7471915
         ],
-        "distance_m": 19.92
+        "distance_m": 5.31
       },
       {
-        "to": "ab5",
-        "name": "ab5",
+        "to": "new_point_37",
+        "name": "Point 37",
         "location": [
-          18.0059444,
-          -76.7469017
+          18.0058919,
+          -76.7470882
         ],
-        "distance_m": 27.35
+        "distance_m": 14.66
       },
       {
-        "to": "ab2",
-        "name": "ab2",
+        "to": "new_point_57",
+        "name": "Point 57",
         "location": [
-          18.005932,
-          -76.747433
+          18.0061687,
+          -76.7471843
         ],
-        "distance_m": 31.03
+        "distance_m": 18.06
       }
     ],
     "ab5": [
       {
-        "to": "ab4",
-        "name": "ab4",
+        "to": "new_point_36",
+        "name": "Point 36",
         "location": [
-          18.0060094,
-          -76.7471511
+          18.0058409,
+          -76.7470319
         ],
-        "distance_m": 27.35
+        "distance_m": 17.94
+      },
+      {
+        "to": "new_point_35",
+        "name": "Point 35",
+        "location": [
+          18.0057988,
+          -76.746989
+        ],
+        "distance_m": 18.64
+      },
+      {
+        "to": "new_point_37",
+        "name": "Point 37",
+        "location": [
+          18.0058919,
+          -76.7470882
+        ],
+        "distance_m": 20.57
       },
       {
         "to": "ab6",
@@ -1295,16 +3718,34 @@
         "distance_m": 21.31
       },
       {
-        "to": "point_97",
-        "name": "Point 97",
+        "to": "new_point_22",
+        "name": "Point 22",
         "location": [
-          18.0062766,
-          -76.7464341
+          18.0059961,
+          -76.7460586
         ],
-        "distance_m": 27.23
+        "distance_m": 23.27
       }
     ],
     "ab9": [
+      {
+        "to": "new_point_22",
+        "name": "Point 22",
+        "location": [
+          18.0059961,
+          -76.7460586
+        ],
+        "distance_m": 6.53
+      },
+      {
+        "to": "new_point_21",
+        "name": "Point 21",
+        "location": [
+          18.0058941,
+          -76.746131
+        ],
+        "distance_m": 19.39
+      },
       {
         "to": "ab8",
         "name": "ab8",
@@ -1335,6 +3776,15 @@
         "distance_m": 16.07
       },
       {
+        "to": "new_point_22",
+        "name": "Point 22",
+        "location": [
+          18.0059961,
+          -76.7460586
+        ],
+        "distance_m": 18.35
+      },
+      {
         "to": "ab9",
         "name": "ab9",
         "location": [
@@ -1362,6 +3812,15 @@
           -76.7455435
         ],
         "distance_m": 24.29
+      },
+      {
+        "to": "newer_node_088",
+        "name": "Newer Node 088",
+        "location": [
+          18.0060059,
+          -76.7454767
+        ],
+        "distance_m": 30.32
       }
     ],
     "ab12": [
@@ -1373,6 +3832,15 @@
           -76.7454013
         ],
         "distance_m": 19.72
+      },
+      {
+        "to": "newer_node_088",
+        "name": "Newer Node 088",
+        "location": [
+          18.0060059,
+          -76.7454767
+        ],
+        "distance_m": 22.37
       },
       {
         "to": "ab11",
@@ -1402,6 +3870,15 @@
           -76.7452297
         ],
         "distance_m": 23.3
+      },
+      {
+        "to": "newer_node_088",
+        "name": "Newer Node 088",
+        "location": [
+          18.0060059,
+          -76.7454767
+        ],
+        "distance_m": 34.9
       }
     ],
     "ab14": [
@@ -1422,9 +3899,27 @@
           -76.7454013
         ],
         "distance_m": 23.3
+      },
+      {
+        "to": "newer_node_098",
+        "name": "Newer Node 098",
+        "location": [
+          18.0056676,
+          -76.7449867
+        ],
+        "distance_m": 27.94
       }
     ],
     "ab16": [
+      {
+        "to": "newer_node_097",
+        "name": "Newer Node 097",
+        "location": [
+          18.0055273,
+          -76.7449599
+        ],
+        "distance_m": 15.88
+      },
       {
         "to": "ab14",
         "name": "ab14",
@@ -1433,9 +3928,45 @@
           -76.7452297
         ],
         "distance_m": 16.33
+      },
+      {
+        "to": "newer_node_052",
+        "name": "Newer Node 052",
+        "location": [
+          18.0053654,
+          -76.7449436
+        ],
+        "distance_m": 21.47
+      },
+      {
+        "to": "newer_node_098",
+        "name": "Newer Node 098",
+        "location": [
+          18.0056676,
+          -76.7449867
+        ],
+        "distance_m": 23.78
       }
     ],
     "point_23": [
+      {
+        "to": "new_point_44",
+        "name": "Point 44",
+        "location": [
+          18.0062883,
+          -76.7477563
+        ],
+        "distance_m": 9.75
+      },
+      {
+        "to": "new_point_43",
+        "name": "Point 43",
+        "location": [
+          18.0063308,
+          -76.7476939
+        ],
+        "distance_m": 12.89
+      },
       {
         "to": "point_6",
         "name": "Point 6",
@@ -1444,24 +3975,6 @@
           -76.7478166
         ],
         "distance_m": 17.3
-      },
-      {
-        "to": "point_24",
-        "name": "Point 24",
-        "location": [
-          18.0064816,
-          -76.747677
-        ],
-        "distance_m": 19.85
-      },
-      {
-        "to": "point_25",
-        "name": "Point 25",
-        "location": [
-          18.0066219,
-          -76.7476904
-        ],
-        "distance_m": 32.07
       }
     ],
     "point_24": [
@@ -1475,22 +3988,22 @@
         "distance_m": 15.66
       },
       {
-        "to": "point_23",
-        "name": "Point 23",
+        "to": "new_point_43",
+        "name": "Point 43",
         "location": [
-          18.0063579,
-          -76.7478124
+          18.0063308,
+          -76.7476939
         ],
-        "distance_m": 19.85
+        "distance_m": 16.86
       },
       {
-        "to": "point_27",
-        "name": "Point 27",
+        "to": "new_point_42",
+        "name": "Point 42",
         "location": [
-          18.0064382,
-          -76.7474814
+          18.0063193,
+          -76.7476135
         ],
-        "distance_m": 21.24
+        "distance_m": 19.26
       },
       {
         "to": "point_26",
@@ -1500,15 +4013,6 @@
           -76.7477521
         ],
         "distance_m": 22.57
-      },
-      {
-        "to": "point_6",
-        "name": "Point 6",
-        "location": [
-          18.0062024,
-          -76.7478166
-        ],
-        "distance_m": 34.38
       }
     ],
     "point_25": [
@@ -1538,15 +4042,6 @@
           -76.7474814
         ],
         "distance_m": 30.1
-      },
-      {
-        "to": "point_23",
-        "name": "Point 23",
-        "location": [
-          18.0063579,
-          -76.7478124
-        ],
-        "distance_m": 32.07
       }
     ],
     "point_26": [
@@ -1571,22 +4066,31 @@
     ],
     "point_27": [
       {
-        "to": "point_24",
-        "name": "Point 24",
+        "to": "new_point_45",
+        "name": "Point 45",
         "location": [
-          18.0064816,
-          -76.747677
+          18.0064844,
+          -76.7473986
         ],
-        "distance_m": 21.24
+        "distance_m": 10.15
       },
       {
-        "to": "point_28",
-        "name": "Point 28",
+        "to": "new_point_42",
+        "name": "Point 42",
         "location": [
-          18.0065186,
-          -76.7472575
+          18.0063193,
+          -76.7476135
         ],
-        "distance_m": 25.31
+        "distance_m": 19.23
+      },
+      {
+        "to": "new_point_46",
+        "name": "Point 46",
+        "location": [
+          18.0065112,
+          -76.7473141
+        ],
+        "distance_m": 19.47
       },
       {
         "to": "point_25",
@@ -1596,18 +4100,27 @@
           -76.7476904
         ],
         "distance_m": 30.1
-      },
-      {
-        "to": "point_29",
-        "name": "Point 29",
-        "location": [
-          18.0066716,
-          -76.7472735
-        ],
-        "distance_m": 34.01
       }
     ],
     "point_28": [
+      {
+        "to": "new_point_46",
+        "name": "Point 46",
+        "location": [
+          18.0065112,
+          -76.7473141
+        ],
+        "distance_m": 6.04
+      },
+      {
+        "to": "new_point_45",
+        "name": "Point 45",
+        "location": [
+          18.0064844,
+          -76.7473986
+        ],
+        "distance_m": 15.4
+      },
       {
         "to": "point_29",
         "name": "Point 29",
@@ -1616,24 +4129,6 @@
           -76.7472735
         ],
         "distance_m": 17.1
-      },
-      {
-        "to": "point_27",
-        "name": "Point 27",
-        "location": [
-          18.0064382,
-          -76.7474814
-        ],
-        "distance_m": 25.31
-      },
-      {
-        "to": "point_93",
-        "name": "Point 93",
-        "location": [
-          18.0065528,
-          -76.7470041
-        ],
-        "distance_m": 27.07
       }
     ],
     "point_29": [
@@ -1647,22 +4142,22 @@
         "distance_m": 17.1
       },
       {
-        "to": "point_93",
-        "name": "Point 93",
+        "to": "new_point_46",
+        "name": "Point 46",
         "location": [
-          18.0065528,
-          -76.7470041
+          18.0065112,
+          -76.7473141
         ],
-        "distance_m": 31.4
+        "distance_m": 18.35
       },
       {
-        "to": "point_27",
-        "name": "Point 27",
+        "to": "new_point_45",
+        "name": "Point 45",
         "location": [
-          18.0064382,
-          -76.7474814
+          18.0064844,
+          -76.7473986
         ],
-        "distance_m": 34.01
+        "distance_m": 24.66
       }
     ],
     "point_30": [
@@ -1696,6 +4191,15 @@
     ],
     "point_31": [
       {
+        "to": "new_point_4",
+        "name": "Point 4",
+        "location": [
+          18.0052692,
+          -76.7492964
+        ],
+        "distance_m": 9.33
+      },
+      {
         "to": "point_32",
         "name": "Point 32",
         "location": [
@@ -1705,6 +4209,15 @@
         "distance_m": 15.5
       },
       {
+        "to": "new_point_3",
+        "name": "Point 3",
+        "location": [
+          18.0052182,
+          -76.7494117
+        ],
+        "distance_m": 22.7
+      },
+      {
         "to": "point_30",
         "name": "Point 30",
         "location": [
@@ -1712,15 +4225,6 @@
           -76.7490142
         ],
         "distance_m": 23.07
-      },
-      {
-        "to": "point_33",
-        "name": "Point 33",
-        "location": [
-          18.0051396,
-          -76.7490629
-        ],
-        "distance_m": 26.04
       },
       {
         "to": "point_77",
@@ -1750,6 +4254,15 @@
           -76.7492238
         ],
         "distance_m": 15.5
+      },
+      {
+        "to": "new_point_4",
+        "name": "Point 4",
+        "location": [
+          18.0052692,
+          -76.7492964
+        ],
+        "distance_m": 18.8
       },
       {
         "to": "point_34",
@@ -1797,15 +4310,6 @@
           -76.7489221
         ],
         "distance_m": 24.93
-      },
-      {
-        "to": "point_31",
-        "name": "Point 31",
-        "location": [
-          18.0053169,
-          -76.7492238
-        ],
-        "distance_m": 26.04
       },
       {
         "to": "point_30",
@@ -2103,18 +4607,18 @@
           -76.7493196
         ],
         "distance_m": 17.97
-      },
-      {
-        "to": "point_48",
-        "name": "Point 48",
-        "location": [
-          18.004604,
-          -76.7494717
-        ],
-        "distance_m": 20.34
       }
     ],
     "point_43": [
+      {
+        "to": "new_point_10",
+        "name": "Point 10",
+        "location": [
+          18.0044486,
+          -76.749441
+        ],
+        "distance_m": 9.03
+      },
       {
         "to": "point_44",
         "name": "Point 44",
@@ -2143,13 +4647,13 @@
         "distance_m": 15.17
       },
       {
-        "to": "point_45",
-        "name": "Point 45",
+        "to": "new_point_11",
+        "name": "Point 11",
         "location": [
-          18.0043823,
-          -76.7492485
+          18.0043912,
+          -76.7495269
         ],
-        "distance_m": 20.48
+        "distance_m": 19.95
       },
       {
         "to": "point_41",
@@ -2181,6 +4685,15 @@
         "distance_m": 10.25
       },
       {
+        "to": "new_point_10",
+        "name": "Point 10",
+        "location": [
+          18.0044486,
+          -76.749441
+        ],
+        "distance_m": 12.85
+      },
+      {
         "to": "point_42",
         "name": "Point 42",
         "location": [
@@ -2190,22 +4703,13 @@
         "distance_m": 17.97
       },
       {
-        "to": "point_46",
-        "name": "Point 46",
+        "to": "new_point_11",
+        "name": "Point 11",
         "location": [
-          18.0043083,
-          -76.7491774
+          18.0043912,
+          -76.7495269
         ],
-        "distance_m": 21.37
-      },
-      {
-        "to": "point_47",
-        "name": "Point 47",
-        "location": [
-          18.0042318,
-          -76.7491318
-        ],
-        "distance_m": 30.91
+        "distance_m": 22.72
       }
     ],
     "point_45": [
@@ -2228,22 +4732,13 @@
         "distance_m": 11.15
       },
       {
-        "to": "point_43",
-        "name": "Point 43",
+        "to": "new_point_5",
+        "name": "Point 5",
         "location": [
-          18.0045113,
-          -76.7493867
+          18.0042369,
+          -76.7492385
         ],
-        "distance_m": 20.48
-      },
-      {
-        "to": "point_47",
-        "name": "Point 47",
-        "location": [
-          18.0042318,
-          -76.7491318
-        ],
-        "distance_m": 20.79
+        "distance_m": 16.2
       }
     ],
     "point_46": [
@@ -2257,6 +4752,15 @@
         "distance_m": 9.78
       },
       {
+        "to": "new_point_5",
+        "name": "Point 5",
+        "location": [
+          18.0042369,
+          -76.7492385
+        ],
+        "distance_m": 10.24
+      },
+      {
         "to": "point_45",
         "name": "Point 45",
         "location": [
@@ -2264,15 +4768,6 @@
           -76.7492485
         ],
         "distance_m": 11.15
-      },
-      {
-        "to": "point_44",
-        "name": "Point 44",
-        "location": [
-          18.0044448,
-          -76.7493196
-        ],
-        "distance_m": 21.37
       }
     ],
     "point_47": [
@@ -2286,22 +4781,22 @@
         "distance_m": 9.78
       },
       {
-        "to": "point_45",
-        "name": "Point 45",
+        "to": "new_point_5",
+        "name": "Point 5",
         "location": [
-          18.0043823,
-          -76.7492485
+          18.0042369,
+          -76.7492385
         ],
-        "distance_m": 20.79
+        "distance_m": 11.3
       },
       {
-        "to": "point_44",
-        "name": "Point 44",
+        "to": "new_point_6",
+        "name": "Point 6",
         "location": [
-          18.0044448,
-          -76.7493196
+          18.0041718,
+          -76.7492975
         ],
-        "distance_m": 30.91
+        "distance_m": 18.75
       }
     ],
     "point_48": [
@@ -2324,13 +4819,13 @@
         "distance_m": 16.12
       },
       {
-        "to": "point_42",
-        "name": "Point 42",
+        "to": "new_point_10",
+        "name": "Point 10",
         "location": [
-          18.0046018,
-          -76.7492794
+          18.0044486,
+          -76.749441
         ],
-        "distance_m": 20.34
+        "distance_m": 17.58
       },
       {
         "to": "point_72",
@@ -2409,6 +4904,15 @@
         "distance_m": 18.99
       },
       {
+        "to": "new_point_1",
+        "name": "Point 1",
+        "location": [
+          18.0050754,
+          -76.7496397
+        ],
+        "distance_m": 23.4
+      },
+      {
         "to": "point_68",
         "name": "Point 68",
         "location": [
@@ -2438,16 +4942,25 @@
         "distance_m": 21.08
       },
       {
-        "to": "point_52",
-        "name": "Point 52",
+        "to": "new_point_1",
+        "name": "Point 1",
         "location": [
-          18.0049876,
-          -76.749752
+          18.0050754,
+          -76.7496397
         ],
-        "distance_m": 29.15
+        "distance_m": 25.44
       }
     ],
     "point_52": [
+      {
+        "to": "new_point_1",
+        "name": "Point 1",
+        "location": [
+          18.0050754,
+          -76.7496397
+        ],
+        "distance_m": 15.37
+      },
       {
         "to": "point_50",
         "name": "Point 50",
@@ -2476,13 +4989,13 @@
         "distance_m": 23.13
       },
       {
-        "to": "point_51",
-        "name": "Point 51",
+        "to": "new_point_2",
+        "name": "Point 2",
         "location": [
-          18.0048925,
-          -76.7494951
+          18.0051417,
+          -76.7495485
         ],
-        "distance_m": 29.15
+        "distance_m": 27.51
       }
     ],
     "point_53": [
@@ -2505,13 +5018,13 @@
         "distance_m": 23.13
       },
       {
-        "to": "point_61",
-        "name": "Point 61",
+        "to": "new_point_1",
+        "name": "Point 1",
         "location": [
-          18.0051187,
-          -76.7501048
+          18.0050754,
+          -76.7496397
         ],
-        "distance_m": 29.02
+        "distance_m": 23.9
       }
     ],
     "point_56": [
@@ -2695,15 +5208,6 @@
           -76.7503274
         ],
         "distance_m": 25.03
-      },
-      {
-        "to": "point_53",
-        "name": "Point 53",
-        "location": [
-          18.0051789,
-          -76.7498378
-        ],
-        "distance_m": 29.02
       }
     ],
     "point_62": [
@@ -3182,6 +5686,15 @@
           -76.74985
         ],
         "distance_m": 24.11
+      },
+      {
+        "to": "new_point_13",
+        "name": "Point 13",
+        "location": [
+          18.0041935,
+          -76.7499534
+        ],
+        "distance_m": 30.17
       }
     ],
     "point_77": [
@@ -3202,6 +5715,15 @@
           -76.7492238
         ],
         "distance_m": 27.86
+      },
+      {
+        "to": "new_point_4",
+        "name": "Point 4",
+        "location": [
+          18.0052692,
+          -76.7492964
+        ],
+        "distance_m": 30.24
       }
     ],
     "point_78": [
@@ -3273,6 +5795,15 @@
         "distance_m": 9.47
       },
       {
+        "to": "new_point_68",
+        "name": "Point 68",
+        "location": [
+          18.0062006,
+          -76.7495609
+        ],
+        "distance_m": 17.83
+      },
+      {
         "to": "point_81",
         "name": "Point 81",
         "location": [
@@ -3289,6 +5820,15 @@
           -76.7496933
         ],
         "distance_m": 19.22
+      },
+      {
+        "to": "new_point_69",
+        "name": "Point 69",
+        "location": [
+          18.0063026,
+          -76.7494349
+        ],
+        "distance_m": 30.56
       }
     ],
     "point_81": [
@@ -3318,6 +5858,15 @@
           -76.7495297
         ],
         "distance_m": 19.17
+      },
+      {
+        "to": "new_point_68",
+        "name": "Point 68",
+        "location": [
+          18.0062006,
+          -76.7495609
+        ],
+        "distance_m": 21.7
       },
       {
         "to": "point_79",
@@ -3447,31 +5996,40 @@
     ],
     "point_93": [
       {
-        "to": "point_28",
-        "name": "Point 28",
+        "to": "new_point_47",
+        "name": "Point 47",
         "location": [
-          18.0065186,
-          -76.7472575
+          18.006524,
+          -76.7469668
         ],
-        "distance_m": 27.07
+        "distance_m": 5.08
       },
       {
-        "to": "point_29",
-        "name": "Point 29",
+        "to": "new_point_48",
+        "name": "Point 48",
         "location": [
-          18.0066716,
-          -76.7472735
+          18.0064882,
+          -76.7469721
         ],
-        "distance_m": 31.4
+        "distance_m": 7.94
       },
       {
-        "to": "point_94",
-        "name": "Point 94",
+        "to": "new_point_49",
+        "name": "Point 49",
         "location": [
-          18.0064354,
-          -76.7467251
+          18.0064513,
+          -76.7469708
         ],
-        "distance_m": 32.26
+        "distance_m": 11.82
+      },
+      {
+        "to": "new_point_58",
+        "name": "Point 58",
+        "location": [
+          18.0066808,
+          -76.7468558
+        ],
+        "distance_m": 21.18
       }
     ],
     "point_94": [
@@ -3494,13 +6052,13 @@
         "distance_m": 21.96
       },
       {
-        "to": "point_93",
-        "name": "Point 93",
+        "to": "new_point_49",
+        "name": "Point 49",
         "location": [
-          18.0065528,
-          -76.7470041
+          18.0064513,
+          -76.7469708
         ],
-        "distance_m": 32.26
+        "distance_m": 26.04
       }
     ],
     "point_95": [
@@ -3588,6 +6146,770 @@
           -76.7466447
         ],
         "distance_m": 25.32
+      }
+    ],
+    "new_point_1": [
+      {
+        "to": "new_point_2",
+        "name": "Point 2",
+        "location": [
+          18.0051417,
+          -76.7495485
+        ],
+        "distance_m": 12.14
+      },
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 15.37
+      },
+      {
+        "to": "point_50",
+        "name": "Point 50",
+        "location": [
+          18.0048655,
+          -76.7496554
+        ],
+        "distance_m": 23.4
+      },
+      {
+        "to": "point_53",
+        "name": "Point 53",
+        "location": [
+          18.0051789,
+          -76.7498378
+        ],
+        "distance_m": 23.9
+      },
+      {
+        "to": "point_51",
+        "name": "Point 51",
+        "location": [
+          18.0048925,
+          -76.7494951
+        ],
+        "distance_m": 25.44
+      }
+    ],
+    "new_point_2": [
+      {
+        "to": "new_point_1",
+        "name": "Point 1",
+        "location": [
+          18.0050754,
+          -76.7496397
+        ],
+        "distance_m": 12.14
+      },
+      {
+        "to": "new_point_3",
+        "name": "Point 3",
+        "location": [
+          18.0052182,
+          -76.7494117
+        ],
+        "distance_m": 16.78
+      },
+      {
+        "to": "point_52",
+        "name": "Point 52",
+        "location": [
+          18.0049876,
+          -76.749752
+        ],
+        "distance_m": 27.51
+      }
+    ],
+    "new_point_3": [
+      {
+        "to": "new_point_4",
+        "name": "Point 4",
+        "location": [
+          18.0052692,
+          -76.7492964
+        ],
+        "distance_m": 13.45
+      },
+      {
+        "to": "new_point_2",
+        "name": "Point 2",
+        "location": [
+          18.0051417,
+          -76.7495485
+        ],
+        "distance_m": 16.78
+      },
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 22.7
+      }
+    ],
+    "new_point_4": [
+      {
+        "to": "point_31",
+        "name": "Point 31",
+        "location": [
+          18.0053169,
+          -76.7492238
+        ],
+        "distance_m": 9.33
+      },
+      {
+        "to": "new_point_3",
+        "name": "Point 3",
+        "location": [
+          18.0052182,
+          -76.7494117
+        ],
+        "distance_m": 13.45
+      },
+      {
+        "to": "point_32",
+        "name": "Point 32",
+        "location": [
+          18.0052098,
+          -76.74913
+        ],
+        "distance_m": 18.8
+      },
+      {
+        "to": "point_77",
+        "name": "Point 77",
+        "location": [
+          18.005536,
+          -76.7493516
+        ],
+        "distance_m": 30.24
+      }
+    ],
+    "new_point_5": [
+      {
+        "to": "new_point_6",
+        "name": "Point 6",
+        "location": [
+          18.0041718,
+          -76.7492975
+        ],
+        "distance_m": 9.56
+      },
+      {
+        "to": "point_46",
+        "name": "Point 46",
+        "location": [
+          18.0043083,
+          -76.7491774
+        ],
+        "distance_m": 10.24
+      },
+      {
+        "to": "point_47",
+        "name": "Point 47",
+        "location": [
+          18.0042318,
+          -76.7491318
+        ],
+        "distance_m": 11.3
+      },
+      {
+        "to": "new_point_7",
+        "name": "Point 7",
+        "location": [
+          18.0041348,
+          -76.7493472
+        ],
+        "distance_m": 16.16
+      },
+      {
+        "to": "point_45",
+        "name": "Point 45",
+        "location": [
+          18.0043823,
+          -76.7492485
+        ],
+        "distance_m": 16.2
+      }
+    ],
+    "new_point_6": [
+      {
+        "to": "new_point_7",
+        "name": "Point 7",
+        "location": [
+          18.0041348,
+          -76.7493472
+        ],
+        "distance_m": 6.67
+      },
+      {
+        "to": "new_point_5",
+        "name": "Point 5",
+        "location": [
+          18.0042369,
+          -76.7492385
+        ],
+        "distance_m": 9.56
+      },
+      {
+        "to": "new_point_8",
+        "name": "Point 8",
+        "location": [
+          18.0041017,
+          -76.7493968
+        ],
+        "distance_m": 13.08
+      },
+      {
+        "to": "point_47",
+        "name": "Point 47",
+        "location": [
+          18.0042318,
+          -76.7491318
+        ],
+        "distance_m": 18.75
+      },
+      {
+        "to": "new_point_9",
+        "name": "Point 9",
+        "location": [
+          18.0040098,
+          -76.7494772
+        ],
+        "distance_m": 26.18
+      }
+    ],
+    "new_point_7": [
+      {
+        "to": "new_point_8",
+        "name": "Point 8",
+        "location": [
+          18.0041017,
+          -76.7493968
+        ],
+        "distance_m": 6.41
+      },
+      {
+        "to": "new_point_6",
+        "name": "Point 6",
+        "location": [
+          18.0041718,
+          -76.7492975
+        ],
+        "distance_m": 6.67
+      },
+      {
+        "to": "new_point_5",
+        "name": "Point 5",
+        "location": [
+          18.0042369,
+          -76.7492385
+        ],
+        "distance_m": 16.16
+      },
+      {
+        "to": "new_point_9",
+        "name": "Point 9",
+        "location": [
+          18.0040098,
+          -76.7494772
+        ],
+        "distance_m": 19.55
+      }
+    ],
+    "new_point_8": [
+      {
+        "to": "new_point_7",
+        "name": "Point 7",
+        "location": [
+          18.0041348,
+          -76.7493472
+        ],
+        "distance_m": 6.41
+      },
+      {
+        "to": "new_point_6",
+        "name": "Point 6",
+        "location": [
+          18.0041718,
+          -76.7492975
+        ],
+        "distance_m": 13.08
+      },
+      {
+        "to": "new_point_9",
+        "name": "Point 9",
+        "location": [
+          18.0040098,
+          -76.7494772
+        ],
+        "distance_m": 13.29
+      }
+    ],
+    "new_point_9": [
+      {
+        "to": "new_point_8",
+        "name": "Point 8",
+        "location": [
+          18.0041017,
+          -76.7493968
+        ],
+        "distance_m": 13.29
+      },
+      {
+        "to": "new_point_7",
+        "name": "Point 7",
+        "location": [
+          18.0041348,
+          -76.7493472
+        ],
+        "distance_m": 19.55
+      },
+      {
+        "to": "new_point_6",
+        "name": "Point 6",
+        "location": [
+          18.0041718,
+          -76.7492975
+        ],
+        "distance_m": 26.18
+      }
+    ],
+    "new_point_10": [
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 9.03
+      },
+      {
+        "to": "new_point_11",
+        "name": "Point 11",
+        "location": [
+          18.0043912,
+          -76.7495269
+        ],
+        "distance_m": 11.1
+      },
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 12.85
+      },
+      {
+        "to": "point_48",
+        "name": "Point 48",
+        "location": [
+          18.004604,
+          -76.7494717
+        ],
+        "distance_m": 17.58
+      }
+    ],
+    "new_point_11": [
+      {
+        "to": "new_point_10",
+        "name": "Point 10",
+        "location": [
+          18.0044486,
+          -76.749441
+        ],
+        "distance_m": 11.1
+      },
+      {
+        "to": "point_43",
+        "name": "Point 43",
+        "location": [
+          18.0045113,
+          -76.7493867
+        ],
+        "distance_m": 19.95
+      },
+      {
+        "to": "point_44",
+        "name": "Point 44",
+        "location": [
+          18.0044448,
+          -76.7493196
+        ],
+        "distance_m": 22.72
+      },
+      {
+        "to": "new_point_12",
+        "name": "Point 12",
+        "location": [
+          18.0042394,
+          -76.7497991
+        ],
+        "distance_m": 33.37
+      }
+    ],
+    "new_point_12": [
+      {
+        "to": "new_point_13",
+        "name": "Point 13",
+        "location": [
+          18.0041935,
+          -76.7499534
+        ],
+        "distance_m": 17.1
+      },
+      {
+        "to": "new_point_16",
+        "name": "Point 16",
+        "location": [
+          18.0041055,
+          -76.7500137
+        ],
+        "distance_m": 27.14
+      },
+      {
+        "to": "new_point_11",
+        "name": "Point 11",
+        "location": [
+          18.0043912,
+          -76.7495269
+        ],
+        "distance_m": 33.37
+      }
+    ],
+    "new_point_13": [
+      {
+        "to": "new_point_16",
+        "name": "Point 16",
+        "location": [
+          18.0041055,
+          -76.7500137
+        ],
+        "distance_m": 11.68
+      },
+      {
+        "to": "new_point_12",
+        "name": "Point 12",
+        "location": [
+          18.0042394,
+          -76.7497991
+        ],
+        "distance_m": 17.1
+      },
+      {
+        "to": "new_point_15",
+        "name": "Point 15",
+        "location": [
+          18.0040188,
+          -76.7500714
+        ],
+        "distance_m": 23.09
+      },
+      {
+        "to": "point_76",
+        "name": "Point 76",
+        "location": [
+          18.0044465,
+          -76.7500565
+        ],
+        "distance_m": 30.17
+      },
+      {
+        "to": "new_point_14",
+        "name": "Point 14",
+        "location": [
+          18.0039563,
+          -76.7501639
+        ],
+        "distance_m": 34.51
+      }
+    ],
+    "new_point_14": [
+      {
+        "to": "new_point_15",
+        "name": "Point 15",
+        "location": [
+          18.0040188,
+          -76.7500714
+        ],
+        "distance_m": 12.0
+      },
+      {
+        "to": "new_point_16",
+        "name": "Point 16",
+        "location": [
+          18.0041055,
+          -76.7500137
+        ],
+        "distance_m": 22.97
+      },
+      {
+        "to": "new_point_13",
+        "name": "Point 13",
+        "location": [
+          18.0041935,
+          -76.7499534
+        ],
+        "distance_m": 34.51
+      }
+    ],
+    "new_point_15": [
+      {
+        "to": "new_point_16",
+        "name": "Point 16",
+        "location": [
+          18.0041055,
+          -76.7500137
+        ],
+        "distance_m": 11.41
+      },
+      {
+        "to": "new_point_14",
+        "name": "Point 14",
+        "location": [
+          18.0039563,
+          -76.7501639
+        ],
+        "distance_m": 12.0
+      },
+      {
+        "to": "new_point_13",
+        "name": "Point 13",
+        "location": [
+          18.0041935,
+          -76.7499534
+        ],
+        "distance_m": 23.09
+      }
+    ],
+    "new_point_16": [
+      {
+        "to": "new_point_15",
+        "name": "Point 15",
+        "location": [
+          18.0040188,
+          -76.7500714
+        ],
+        "distance_m": 11.41
+      },
+      {
+        "to": "new_point_13",
+        "name": "Point 13",
+        "location": [
+          18.0041935,
+          -76.7499534
+        ],
+        "distance_m": 11.68
+      },
+      {
+        "to": "new_point_14",
+        "name": "Point 14",
+        "location": [
+          18.0039563,
+          -76.7501639
+        ],
+        "distance_m": 22.97
+      },
+      {
+        "to": "new_point_12",
+        "name": "Point 12",
+        "location": [
+          18.0042394,
+          -76.7497991
+        ],
+        "distance_m": 27.14
+      }
+    ],
+    "new_point_17": [
+      {
+        "to": "new_point_18",
+        "name": "Point 18",
+        "location": [
+          18.0054864,
+          -76.7460694
+        ],
+        "distance_m": 11.44
+      },
+      {
+        "to": "new_point_25",
+        "name": "Point 25",
+        "location": [
+          18.0052807,
+          -76.7462105
+        ],
+        "distance_m": 19.99
+      },
+      {
+        "to": "new_point_23",
+        "name": "Point 23",
+        "location": [
+          18.0051991,
+          -76.746138
+        ],
+        "distance_m": 22.34
+      },
+      {
+        "to": "new_point_19",
+        "name": "Point 19",
+        "location": [
+          18.0056114,
+          -76.7460882
+        ],
+        "distance_m": 25.48
+      }
+    ],
+    "new_point_18": [
+      {
+        "to": "new_point_17",
+        "name": "Point 17",
+        "location": [
+          18.0053843,
+          -76.746056
+        ],
+        "distance_m": 11.44
+      },
+      {
+        "to": "new_point_19",
+        "name": "Point 19",
+        "location": [
+          18.0056114,
+          -76.7460882
+        ],
+        "distance_m": 14.04
+      },
+      {
+        "to": "new_point_25",
+        "name": "Point 25",
+        "location": [
+          18.0052807,
+          -76.7462105
+        ],
+        "distance_m": 27.31
+      }
+    ],
+    "new_point_19": [
+      {
+        "to": "new_point_18",
+        "name": "Point 18",
+        "location": [
+          18.0054864,
+          -76.7460694
+        ],
+        "distance_m": 14.04
+      },
+      {
+        "to": "new_point_20",
+        "name": "Point 20",
+        "location": [
+          18.0057619,
+          -76.7461257
+        ],
+        "distance_m": 17.2
+      },
+      {
+        "to": "new_point_17",
+        "name": "Point 17",
+        "location": [
+          18.0053843,
+          -76.746056
+        ],
+        "distance_m": 25.48
+      }
+    ],
+    "new_point_20": [
+      {
+        "to": "new_point_21",
+        "name": "Point 21",
+        "location": [
+          18.0058941,
+          -76.746131
+        ],
+        "distance_m": 14.71
+      },
+      {
+        "to": "new_point_19",
+        "name": "Point 19",
+        "location": [
+          18.0056114,
+          -76.7460882
+        ],
+        "distance_m": 17.2
+      },
+      {
+        "to": "new_point_22",
+        "name": "Point 22",
+        "location": [
+          18.0059961,
+          -76.7460586
+        ],
+        "distance_m": 26.99
+      }
+    ],
+    "new_point_21": [
+      {
+        "to": "new_point_22",
+        "name": "Point 22",
+        "location": [
+          18.0059961,
+          -76.7460586
+        ],
+        "distance_m": 13.68
+      },
+      {
+        "to": "new_point_20",
+        "name": "Point 20",
+        "location": [
+          18.0057619,
+          -76.7461257
+        ],
+        "distance_m": 14.71
+      },
+      {
+        "to": "ab9",
+        "name": "ab9",
+        "location": [
+          18.0060548,
+          -76.7460598
+        ],
+        "distance_m": 19.39
+      }
+    ],
+    "new_point_22": [
+      {
+        "to": "ab9",
+        "name": "ab9",
+        "location": [
+          18.0060548,
+          -76.7460598
+        ],
+        "distance_m": 6.53
+      },
+      {
+        "to": "new_point_21",
+        "name": "Point 21",
+        "location": [
+          18.0058941,
+          -76.746131
+        ],
+        "distance_m": 13.68
+      },
+      {
+        "to": "ab10",
+        "name": "ab10",
+        "location": [
+          18.0059732,
+          -76.7458868
+        ],
+        "distance_m": 18.35
       },
       {
         "to": "ab8",
@@ -3596,7 +6918,3776 @@
           18.0061288,
           -76.7462288
         ],
-        "distance_m": 27.23
+        "distance_m": 23.27
+      },
+      {
+        "to": "new_point_20",
+        "name": "Point 20",
+        "location": [
+          18.0057619,
+          -76.7461257
+        ],
+        "distance_m": 26.99
+      }
+    ],
+    "new_point_23": [
+      {
+        "to": "new_point_25",
+        "name": "Point 25",
+        "location": [
+          18.0052807,
+          -76.7462105
+        ],
+        "distance_m": 11.88
+      },
+      {
+        "to": "new_point_17",
+        "name": "Point 17",
+        "location": [
+          18.0053843,
+          -76.746056
+        ],
+        "distance_m": 22.34
+      },
+      {
+        "to": "new_point_24",
+        "name": "Point 24",
+        "location": [
+          18.0050767,
+          -76.7459503
+        ],
+        "distance_m": 24.07
+      },
+      {
+        "to": "new_point_26",
+        "name": "Point 26",
+        "location": [
+          18.0053624,
+          -76.7463043
+        ],
+        "distance_m": 25.28
+      }
+    ],
+    "new_point_24": [
+      {
+        "to": "new_point_23",
+        "name": "Point 23",
+        "location": [
+          18.0051991,
+          -76.746138
+        ],
+        "distance_m": 24.07
+      }
+    ],
+    "new_point_25": [
+      {
+        "to": "new_point_23",
+        "name": "Point 23",
+        "location": [
+          18.0051991,
+          -76.746138
+        ],
+        "distance_m": 11.88
+      },
+      {
+        "to": "new_point_26",
+        "name": "Point 26",
+        "location": [
+          18.0053624,
+          -76.7463043
+        ],
+        "distance_m": 13.45
+      },
+      {
+        "to": "new_point_17",
+        "name": "Point 17",
+        "location": [
+          18.0053843,
+          -76.746056
+        ],
+        "distance_m": 19.99
+      },
+      {
+        "to": "new_point_27",
+        "name": "Point 27",
+        "location": [
+          18.0054465,
+          -76.7463902
+        ],
+        "distance_m": 26.48
+      },
+      {
+        "to": "new_point_18",
+        "name": "Point 18",
+        "location": [
+          18.0054864,
+          -76.7460694
+        ],
+        "distance_m": 27.31
+      }
+    ],
+    "new_point_26": [
+      {
+        "to": "new_point_27",
+        "name": "Point 27",
+        "location": [
+          18.0054465,
+          -76.7463902
+        ],
+        "distance_m": 13.04
+      },
+      {
+        "to": "new_point_25",
+        "name": "Point 25",
+        "location": [
+          18.0052807,
+          -76.7462105
+        ],
+        "distance_m": 13.45
+      },
+      {
+        "to": "new_point_23",
+        "name": "Point 23",
+        "location": [
+          18.0051991,
+          -76.746138
+        ],
+        "distance_m": 25.28
+      }
+    ],
+    "new_point_27": [
+      {
+        "to": "new_point_26",
+        "name": "Point 26",
+        "location": [
+          18.0053624,
+          -76.7463043
+        ],
+        "distance_m": 13.04
+      },
+      {
+        "to": "new_point_28",
+        "name": "Point 28",
+        "location": [
+          18.0055409,
+          -76.7465001
+        ],
+        "distance_m": 15.66
+      },
+      {
+        "to": "new_point_25",
+        "name": "Point 25",
+        "location": [
+          18.0052807,
+          -76.7462105
+        ],
+        "distance_m": 26.48
+      }
+    ],
+    "new_point_28": [
+      {
+        "to": "new_point_29",
+        "name": "Point 29",
+        "location": [
+          18.0055945,
+          -76.7465967
+        ],
+        "distance_m": 11.83
+      },
+      {
+        "to": "new_point_27",
+        "name": "Point 27",
+        "location": [
+          18.0054465,
+          -76.7463902
+        ],
+        "distance_m": 15.66
+      },
+      {
+        "to": "new_point_30",
+        "name": "Point 30",
+        "location": [
+          18.0055613,
+          -76.7466772
+        ],
+        "distance_m": 18.87
+      }
+    ],
+    "new_point_29": [
+      {
+        "to": "new_point_30",
+        "name": "Point 30",
+        "location": [
+          18.0055613,
+          -76.7466772
+        ],
+        "distance_m": 9.28
+      },
+      {
+        "to": "new_point_28",
+        "name": "Point 28",
+        "location": [
+          18.0055409,
+          -76.7465001
+        ],
+        "distance_m": 11.83
+      },
+      {
+        "to": "new_point_31",
+        "name": "Point 31",
+        "location": [
+          18.0056253,
+          -76.7467886
+        ],
+        "distance_m": 20.58
+      }
+    ],
+    "new_point_30": [
+      {
+        "to": "new_point_29",
+        "name": "Point 29",
+        "location": [
+          18.0055945,
+          -76.7465967
+        ],
+        "distance_m": 9.28
+      },
+      {
+        "to": "new_point_31",
+        "name": "Point 31",
+        "location": [
+          18.0056253,
+          -76.7467886
+        ],
+        "distance_m": 13.76
+      },
+      {
+        "to": "new_point_28",
+        "name": "Point 28",
+        "location": [
+          18.0055409,
+          -76.7465001
+        ],
+        "distance_m": 18.87
+      }
+    ],
+    "new_point_31": [
+      {
+        "to": "new_point_32",
+        "name": "Point 32",
+        "location": [
+          18.0056712,
+          -76.7468409
+        ],
+        "distance_m": 7.53
+      },
+      {
+        "to": "new_point_30",
+        "name": "Point 30",
+        "location": [
+          18.0055613,
+          -76.7466772
+        ],
+        "distance_m": 13.76
+      },
+      {
+        "to": "new_point_33",
+        "name": "Point 33",
+        "location": [
+          18.0057184,
+          -76.7468932
+        ],
+        "distance_m": 15.15
+      },
+      {
+        "to": "new_point_29",
+        "name": "Point 29",
+        "location": [
+          18.0055945,
+          -76.7465967
+        ],
+        "distance_m": 20.58
+      }
+    ],
+    "new_point_32": [
+      {
+        "to": "new_point_31",
+        "name": "Point 31",
+        "location": [
+          18.0056253,
+          -76.7467886
+        ],
+        "distance_m": 7.53
+      },
+      {
+        "to": "new_point_33",
+        "name": "Point 33",
+        "location": [
+          18.0057184,
+          -76.7468932
+        ],
+        "distance_m": 7.62
+      },
+      {
+        "to": "new_point_34",
+        "name": "Point 34",
+        "location": [
+          18.0057592,
+          -76.7469415
+        ],
+        "distance_m": 14.45
+      }
+    ],
+    "new_point_33": [
+      {
+        "to": "new_point_34",
+        "name": "Point 34",
+        "location": [
+          18.0057592,
+          -76.7469415
+        ],
+        "distance_m": 6.83
+      },
+      {
+        "to": "new_point_32",
+        "name": "Point 32",
+        "location": [
+          18.0056712,
+          -76.7468409
+        ],
+        "distance_m": 7.62
+      },
+      {
+        "to": "new_point_35",
+        "name": "Point 35",
+        "location": [
+          18.0057988,
+          -76.746989
+        ],
+        "distance_m": 13.51
+      },
+      {
+        "to": "new_point_31",
+        "name": "Point 31",
+        "location": [
+          18.0056253,
+          -76.7467886
+        ],
+        "distance_m": 15.15
+      }
+    ],
+    "new_point_34": [
+      {
+        "to": "new_point_35",
+        "name": "Point 35",
+        "location": [
+          18.0057988,
+          -76.746989
+        ],
+        "distance_m": 6.68
+      },
+      {
+        "to": "new_point_33",
+        "name": "Point 33",
+        "location": [
+          18.0057184,
+          -76.7468932
+        ],
+        "distance_m": 6.83
+      },
+      {
+        "to": "new_point_36",
+        "name": "Point 36",
+        "location": [
+          18.0058409,
+          -76.7470319
+        ],
+        "distance_m": 13.19
+      },
+      {
+        "to": "new_point_32",
+        "name": "Point 32",
+        "location": [
+          18.0056712,
+          -76.7468409
+        ],
+        "distance_m": 14.45
+      }
+    ],
+    "new_point_35": [
+      {
+        "to": "new_point_36",
+        "name": "Point 36",
+        "location": [
+          18.0058409,
+          -76.7470319
+        ],
+        "distance_m": 6.52
+      },
+      {
+        "to": "new_point_34",
+        "name": "Point 34",
+        "location": [
+          18.0057592,
+          -76.7469415
+        ],
+        "distance_m": 6.68
+      },
+      {
+        "to": "new_point_33",
+        "name": "Point 33",
+        "location": [
+          18.0057184,
+          -76.7468932
+        ],
+        "distance_m": 13.51
+      },
+      {
+        "to": "new_point_37",
+        "name": "Point 37",
+        "location": [
+          18.0058919,
+          -76.7470882
+        ],
+        "distance_m": 14.74
+      },
+      {
+        "to": "ab5",
+        "name": "ab5",
+        "location": [
+          18.0059444,
+          -76.7469017
+        ],
+        "distance_m": 18.64
+      }
+    ],
+    "new_point_36": [
+      {
+        "to": "new_point_35",
+        "name": "Point 35",
+        "location": [
+          18.0057988,
+          -76.746989
+        ],
+        "distance_m": 6.52
+      },
+      {
+        "to": "new_point_37",
+        "name": "Point 37",
+        "location": [
+          18.0058919,
+          -76.7470882
+        ],
+        "distance_m": 8.22
+      },
+      {
+        "to": "new_point_34",
+        "name": "Point 34",
+        "location": [
+          18.0057592,
+          -76.7469415
+        ],
+        "distance_m": 13.19
+      },
+      {
+        "to": "ab5",
+        "name": "ab5",
+        "location": [
+          18.0059444,
+          -76.7469017
+        ],
+        "distance_m": 17.94
+      }
+    ],
+    "new_point_37": [
+      {
+        "to": "new_point_36",
+        "name": "Point 36",
+        "location": [
+          18.0058409,
+          -76.7470319
+        ],
+        "distance_m": 8.22
+      },
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 14.66
+      },
+      {
+        "to": "new_point_35",
+        "name": "Point 35",
+        "location": [
+          18.0057988,
+          -76.746989
+        ],
+        "distance_m": 14.74
+      },
+      {
+        "to": "new_point_38",
+        "name": "Point 38",
+        "location": [
+          18.0059811,
+          -76.7471915
+        ],
+        "distance_m": 14.75
+      },
+      {
+        "to": "ab5",
+        "name": "ab5",
+        "location": [
+          18.0059444,
+          -76.7469017
+        ],
+        "distance_m": 20.57
+      }
+    ],
+    "new_point_38": [
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 5.31
+      },
+      {
+        "to": "new_point_37",
+        "name": "Point 37",
+        "location": [
+          18.0058919,
+          -76.7470882
+        ],
+        "distance_m": 14.75
+      },
+      {
+        "to": "ab3",
+        "name": "ab3",
+        "location": [
+          18.006049,
+          -76.7473348
+        ],
+        "distance_m": 16.93
+      },
+      {
+        "to": "ab2",
+        "name": "ab2",
+        "location": [
+          18.005932,
+          -76.747433
+        ],
+        "distance_m": 26.12
+      }
+    ],
+    "new_point_39": [
+      {
+        "to": "ab3",
+        "name": "ab3",
+        "location": [
+          18.006049,
+          -76.7473348
+        ],
+        "distance_m": 11.03
+      },
+      {
+        "to": "new_point_40",
+        "name": "Point 40",
+        "location": [
+          18.006189,
+          -76.7474798
+        ],
+        "distance_m": 11.21
+      },
+      {
+        "to": "new_point_57",
+        "name": "Point 57",
+        "location": [
+          18.0061687,
+          -76.7471843
+        ],
+        "distance_m": 22.41
+      },
+      {
+        "to": "ab2",
+        "name": "ab2",
+        "location": [
+          18.005932,
+          -76.747433
+        ],
+        "distance_m": 22.6
+      }
+    ],
+    "new_point_40": [
+      {
+        "to": "new_point_39",
+        "name": "Point 39",
+        "location": [
+          18.0061316,
+          -76.7473926
+        ],
+        "distance_m": 11.21
+      },
+      {
+        "to": "new_point_41",
+        "name": "Point 41",
+        "location": [
+          18.0062683,
+          -76.7475558
+        ],
+        "distance_m": 11.93
+      },
+      {
+        "to": "new_point_42",
+        "name": "Point 42",
+        "location": [
+          18.0063193,
+          -76.7476135
+        ],
+        "distance_m": 20.24
+      }
+    ],
+    "new_point_41": [
+      {
+        "to": "new_point_42",
+        "name": "Point 42",
+        "location": [
+          18.0063193,
+          -76.7476135
+        ],
+        "distance_m": 8.33
+      },
+      {
+        "to": "new_point_40",
+        "name": "Point 40",
+        "location": [
+          18.006189,
+          -76.7474798
+        ],
+        "distance_m": 11.93
+      },
+      {
+        "to": "new_point_43",
+        "name": "Point 43",
+        "location": [
+          18.0063308,
+          -76.7476939
+        ],
+        "distance_m": 16.17
+      }
+    ],
+    "new_point_42": [
+      {
+        "to": "new_point_41",
+        "name": "Point 41",
+        "location": [
+          18.0062683,
+          -76.7475558
+        ],
+        "distance_m": 8.33
+      },
+      {
+        "to": "new_point_43",
+        "name": "Point 43",
+        "location": [
+          18.0063308,
+          -76.7476939
+        ],
+        "distance_m": 8.6
+      },
+      {
+        "to": "new_point_44",
+        "name": "Point 44",
+        "location": [
+          18.0062883,
+          -76.7477563
+        ],
+        "distance_m": 15.49
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 19.23
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 19.26
+      },
+      {
+        "to": "new_point_40",
+        "name": "Point 40",
+        "location": [
+          18.006189,
+          -76.7474798
+        ],
+        "distance_m": 20.24
+      }
+    ],
+    "new_point_43": [
+      {
+        "to": "new_point_44",
+        "name": "Point 44",
+        "location": [
+          18.0062883,
+          -76.7477563
+        ],
+        "distance_m": 8.12
+      },
+      {
+        "to": "new_point_42",
+        "name": "Point 42",
+        "location": [
+          18.0063193,
+          -76.7476135
+        ],
+        "distance_m": 8.6
+      },
+      {
+        "to": "point_23",
+        "name": "Point 23",
+        "location": [
+          18.0063579,
+          -76.7478124
+        ],
+        "distance_m": 12.89
+      },
+      {
+        "to": "new_point_41",
+        "name": "Point 41",
+        "location": [
+          18.0062683,
+          -76.7475558
+        ],
+        "distance_m": 16.17
+      },
+      {
+        "to": "point_24",
+        "name": "Point 24",
+        "location": [
+          18.0064816,
+          -76.747677
+        ],
+        "distance_m": 16.86
+      },
+      {
+        "to": "point_6",
+        "name": "Point 6",
+        "location": [
+          18.0062024,
+          -76.7478166
+        ],
+        "distance_m": 19.29
+      }
+    ],
+    "new_point_44": [
+      {
+        "to": "new_point_43",
+        "name": "Point 43",
+        "location": [
+          18.0063308,
+          -76.7476939
+        ],
+        "distance_m": 8.12
+      },
+      {
+        "to": "point_23",
+        "name": "Point 23",
+        "location": [
+          18.0063579,
+          -76.7478124
+        ],
+        "distance_m": 9.75
+      },
+      {
+        "to": "point_6",
+        "name": "Point 6",
+        "location": [
+          18.0062024,
+          -76.7478166
+        ],
+        "distance_m": 11.48
+      },
+      {
+        "to": "new_point_42",
+        "name": "Point 42",
+        "location": [
+          18.0063193,
+          -76.7476135
+        ],
+        "distance_m": 15.49
+      }
+    ],
+    "new_point_45": [
+      {
+        "to": "new_point_46",
+        "name": "Point 46",
+        "location": [
+          18.0065112,
+          -76.7473141
+        ],
+        "distance_m": 9.42
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 10.15
+      },
+      {
+        "to": "point_28",
+        "name": "Point 28",
+        "location": [
+          18.0065186,
+          -76.7472575
+        ],
+        "distance_m": 15.4
+      },
+      {
+        "to": "point_29",
+        "name": "Point 29",
+        "location": [
+          18.0066716,
+          -76.7472735
+        ],
+        "distance_m": 24.66
+      }
+    ],
+    "new_point_46": [
+      {
+        "to": "point_28",
+        "name": "Point 28",
+        "location": [
+          18.0065186,
+          -76.7472575
+        ],
+        "distance_m": 6.04
+      },
+      {
+        "to": "new_point_45",
+        "name": "Point 45",
+        "location": [
+          18.0064844,
+          -76.7473986
+        ],
+        "distance_m": 9.42
+      },
+      {
+        "to": "point_29",
+        "name": "Point 29",
+        "location": [
+          18.0066716,
+          -76.7472735
+        ],
+        "distance_m": 18.35
+      },
+      {
+        "to": "point_27",
+        "name": "Point 27",
+        "location": [
+          18.0064382,
+          -76.7474814
+        ],
+        "distance_m": 19.47
+      }
+    ],
+    "new_point_47": [
+      {
+        "to": "new_point_48",
+        "name": "Point 48",
+        "location": [
+          18.0064882,
+          -76.7469721
+        ],
+        "distance_m": 4.02
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 5.08
+      },
+      {
+        "to": "new_point_49",
+        "name": "Point 49",
+        "location": [
+          18.0064513,
+          -76.7469708
+        ],
+        "distance_m": 8.09
+      },
+      {
+        "to": "new_point_58",
+        "name": "Point 58",
+        "location": [
+          18.0066808,
+          -76.7468558
+        ],
+        "distance_m": 21.02
+      }
+    ],
+    "new_point_48": [
+      {
+        "to": "new_point_47",
+        "name": "Point 47",
+        "location": [
+          18.006524,
+          -76.7469668
+        ],
+        "distance_m": 4.02
+      },
+      {
+        "to": "new_point_49",
+        "name": "Point 49",
+        "location": [
+          18.0064513,
+          -76.7469708
+        ],
+        "distance_m": 4.11
+      },
+      {
+        "to": "new_point_50",
+        "name": "Point 50",
+        "location": [
+          18.0064206,
+          -76.7469842
+        ],
+        "distance_m": 7.62
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 7.94
+      }
+    ],
+    "new_point_49": [
+      {
+        "to": "new_point_50",
+        "name": "Point 50",
+        "location": [
+          18.0064206,
+          -76.7469842
+        ],
+        "distance_m": 3.7
+      },
+      {
+        "to": "new_point_48",
+        "name": "Point 48",
+        "location": [
+          18.0064882,
+          -76.7469721
+        ],
+        "distance_m": 4.11
+      },
+      {
+        "to": "new_point_51",
+        "name": "Point 51",
+        "location": [
+          18.0063888,
+          -76.7469989
+        ],
+        "distance_m": 7.56
+      },
+      {
+        "to": "new_point_47",
+        "name": "Point 47",
+        "location": [
+          18.006524,
+          -76.7469668
+        ],
+        "distance_m": 8.09
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 11.82
+      },
+      {
+        "to": "point_94",
+        "name": "Point 94",
+        "location": [
+          18.0064354,
+          -76.7467251
+        ],
+        "distance_m": 26.04
+      }
+    ],
+    "new_point_50": [
+      {
+        "to": "new_point_49",
+        "name": "Point 49",
+        "location": [
+          18.0064513,
+          -76.7469708
+        ],
+        "distance_m": 3.7
+      },
+      {
+        "to": "new_point_51",
+        "name": "Point 51",
+        "location": [
+          18.0063888,
+          -76.7469989
+        ],
+        "distance_m": 3.86
+      },
+      {
+        "to": "new_point_48",
+        "name": "Point 48",
+        "location": [
+          18.0064882,
+          -76.7469721
+        ],
+        "distance_m": 7.62
+      },
+      {
+        "to": "new_point_52",
+        "name": "Point 52",
+        "location": [
+          18.0063556,
+          -76.7470177
+        ],
+        "distance_m": 8.05
+      }
+    ],
+    "new_point_51": [
+      {
+        "to": "new_point_50",
+        "name": "Point 50",
+        "location": [
+          18.0064206,
+          -76.7469842
+        ],
+        "distance_m": 3.86
+      },
+      {
+        "to": "new_point_52",
+        "name": "Point 52",
+        "location": [
+          18.0063556,
+          -76.7470177
+        ],
+        "distance_m": 4.19
+      },
+      {
+        "to": "new_point_49",
+        "name": "Point 49",
+        "location": [
+          18.0064513,
+          -76.7469708
+        ],
+        "distance_m": 7.56
+      },
+      {
+        "to": "new_point_53",
+        "name": "Point 53",
+        "location": [
+          18.0063186,
+          -76.7470606
+        ],
+        "distance_m": 10.17
+      }
+    ],
+    "new_point_52": [
+      {
+        "to": "new_point_51",
+        "name": "Point 51",
+        "location": [
+          18.0063888,
+          -76.7469989
+        ],
+        "distance_m": 4.19
+      },
+      {
+        "to": "new_point_53",
+        "name": "Point 53",
+        "location": [
+          18.0063186,
+          -76.7470606
+        ],
+        "distance_m": 6.12
+      },
+      {
+        "to": "new_point_50",
+        "name": "Point 50",
+        "location": [
+          18.0064206,
+          -76.7469842
+        ],
+        "distance_m": 8.05
+      },
+      {
+        "to": "new_point_54",
+        "name": "Point 54",
+        "location": [
+          18.0062829,
+          -76.7470875
+        ],
+        "distance_m": 10.95
+      }
+    ],
+    "new_point_53": [
+      {
+        "to": "new_point_54",
+        "name": "Point 54",
+        "location": [
+          18.0062829,
+          -76.7470875
+        ],
+        "distance_m": 4.88
+      },
+      {
+        "to": "new_point_52",
+        "name": "Point 52",
+        "location": [
+          18.0063556,
+          -76.7470177
+        ],
+        "distance_m": 6.12
+      },
+      {
+        "to": "new_point_51",
+        "name": "Point 51",
+        "location": [
+          18.0063888,
+          -76.7469989
+        ],
+        "distance_m": 10.17
+      }
+    ],
+    "new_point_54": [
+      {
+        "to": "new_point_53",
+        "name": "Point 53",
+        "location": [
+          18.0063186,
+          -76.7470606
+        ],
+        "distance_m": 4.88
+      },
+      {
+        "to": "new_point_55",
+        "name": "Point 55",
+        "location": [
+          18.0062306,
+          -76.7471277
+        ],
+        "distance_m": 7.2
+      },
+      {
+        "to": "new_point_52",
+        "name": "Point 52",
+        "location": [
+          18.0063556,
+          -76.7470177
+        ],
+        "distance_m": 10.95
+      },
+      {
+        "to": "new_point_56",
+        "name": "Point 56",
+        "location": [
+          18.0061954,
+          -76.7471534
+        ],
+        "distance_m": 11.97
+      },
+      {
+        "to": "new_point_57",
+        "name": "Point 57",
+        "location": [
+          18.0061687,
+          -76.7471843
+        ],
+        "distance_m": 16.31
+      }
+    ],
+    "new_point_55": [
+      {
+        "to": "new_point_56",
+        "name": "Point 56",
+        "location": [
+          18.0061954,
+          -76.7471534
+        ],
+        "distance_m": 4.77
+      },
+      {
+        "to": "new_point_54",
+        "name": "Point 54",
+        "location": [
+          18.0062829,
+          -76.7470875
+        ],
+        "distance_m": 7.2
+      },
+      {
+        "to": "new_point_57",
+        "name": "Point 57",
+        "location": [
+          18.0061687,
+          -76.7471843
+        ],
+        "distance_m": 9.12
+      }
+    ],
+    "new_point_56": [
+      {
+        "to": "new_point_57",
+        "name": "Point 57",
+        "location": [
+          18.0061687,
+          -76.7471843
+        ],
+        "distance_m": 4.41
+      },
+      {
+        "to": "new_point_55",
+        "name": "Point 55",
+        "location": [
+          18.0062306,
+          -76.7471277
+        ],
+        "distance_m": 4.77
+      },
+      {
+        "to": "new_point_54",
+        "name": "Point 54",
+        "location": [
+          18.0062829,
+          -76.7470875
+        ],
+        "distance_m": 11.97
+      }
+    ],
+    "new_point_57": [
+      {
+        "to": "new_point_56",
+        "name": "Point 56",
+        "location": [
+          18.0061954,
+          -76.7471534
+        ],
+        "distance_m": 4.41
+      },
+      {
+        "to": "new_point_55",
+        "name": "Point 55",
+        "location": [
+          18.0062306,
+          -76.7471277
+        ],
+        "distance_m": 9.12
+      },
+      {
+        "to": "new_point_54",
+        "name": "Point 54",
+        "location": [
+          18.0062829,
+          -76.7470875
+        ],
+        "distance_m": 16.31
+      },
+      {
+        "to": "ab4",
+        "name": "ab4",
+        "location": [
+          18.0060094,
+          -76.7471511
+        ],
+        "distance_m": 18.06
+      },
+      {
+        "to": "new_point_39",
+        "name": "Point 39",
+        "location": [
+          18.0061316,
+          -76.7473926
+        ],
+        "distance_m": 22.41
+      }
+    ],
+    "new_point_58": [
+      {
+        "to": "new_point_59",
+        "name": "Point 59",
+        "location": [
+          18.0067676,
+          -76.7467163
+        ],
+        "distance_m": 17.63
+      },
+      {
+        "to": "new_point_47",
+        "name": "Point 47",
+        "location": [
+          18.006524,
+          -76.7469668
+        ],
+        "distance_m": 21.02
+      },
+      {
+        "to": "point_93",
+        "name": "Point 93",
+        "location": [
+          18.0065528,
+          -76.7470041
+        ],
+        "distance_m": 21.18
+      }
+    ],
+    "new_point_59": [
+      {
+        "to": "new_point_62",
+        "name": "Point 62",
+        "location": [
+          18.0068262,
+          -76.7466385
+        ],
+        "distance_m": 10.5
+      },
+      {
+        "to": "new_point_60",
+        "name": "Point 60",
+        "location": [
+          18.006816,
+          -76.7465795
+        ],
+        "distance_m": 15.44
+      },
+      {
+        "to": "new_point_58",
+        "name": "Point 58",
+        "location": [
+          18.0066808,
+          -76.7468558
+        ],
+        "distance_m": 17.63
+      }
+    ],
+    "new_point_60": [
+      {
+        "to": "new_point_62",
+        "name": "Point 62",
+        "location": [
+          18.0068262,
+          -76.7466385
+        ],
+        "distance_m": 6.34
+      },
+      {
+        "to": "new_point_61",
+        "name": "Point 61",
+        "location": [
+          18.0068721,
+          -76.7464562
+        ],
+        "distance_m": 14.45
+      },
+      {
+        "to": "new_point_59",
+        "name": "Point 59",
+        "location": [
+          18.0067676,
+          -76.7467163
+        ],
+        "distance_m": 15.44
+      }
+    ],
+    "new_point_61": [
+      {
+        "to": "new_point_60",
+        "name": "Point 60",
+        "location": [
+          18.006816,
+          -76.7465795
+        ],
+        "distance_m": 14.45
+      },
+      {
+        "to": "new_point_62",
+        "name": "Point 62",
+        "location": [
+          18.0068262,
+          -76.7466385
+        ],
+        "distance_m": 19.94
+      },
+      {
+        "to": "new_point_63",
+        "name": "Point 63",
+        "location": [
+          18.0069563,
+          -76.7462389
+        ],
+        "distance_m": 24.81
+      }
+    ],
+    "new_point_62": [
+      {
+        "to": "new_point_60",
+        "name": "Point 60",
+        "location": [
+          18.006816,
+          -76.7465795
+        ],
+        "distance_m": 6.34
+      },
+      {
+        "to": "new_point_59",
+        "name": "Point 59",
+        "location": [
+          18.0067676,
+          -76.7467163
+        ],
+        "distance_m": 10.5
+      },
+      {
+        "to": "new_point_61",
+        "name": "Point 61",
+        "location": [
+          18.0068721,
+          -76.7464562
+        ],
+        "distance_m": 19.94
+      }
+    ],
+    "new_point_63": [
+      {
+        "to": "new_point_64",
+        "name": "Point 64",
+        "location": [
+          18.0070303,
+          -76.7460967
+        ],
+        "distance_m": 17.14
+      },
+      {
+        "to": "new_point_61",
+        "name": "Point 61",
+        "location": [
+          18.0068721,
+          -76.7464562
+        ],
+        "distance_m": 24.81
+      },
+      {
+        "to": "new_point_65",
+        "name": "Point 65",
+        "location": [
+          18.0070941,
+          -76.7459439
+        ],
+        "distance_m": 34.76
+      }
+    ],
+    "new_point_64": [
+      {
+        "to": "new_point_63",
+        "name": "Point 63",
+        "location": [
+          18.0069563,
+          -76.7462389
+        ],
+        "distance_m": 17.14
+      },
+      {
+        "to": "new_point_65",
+        "name": "Point 65",
+        "location": [
+          18.0070941,
+          -76.7459439
+        ],
+        "distance_m": 17.65
+      },
+      {
+        "to": "new_point_66",
+        "name": "Point 66",
+        "location": [
+          18.0071655,
+          -76.7458232
+        ],
+        "distance_m": 32.6
+      }
+    ],
+    "new_point_65": [
+      {
+        "to": "new_point_66",
+        "name": "Point 66",
+        "location": [
+          18.0071655,
+          -76.7458232
+        ],
+        "distance_m": 15.03
+      },
+      {
+        "to": "new_point_64",
+        "name": "Point 64",
+        "location": [
+          18.0070303,
+          -76.7460967
+        ],
+        "distance_m": 17.65
+      },
+      {
+        "to": "new_point_67",
+        "name": "Point 67",
+        "location": [
+          18.0072089,
+          -76.7457534
+        ],
+        "distance_m": 23.85
+      },
+      {
+        "to": "new_point_63",
+        "name": "Point 63",
+        "location": [
+          18.0069563,
+          -76.7462389
+        ],
+        "distance_m": 34.76
+      }
+    ],
+    "new_point_66": [
+      {
+        "to": "new_point_67",
+        "name": "Point 67",
+        "location": [
+          18.0072089,
+          -76.7457534
+        ],
+        "distance_m": 8.82
+      },
+      {
+        "to": "new_point_65",
+        "name": "Point 65",
+        "location": [
+          18.0070941,
+          -76.7459439
+        ],
+        "distance_m": 15.03
+      },
+      {
+        "to": "newer_node_104",
+        "name": "Newer Node 104",
+        "location": [
+          18.0073343,
+          -76.7457224
+        ],
+        "distance_m": 21.59
+      },
+      {
+        "to": "new_point_64",
+        "name": "Point 64",
+        "location": [
+          18.0070303,
+          -76.7460967
+        ],
+        "distance_m": 32.6
+      }
+    ],
+    "new_point_67": [
+      {
+        "to": "new_point_66",
+        "name": "Point 66",
+        "location": [
+          18.0071655,
+          -76.7458232
+        ],
+        "distance_m": 8.82
+      },
+      {
+        "to": "newer_node_104",
+        "name": "Newer Node 104",
+        "location": [
+          18.0073343,
+          -76.7457224
+        ],
+        "distance_m": 14.32
+      },
+      {
+        "to": "new_point_65",
+        "name": "Point 65",
+        "location": [
+          18.0070941,
+          -76.7459439
+        ],
+        "distance_m": 23.85
+      }
+    ],
+    "new_point_68": [
+      {
+        "to": "new_point_69",
+        "name": "Point 69",
+        "location": [
+          18.0063026,
+          -76.7494349
+        ],
+        "distance_m": 17.5
+      },
+      {
+        "to": "point_80",
+        "name": "Point 80",
+        "location": [
+          18.006043,
+          -76.7495297
+        ],
+        "distance_m": 17.83
+      },
+      {
+        "to": "point_81",
+        "name": "Point 81",
+        "location": [
+          18.0060659,
+          -76.7497094
+        ],
+        "distance_m": 21.7
+      }
+    ],
+    "new_point_69": [
+      {
+        "to": "new_point_70",
+        "name": "Point 70",
+        "location": [
+          18.0062796,
+          -76.749282
+        ],
+        "distance_m": 16.37
+      },
+      {
+        "to": "new_point_68",
+        "name": "Point 68",
+        "location": [
+          18.0062006,
+          -76.7495609
+        ],
+        "distance_m": 17.5
+      },
+      {
+        "to": "point_80",
+        "name": "Point 80",
+        "location": [
+          18.006043,
+          -76.7495297
+        ],
+        "distance_m": 30.56
+      }
+    ],
+    "new_point_70": [
+      {
+        "to": "new_point_71",
+        "name": "Point 71",
+        "location": [
+          18.006253,
+          -76.7491452
+        ],
+        "distance_m": 14.77
+      },
+      {
+        "to": "new_point_69",
+        "name": "Point 69",
+        "location": [
+          18.0063026,
+          -76.7494349
+        ],
+        "distance_m": 16.37
+      },
+      {
+        "to": "new_point_72",
+        "name": "Point 72",
+        "location": [
+          18.0062211,
+          -76.7490245
+        ],
+        "distance_m": 28.0
+      }
+    ],
+    "new_point_71": [
+      {
+        "to": "new_point_72",
+        "name": "Point 72",
+        "location": [
+          18.0062211,
+          -76.7490245
+        ],
+        "distance_m": 13.25
+      },
+      {
+        "to": "new_point_70",
+        "name": "Point 70",
+        "location": [
+          18.0062796,
+          -76.749282
+        ],
+        "distance_m": 14.77
+      },
+      {
+        "to": "new_point_73",
+        "name": "Point 73",
+        "location": [
+          18.0061816,
+          -76.7489118
+        ],
+        "distance_m": 25.93
+      }
+    ],
+    "new_point_72": [
+      {
+        "to": "new_point_73",
+        "name": "Point 73",
+        "location": [
+          18.0061816,
+          -76.7489118
+        ],
+        "distance_m": 12.7
+      },
+      {
+        "to": "new_point_71",
+        "name": "Point 71",
+        "location": [
+          18.006253,
+          -76.7491452
+        ],
+        "distance_m": 13.25
+      },
+      {
+        "to": "new_point_74",
+        "name": "Point 74",
+        "location": [
+          18.0062058,
+          -76.7488555
+        ],
+        "distance_m": 17.95
+      },
+      {
+        "to": "new_point_70",
+        "name": "Point 70",
+        "location": [
+          18.0062796,
+          -76.749282
+        ],
+        "distance_m": 28.0
+      }
+    ],
+    "new_point_73": [
+      {
+        "to": "new_point_74",
+        "name": "Point 74",
+        "location": [
+          18.0062058,
+          -76.7488555
+        ],
+        "distance_m": 6.53
+      },
+      {
+        "to": "new_point_75",
+        "name": "Point 75",
+        "location": [
+          18.0062249,
+          -76.7488019
+        ],
+        "distance_m": 12.58
+      },
+      {
+        "to": "new_point_72",
+        "name": "Point 72",
+        "location": [
+          18.0062211,
+          -76.7490245
+        ],
+        "distance_m": 12.7
+      },
+      {
+        "to": "new_point_71",
+        "name": "Point 71",
+        "location": [
+          18.006253,
+          -76.7491452
+        ],
+        "distance_m": 25.93
+      }
+    ],
+    "new_point_74": [
+      {
+        "to": "new_point_75",
+        "name": "Point 75",
+        "location": [
+          18.0062249,
+          -76.7488019
+        ],
+        "distance_m": 6.05
+      },
+      {
+        "to": "new_point_73",
+        "name": "Point 73",
+        "location": [
+          18.0061816,
+          -76.7489118
+        ],
+        "distance_m": 6.53
+      },
+      {
+        "to": "new_point_76",
+        "name": "Point 76",
+        "location": [
+          18.0062211,
+          -76.7487455
+        ],
+        "distance_m": 11.76
+      },
+      {
+        "to": "new_point_72",
+        "name": "Point 72",
+        "location": [
+          18.0062211,
+          -76.7490245
+        ],
+        "distance_m": 17.95
+      }
+    ],
+    "new_point_75": [
+      {
+        "to": "new_point_76",
+        "name": "Point 76",
+        "location": [
+          18.0062211,
+          -76.7487455
+        ],
+        "distance_m": 5.98
+      },
+      {
+        "to": "new_point_74",
+        "name": "Point 74",
+        "location": [
+          18.0062058,
+          -76.7488555
+        ],
+        "distance_m": 6.05
+      },
+      {
+        "to": "new_point_77",
+        "name": "Point 77",
+        "location": [
+          18.0062083,
+          -76.748704
+        ],
+        "distance_m": 10.52
+      },
+      {
+        "to": "new_point_73",
+        "name": "Point 73",
+        "location": [
+          18.0061816,
+          -76.7489118
+        ],
+        "distance_m": 12.58
+      }
+    ],
+    "new_point_76": [
+      {
+        "to": "new_point_77",
+        "name": "Point 77",
+        "location": [
+          18.0062083,
+          -76.748704
+        ],
+        "distance_m": 4.61
+      },
+      {
+        "to": "new_point_75",
+        "name": "Point 75",
+        "location": [
+          18.0062249,
+          -76.7488019
+        ],
+        "distance_m": 5.98
+      },
+      {
+        "to": "new_point_78",
+        "name": "Point 78",
+        "location": [
+          18.0061828,
+          -76.7486664
+        ],
+        "distance_m": 9.39
+      },
+      {
+        "to": "new_point_74",
+        "name": "Point 74",
+        "location": [
+          18.0062058,
+          -76.7488555
+        ],
+        "distance_m": 11.76
+      }
+    ],
+    "new_point_77": [
+      {
+        "to": "new_point_76",
+        "name": "Point 76",
+        "location": [
+          18.0062211,
+          -76.7487455
+        ],
+        "distance_m": 4.61
+      },
+      {
+        "to": "new_point_78",
+        "name": "Point 78",
+        "location": [
+          18.0061828,
+          -76.7486664
+        ],
+        "distance_m": 4.88
+      },
+      {
+        "to": "new_point_75",
+        "name": "Point 75",
+        "location": [
+          18.0062249,
+          -76.7488019
+        ],
+        "distance_m": 10.52
+      },
+      {
+        "to": "new_point_79",
+        "name": "Point 79",
+        "location": [
+          18.0061535,
+          -76.7486101
+        ],
+        "distance_m": 11.65
+      },
+      {
+        "to": "new_point_80",
+        "name": "Point 80",
+        "location": [
+          18.0061344,
+          -76.748539
+        ],
+        "distance_m": 19.29
+      }
+    ],
+    "new_point_78": [
+      {
+        "to": "new_point_77",
+        "name": "Point 77",
+        "location": [
+          18.0062083,
+          -76.748704
+        ],
+        "distance_m": 4.88
+      },
+      {
+        "to": "new_point_79",
+        "name": "Point 79",
+        "location": [
+          18.0061535,
+          -76.7486101
+        ],
+        "distance_m": 6.79
+      },
+      {
+        "to": "new_point_76",
+        "name": "Point 76",
+        "location": [
+          18.0062211,
+          -76.7487455
+        ],
+        "distance_m": 9.39
+      },
+      {
+        "to": "new_point_80",
+        "name": "Point 80",
+        "location": [
+          18.0061344,
+          -76.748539
+        ],
+        "distance_m": 14.51
+      }
+    ],
+    "new_point_79": [
+      {
+        "to": "new_point_78",
+        "name": "Point 78",
+        "location": [
+          18.0061828,
+          -76.7486664
+        ],
+        "distance_m": 6.79
+      },
+      {
+        "to": "new_point_80",
+        "name": "Point 80",
+        "location": [
+          18.0061344,
+          -76.748539
+        ],
+        "distance_m": 7.81
+      },
+      {
+        "to": "new_point_77",
+        "name": "Point 77",
+        "location": [
+          18.0062083,
+          -76.748704
+        ],
+        "distance_m": 11.65
+      }
+    ],
+    "new_point_80": [
+      {
+        "to": "new_point_79",
+        "name": "Point 79",
+        "location": [
+          18.0061535,
+          -76.7486101
+        ],
+        "distance_m": 7.81
+      },
+      {
+        "to": "new_point_78",
+        "name": "Point 78",
+        "location": [
+          18.0061828,
+          -76.7486664
+        ],
+        "distance_m": 14.51
+      },
+      {
+        "to": "new_point_77",
+        "name": "Point 77",
+        "location": [
+          18.0062083,
+          -76.748704
+        ],
+        "distance_m": 19.29
+      }
+    ],
+    "newer_node_001": [],
+    "newer_node_002": [],
+    "newer_node_003": [
+      {
+        "to": "newer_node_004",
+        "name": "Newer Node 004",
+        "location": [
+          18.0036095,
+          -76.74767
+        ],
+        "distance_m": 32.54
+      }
+    ],
+    "newer_node_004": [
+      {
+        "to": "newer_node_020",
+        "name": "Newer Node 020",
+        "location": [
+          18.0033859,
+          -76.7475736
+        ],
+        "distance_m": 26.87
+      },
+      {
+        "to": "newer_node_003",
+        "name": "Newer Node 003",
+        "location": [
+          18.0037572,
+          -76.7479356
+        ],
+        "distance_m": 32.54
+      }
+    ],
+    "newer_node_005": [
+      {
+        "to": "newer_node_006",
+        "name": "Newer Node 006",
+        "location": [
+          18.0035911,
+          -76.7470822
+        ],
+        "distance_m": 21.12
+      }
+    ],
+    "newer_node_006": [
+      {
+        "to": "newer_node_005",
+        "name": "Newer Node 005",
+        "location": [
+          18.0036082,
+          -76.7472811
+        ],
+        "distance_m": 21.12
+      },
+      {
+        "to": "newer_node_007",
+        "name": "Newer Node 007",
+        "location": [
+          18.0034699,
+          -76.7468053
+        ],
+        "distance_m": 32.23
+      }
+    ],
+    "newer_node_007": [
+      {
+        "to": "newer_node_006",
+        "name": "Newer Node 006",
+        "location": [
+          18.0035911,
+          -76.7470822
+        ],
+        "distance_m": 32.23
+      }
+    ],
+    "newer_node_008": [],
+    "newer_node_009": [],
+    "newer_node_010": [
+      {
+        "to": "newer_node_082",
+        "name": "Newer Node 082",
+        "location": [
+          18.0028945,
+          -76.7454456
+        ],
+        "distance_m": 28.74
+      },
+      {
+        "to": "newer_node_083",
+        "name": "Newer Node 083",
+        "location": [
+          18.003164,
+          -76.7454987
+        ],
+        "distance_m": 29.2
+      }
+    ],
+    "newer_node_011": [
+      {
+        "to": "newer_node_082",
+        "name": "Newer Node 082",
+        "location": [
+          18.0028945,
+          -76.7454456
+        ],
+        "distance_m": 24.63
+      }
+    ],
+    "newer_node_012": [
+      {
+        "to": "newer_node_013",
+        "name": "Newer Node 013",
+        "location": [
+          18.002229,
+          -76.7449686
+        ],
+        "distance_m": 28.38
+      }
+    ],
+    "newer_node_013": [
+      {
+        "to": "newer_node_012",
+        "name": "Newer Node 012",
+        "location": [
+          18.0024186,
+          -76.7451483
+        ],
+        "distance_m": 28.38
+      }
+    ],
+    "newer_node_014": [
+      {
+        "to": "newer_node_015",
+        "name": "Newer Node 015",
+        "location": [
+          18.0017313,
+          -76.7446965
+        ],
+        "distance_m": 25.46
+      }
+    ],
+    "newer_node_015": [
+      {
+        "to": "newer_node_014",
+        "name": "Newer Node 014",
+        "location": [
+          18.0019387,
+          -76.7447985
+        ],
+        "distance_m": 25.46
+      },
+      {
+        "to": "newer_node_016",
+        "name": "Newer Node 016",
+        "location": [
+          18.0015325,
+          -76.7445383
+        ],
+        "distance_m": 27.72
+      }
+    ],
+    "newer_node_016": [
+      {
+        "to": "newer_node_015",
+        "name": "Newer Node 015",
+        "location": [
+          18.0017313,
+          -76.7446965
+        ],
+        "distance_m": 27.72
+      },
+      {
+        "to": "newer_node_017",
+        "name": "Newer Node 017",
+        "location": [
+          18.0013208,
+          -76.7443573
+        ],
+        "distance_m": 30.34
+      }
+    ],
+    "newer_node_017": [
+      {
+        "to": "newer_node_016",
+        "name": "Newer Node 016",
+        "location": [
+          18.0015325,
+          -76.7445383
+        ],
+        "distance_m": 30.34
+      }
+    ],
+    "newer_node_018": [
+      {
+        "to": "newer_node_114",
+        "name": "Newer Node 114",
+        "location": [
+          18.0008618,
+          -76.7438551
+        ],
+        "distance_m": 15.37
+      }
+    ],
+    "newer_node_019": [
+      {
+        "to": "newer_node_039",
+        "name": "Newer Node 039",
+        "location": [
+          18.0011861,
+          -76.7435011
+        ],
+        "distance_m": 29.6
+      }
+    ],
+    "newer_node_020": [
+      {
+        "to": "newer_node_004",
+        "name": "Newer Node 004",
+        "location": [
+          18.0036095,
+          -76.74767
+        ],
+        "distance_m": 26.87
+      }
+    ],
+    "newer_node_021": [],
+    "newer_node_022": [],
+    "newer_node_023": [],
+    "newer_node_024": [],
+    "newer_node_025": [
+      {
+        "to": "newer_node_026",
+        "name": "Newer Node 026",
+        "location": [
+          18.0012432,
+          -76.7455128
+        ],
+        "distance_m": 33.3
+      }
+    ],
+    "newer_node_026": [
+      {
+        "to": "newer_node_025",
+        "name": "Newer Node 025",
+        "location": [
+          18.0014524,
+          -76.7457381
+        ],
+        "distance_m": 33.3
+      }
+    ],
+    "newer_node_027": [],
+    "newer_node_028": [
+      {
+        "to": "newer_node_112",
+        "name": "Newer Node 112",
+        "location": [
+          18.0007139,
+          -76.7446866
+        ],
+        "distance_m": 23.22
+      }
+    ],
+    "newer_node_029": [],
+    "newer_node_030": [
+      {
+        "to": "newer_node_035",
+        "name": "Newer Node 035",
+        "location": [
+          17.9998822,
+          -76.7436825
+        ],
+        "distance_m": 30.86
+      }
+    ],
+    "newer_node_031": [
+      {
+        "to": "newer_node_033",
+        "name": "Newer Node 033",
+        "location": [
+          17.9993029,
+          -76.7435569
+        ],
+        "distance_m": 17.92
+      }
+    ],
+    "newer_node_032": [
+      {
+        "to": "newer_node_034",
+        "name": "Newer Node 034",
+        "location": [
+          17.9989866,
+          -76.7437339
+        ],
+        "distance_m": 18.86
+      },
+      {
+        "to": "newer_node_033",
+        "name": "Newer Node 033",
+        "location": [
+          17.9993029,
+          -76.7435569
+        ],
+        "distance_m": 28.38
+      }
+    ],
+    "newer_node_033": [
+      {
+        "to": "newer_node_031",
+        "name": "Newer Node 031",
+        "location": [
+          17.9994611,
+          -76.7435891
+        ],
+        "distance_m": 17.92
+      },
+      {
+        "to": "newer_node_032",
+        "name": "Newer Node 032",
+        "location": [
+          17.9990479,
+          -76.7435676
+        ],
+        "distance_m": 28.38
+      }
+    ],
+    "newer_node_034": [
+      {
+        "to": "newer_node_032",
+        "name": "Newer Node 032",
+        "location": [
+          17.9990479,
+          -76.7435676
+        ],
+        "distance_m": 18.86
+      }
+    ],
+    "newer_node_035": [
+      {
+        "to": "newer_node_030",
+        "name": "Newer Node 030",
+        "location": [
+          17.9997897,
+          -76.7439576
+        ],
+        "distance_m": 30.86
+      }
+    ],
+    "newer_node_036": [
+      {
+        "to": "newer_node_070",
+        "name": "Newer Node 070",
+        "location": [
+          18.000258,
+          -76.7436569
+        ],
+        "distance_m": 23.06
+      }
+    ],
+    "newer_node_037": [
+      {
+        "to": "newer_node_114",
+        "name": "Newer Node 114",
+        "location": [
+          18.0008618,
+          -76.7438551
+        ],
+        "distance_m": 20.43
+      }
+    ],
+    "newer_node_038": [],
+    "newer_node_039": [
+      {
+        "to": "newer_node_019",
+        "name": "Newer Node 019",
+        "location": [
+          18.0013995,
+          -76.7433338
+        ],
+        "distance_m": 29.6
+      }
+    ],
+    "newer_node_040": [],
+    "newer_node_041": [
+      {
+        "to": "newer_node_064",
+        "name": "Newer Node 064",
+        "location": [
+          18.0022836,
+          -76.7430423
+        ],
+        "distance_m": 10.83
+      },
+      {
+        "to": "newer_node_042",
+        "name": "Newer Node 042",
+        "location": [
+          18.0024243,
+          -76.7430998
+        ],
+        "distance_m": 22.52
+      }
+    ],
+    "newer_node_042": [
+      {
+        "to": "newer_node_064",
+        "name": "Newer Node 064",
+        "location": [
+          18.0022836,
+          -76.7430423
+        ],
+        "distance_m": 16.79
+      },
+      {
+        "to": "newer_node_041",
+        "name": "Newer Node 041",
+        "location": [
+          18.0022229,
+          -76.7431224
+        ],
+        "distance_m": 22.52
+      },
+      {
+        "to": "newer_node_065",
+        "name": "Newer Node 065",
+        "location": [
+          18.0024086,
+          -76.7427741
+        ],
+        "distance_m": 34.49
+      }
+    ],
+    "newer_node_043": [
+      {
+        "to": "newer_node_044",
+        "name": "Newer Node 044",
+        "location": [
+          18.0027917,
+          -76.7433251
+        ],
+        "distance_m": 25.62
+      },
+      {
+        "to": "newer_node_108",
+        "name": "Newer Node 108",
+        "location": [
+          18.002754,
+          -76.7434479
+        ],
+        "distance_m": 26.9
+      },
+      {
+        "to": "newer_node_045",
+        "name": "Newer Node 045",
+        "location": [
+          18.003247,
+          -76.7435677
+        ],
+        "distance_m": 31.14
+      }
+    ],
+    "newer_node_044": [
+      {
+        "to": "newer_node_108",
+        "name": "Newer Node 108",
+        "location": [
+          18.002754,
+          -76.7434479
+        ],
+        "distance_m": 13.65
+      },
+      {
+        "to": "newer_node_043",
+        "name": "Newer Node 043",
+        "location": [
+          18.0029957,
+          -76.7434378
+        ],
+        "distance_m": 25.62
+      }
+    ],
+    "newer_node_045": [
+      {
+        "to": "newer_node_043",
+        "name": "Newer Node 043",
+        "location": [
+          18.0029957,
+          -76.7434378
+        ],
+        "distance_m": 31.14
+      }
+    ],
+    "newer_node_046": [],
+    "newer_node_047": [
+      {
+        "to": "newer_node_063",
+        "name": "Newer Node 063",
+        "location": [
+          18.004066,
+          -76.7436957
+        ],
+        "distance_m": 32.35
+      }
+    ],
+    "newer_node_048": [],
+    "newer_node_049": [],
+    "newer_node_050": [],
+    "newer_node_051": [],
+    "newer_node_052": [
+      {
+        "to": "newer_node_097",
+        "name": "Newer Node 097",
+        "location": [
+          18.0055273,
+          -76.7449599
+        ],
+        "distance_m": 18.08
+      },
+      {
+        "to": "ab16",
+        "name": "ab16",
+        "location": [
+          18.0054847,
+          -76.7451032
+        ],
+        "distance_m": 21.47
+      },
+      {
+        "to": "newer_node_098",
+        "name": "Newer Node 098",
+        "location": [
+          18.0056676,
+          -76.7449867
+        ],
+        "distance_m": 33.91
+      }
+    ],
+    "newer_node_053": [],
+    "newer_node_054": [
+      {
+        "to": "newer_node_056",
+        "name": "Newer Node 056",
+        "location": [
+          18.003158,
+          -76.7428904
+        ],
+        "distance_m": 23.1
+      },
+      {
+        "to": "newer_node_055",
+        "name": "Newer Node 055",
+        "location": [
+          18.0035203,
+          -76.7431479
+        ],
+        "distance_m": 31.26
+      }
+    ],
+    "newer_node_055": [
+      {
+        "to": "newer_node_054",
+        "name": "Newer Node 054",
+        "location": [
+          18.0032448,
+          -76.7430889
+        ],
+        "distance_m": 31.26
+      }
+    ],
+    "newer_node_056": [
+      {
+        "to": "newer_node_054",
+        "name": "Newer Node 054",
+        "location": [
+          18.0032448,
+          -76.7430889
+        ],
+        "distance_m": 23.1
+      }
+    ],
+    "newer_node_057": [],
+    "newer_node_058": [],
+    "newer_node_059": [],
+    "newer_node_060": [
+      {
+        "to": "newer_node_061",
+        "name": "Newer Node 061",
+        "location": [
+          18.0043925,
+          -76.7432612
+        ],
+        "distance_m": 21.24
+      }
+    ],
+    "newer_node_061": [
+      {
+        "to": "newer_node_060",
+        "name": "Newer Node 060",
+        "location": [
+          18.0044996,
+          -76.7430949
+        ],
+        "distance_m": 21.24
+      },
+      {
+        "to": "newer_node_062",
+        "name": "Newer Node 062",
+        "location": [
+          18.0042088,
+          -76.743465
+        ],
+        "distance_m": 29.69
+      }
+    ],
+    "newer_node_062": [
+      {
+        "to": "newer_node_063",
+        "name": "Newer Node 063",
+        "location": [
+          18.004066,
+          -76.7436957
+        ],
+        "distance_m": 29.11
+      },
+      {
+        "to": "newer_node_061",
+        "name": "Newer Node 061",
+        "location": [
+          18.0043925,
+          -76.7432612
+        ],
+        "distance_m": 29.69
+      }
+    ],
+    "newer_node_063": [
+      {
+        "to": "newer_node_062",
+        "name": "Newer Node 062",
+        "location": [
+          18.0042088,
+          -76.743465
+        ],
+        "distance_m": 29.11
+      },
+      {
+        "to": "newer_node_047",
+        "name": "Newer Node 047",
+        "location": [
+          18.0039102,
+          -76.743954
+        ],
+        "distance_m": 32.35
+      }
+    ],
+    "newer_node_064": [
+      {
+        "to": "newer_node_041",
+        "name": "Newer Node 041",
+        "location": [
+          18.0022229,
+          -76.7431224
+        ],
+        "distance_m": 10.83
+      },
+      {
+        "to": "newer_node_042",
+        "name": "Newer Node 042",
+        "location": [
+          18.0024243,
+          -76.7430998
+        ],
+        "distance_m": 16.79
+      },
+      {
+        "to": "newer_node_065",
+        "name": "Newer Node 065",
+        "location": [
+          18.0024086,
+          -76.7427741
+        ],
+        "distance_m": 31.59
+      }
+    ],
+    "newer_node_065": [
+      {
+        "to": "newer_node_066",
+        "name": "Newer Node 066",
+        "location": [
+          18.0025438,
+          -76.7426118
+        ],
+        "distance_m": 22.82
+      },
+      {
+        "to": "newer_node_064",
+        "name": "Newer Node 064",
+        "location": [
+          18.0022836,
+          -76.7430423
+        ],
+        "distance_m": 31.59
+      },
+      {
+        "to": "newer_node_067",
+        "name": "Newer Node 067",
+        "location": [
+          18.0026118,
+          -76.7425336
+        ],
+        "distance_m": 34.02
+      },
+      {
+        "to": "newer_node_042",
+        "name": "Newer Node 042",
+        "location": [
+          18.0024243,
+          -76.7430998
+        ],
+        "distance_m": 34.49
+      }
+    ],
+    "newer_node_066": [
+      {
+        "to": "newer_node_067",
+        "name": "Newer Node 067",
+        "location": [
+          18.0026118,
+          -76.7425336
+        ],
+        "distance_m": 11.21
+      },
+      {
+        "to": "newer_node_065",
+        "name": "Newer Node 065",
+        "location": [
+          18.0024086,
+          -76.7427741
+        ],
+        "distance_m": 22.82
+      },
+      {
+        "to": "newer_node_069",
+        "name": "Newer Node 069",
+        "location": [
+          18.0028184,
+          -76.7426302
+        ],
+        "distance_m": 30.6
+      }
+    ],
+    "newer_node_067": [
+      {
+        "to": "newer_node_066",
+        "name": "Newer Node 066",
+        "location": [
+          18.0025438,
+          -76.7426118
+        ],
+        "distance_m": 11.21
+      },
+      {
+        "to": "newer_node_069",
+        "name": "Newer Node 069",
+        "location": [
+          18.0028184,
+          -76.7426302
+        ],
+        "distance_m": 25.14
+      },
+      {
+        "to": "newer_node_068",
+        "name": "Newer Node 068",
+        "location": [
+          18.0026194,
+          -76.7422546
+        ],
+        "distance_m": 29.52
+      },
+      {
+        "to": "newer_node_065",
+        "name": "Newer Node 065",
+        "location": [
+          18.0024086,
+          -76.7427741
+        ],
+        "distance_m": 34.02
+      }
+    ],
+    "newer_node_068": [
+      {
+        "to": "newer_node_067",
+        "name": "Newer Node 067",
+        "location": [
+          18.0026118,
+          -76.7425336
+        ],
+        "distance_m": 29.52
+      }
+    ],
+    "newer_node_069": [
+      {
+        "to": "newer_node_067",
+        "name": "Newer Node 067",
+        "location": [
+          18.0026118,
+          -76.7425336
+        ],
+        "distance_m": 25.14
+      },
+      {
+        "to": "newer_node_066",
+        "name": "Newer Node 066",
+        "location": [
+          18.0025438,
+          -76.7426118
+        ],
+        "distance_m": 30.6
+      }
+    ],
+    "newer_node_070": [
+      {
+        "to": "newer_node_036",
+        "name": "Newer Node 036",
+        "location": [
+          18.0003873,
+          -76.7438274
+        ],
+        "distance_m": 23.06
+      },
+      {
+        "to": "newer_node_071",
+        "name": "Newer Node 071",
+        "location": [
+          18.0001457,
+          -76.7434477
+        ],
+        "distance_m": 25.4
+      }
+    ],
+    "newer_node_071": [
+      {
+        "to": "newer_node_072",
+        "name": "Newer Node 072",
+        "location": [
+          18.0000284,
+          -76.7432707
+        ],
+        "distance_m": 22.81
+      },
+      {
+        "to": "newer_node_070",
+        "name": "Newer Node 070",
+        "location": [
+          18.000258,
+          -76.7436569
+        ],
+        "distance_m": 25.4
+      }
+    ],
+    "newer_node_072": [
+      {
+        "to": "newer_node_071",
+        "name": "Newer Node 071",
+        "location": [
+          18.0001457,
+          -76.7434477
+        ],
+        "distance_m": 22.81
+      },
+      {
+        "to": "newer_node_073",
+        "name": "Newer Node 073",
+        "location": [
+          17.9998804,
+          -76.7430561
+        ],
+        "distance_m": 28.03
+      }
+    ],
+    "newer_node_073": [
+      {
+        "to": "newer_node_074",
+        "name": "Newer Node 074",
+        "location": [
+          17.9997121,
+          -76.7429273
+        ],
+        "distance_m": 23.15
+      },
+      {
+        "to": "newer_node_072",
+        "name": "Newer Node 072",
+        "location": [
+          18.0000284,
+          -76.7432707
+        ],
+        "distance_m": 28.03
+      }
+    ],
+    "newer_node_074": [
+      {
+        "to": "newer_node_073",
+        "name": "Newer Node 073",
+        "location": [
+          17.9998804,
+          -76.7430561
+        ],
+        "distance_m": 23.15
+      },
+      {
+        "to": "newer_node_075",
+        "name": "Newer Node 075",
+        "location": [
+          17.9995574,
+          -76.7426976
+        ],
+        "distance_m": 29.77
+      }
+    ],
+    "newer_node_075": [
+      {
+        "to": "newer_node_074",
+        "name": "Newer Node 074",
+        "location": [
+          17.9997121,
+          -76.7429273
+        ],
+        "distance_m": 29.77
+      },
+      {
+        "to": "newer_node_076",
+        "name": "Newer Node 076",
+        "location": [
+          17.9993329,
+          -76.7425045
+        ],
+        "distance_m": 32.25
+      }
+    ],
+    "newer_node_076": [
+      {
+        "to": "newer_node_077",
+        "name": "Newer Node 077",
+        "location": [
+          17.9992266,
+          -76.7423382
+        ],
+        "distance_m": 21.19
+      },
+      {
+        "to": "newer_node_075",
+        "name": "Newer Node 075",
+        "location": [
+          17.9995574,
+          -76.7426976
+        ],
+        "distance_m": 32.25
+      }
+    ],
+    "newer_node_077": [
+      {
+        "to": "newer_node_076",
+        "name": "Newer Node 076",
+        "location": [
+          17.9993329,
+          -76.7425045
+        ],
+        "distance_m": 21.19
+      }
+    ],
+    "newer_node_078": [
+      {
+        "to": "newer_node_079",
+        "name": "Newer Node 079",
+        "location": [
+          17.9986026,
+          -76.741995
+        ],
+        "distance_m": 33.24
+      }
+    ],
+    "newer_node_079": [
+      {
+        "to": "newer_node_078",
+        "name": "Newer Node 078",
+        "location": [
+          17.998873,
+          -76.7421291
+        ],
+        "distance_m": 33.24
+      }
+    ],
+    "newer_node_080": [],
+    "newer_node_081": [],
+    "newer_node_082": [
+      {
+        "to": "newer_node_011",
+        "name": "Newer Node 011",
+        "location": [
+          18.0026975,
+          -76.7453392
+        ],
+        "distance_m": 24.63
+      },
+      {
+        "to": "newer_node_111",
+        "name": "Newer Node 111",
+        "location": [
+          18.0031142,
+          -76.7453397
+        ],
+        "distance_m": 26.87
+      },
+      {
+        "to": "newer_node_010",
+        "name": "Newer Node 010",
+        "location": [
+          18.0029846,
+          -76.7457003
+        ],
+        "distance_m": 28.74
+      },
+      {
+        "to": "newer_node_083",
+        "name": "Newer Node 083",
+        "location": [
+          18.003164,
+          -76.7454987
+        ],
+        "distance_m": 30.49
+      }
+    ],
+    "newer_node_083": [
+      {
+        "to": "newer_node_111",
+        "name": "Newer Node 111",
+        "location": [
+          18.0031142,
+          -76.7453397
+        ],
+        "distance_m": 17.7
+      },
+      {
+        "to": "newer_node_010",
+        "name": "Newer Node 010",
+        "location": [
+          18.0029846,
+          -76.7457003
+        ],
+        "distance_m": 29.2
+      },
+      {
+        "to": "newer_node_082",
+        "name": "Newer Node 082",
+        "location": [
+          18.0028945,
+          -76.7454456
+        ],
+        "distance_m": 30.49
+      },
+      {
+        "to": "newer_node_084",
+        "name": "Newer Node 084",
+        "location": [
+          18.0034293,
+          -76.7455846
+        ],
+        "distance_m": 30.87
+      }
+    ],
+    "newer_node_084": [
+      {
+        "to": "newer_node_085",
+        "name": "Newer Node 085",
+        "location": [
+          18.0035925,
+          -76.745724
+        ],
+        "distance_m": 23.38
+      },
+      {
+        "to": "newer_node_083",
+        "name": "Newer Node 083",
+        "location": [
+          18.003164,
+          -76.7454987
+        ],
+        "distance_m": 30.87
+      }
+    ],
+    "newer_node_085": [
+      {
+        "to": "newer_node_084",
+        "name": "Newer Node 084",
+        "location": [
+          18.0034293,
+          -76.7455846
+        ],
+        "distance_m": 23.38
+      }
+    ],
+    "newer_node_086": [],
+    "newer_node_087": [],
+    "newer_node_088": [
+      {
+        "to": "newer_node_089",
+        "name": "Newer Node 089",
+        "location": [
+          18.0061309,
+          -76.7454418
+        ],
+        "distance_m": 14.38
+      },
+      {
+        "to": "ab12",
+        "name": "ab12",
+        "location": [
+          18.005815,
+          -76.7455435
+        ],
+        "distance_m": 22.37
+      },
+      {
+        "to": "ab11",
+        "name": "ab11",
+        "location": [
+          18.0059158,
+          -76.7457473
+        ],
+        "distance_m": 30.32
+      },
+      {
+        "to": "ab13",
+        "name": "ab13",
+        "location": [
+          18.0057003,
+          -76.7454013
+        ],
+        "distance_m": 34.9
+      }
+    ],
+    "newer_node_089": [
+      {
+        "to": "newer_node_088",
+        "name": "Newer Node 088",
+        "location": [
+          18.0060059,
+          -76.7454767
+        ],
+        "distance_m": 14.38
+      },
+      {
+        "to": "newer_node_090",
+        "name": "Newer Node 090",
+        "location": [
+          18.0063605,
+          -76.745364
+        ],
+        "distance_m": 26.82
+      }
+    ],
+    "newer_node_090": [
+      {
+        "to": "newer_node_089",
+        "name": "Newer Node 089",
+        "location": [
+          18.0061309,
+          -76.7454418
+        ],
+        "distance_m": 26.82
+      },
+      {
+        "to": "newer_node_091",
+        "name": "Newer Node 091",
+        "location": [
+          18.0065951,
+          -76.745305
+        ],
+        "distance_m": 26.82
+      },
+      {
+        "to": "newer_node_101",
+        "name": "Newer Node 101",
+        "location": [
+          18.0063337,
+          -76.7450644
+        ],
+        "distance_m": 31.82
+      }
+    ],
+    "newer_node_091": [
+      {
+        "to": "newer_node_092",
+        "name": "Newer Node 092",
+        "location": [
+          18.0067391,
+          -76.7453104
+        ],
+        "distance_m": 16.02
+      },
+      {
+        "to": "newer_node_102",
+        "name": "Newer Node 102",
+        "location": [
+          18.0065727,
+          -76.7451446
+        ],
+        "distance_m": 17.14
+      },
+      {
+        "to": "newer_node_103",
+        "name": "Newer Node 103",
+        "location": [
+          18.0067562,
+          -76.7452344
+        ],
+        "distance_m": 19.41
+      },
+      {
+        "to": "newer_node_090",
+        "name": "Newer Node 090",
+        "location": [
+          18.0063605,
+          -76.745364
+        ],
+        "distance_m": 26.82
+      }
+    ],
+    "newer_node_092": [
+      {
+        "to": "newer_node_103",
+        "name": "Newer Node 103",
+        "location": [
+          18.0067562,
+          -76.7452344
+        ],
+        "distance_m": 8.26
+      },
+      {
+        "to": "newer_node_093",
+        "name": "Newer Node 093",
+        "location": [
+          18.0068565,
+          -76.7452997
+        ],
+        "distance_m": 13.1
+      },
+      {
+        "to": "newer_node_091",
+        "name": "Newer Node 091",
+        "location": [
+          18.0065951,
+          -76.745305
+        ],
+        "distance_m": 16.02
+      },
+      {
+        "to": "newer_node_102",
+        "name": "Newer Node 102",
+        "location": [
+          18.0065727,
+          -76.7451446
+        ],
+        "distance_m": 25.49
+      }
+    ],
+    "newer_node_093": [
+      {
+        "to": "newer_node_092",
+        "name": "Newer Node 092",
+        "location": [
+          18.0067391,
+          -76.7453104
+        ],
+        "distance_m": 13.1
+      },
+      {
+        "to": "newer_node_103",
+        "name": "Newer Node 103",
+        "location": [
+          18.0067562,
+          -76.7452344
+        ],
+        "distance_m": 13.12
+      },
+      {
+        "to": "newer_node_094",
+        "name": "Newer Node 094",
+        "location": [
+          18.0069891,
+          -76.7451494
+        ],
+        "distance_m": 21.68
+      }
+    ],
+    "newer_node_094": [
+      {
+        "to": "newer_node_095",
+        "name": "Newer Node 095",
+        "location": [
+          18.0071013,
+          -76.7450583
+        ],
+        "distance_m": 15.76
+      },
+      {
+        "to": "newer_node_093",
+        "name": "Newer Node 093",
+        "location": [
+          18.0068565,
+          -76.7452997
+        ],
+        "distance_m": 21.68
+      },
+      {
+        "to": "newer_node_103",
+        "name": "Newer Node 103",
+        "location": [
+          18.0067562,
+          -76.7452344
+        ],
+        "distance_m": 27.41
+      }
+    ],
+    "newer_node_095": [
+      {
+        "to": "newer_node_094",
+        "name": "Newer Node 094",
+        "location": [
+          18.0069891,
+          -76.7451494
+        ],
+        "distance_m": 15.76
+      },
+      {
+        "to": "newer_node_096",
+        "name": "Newer Node 096",
+        "location": [
+          18.0072809,
+          -76.7448519
+        ],
+        "distance_m": 29.58
+      }
+    ],
+    "newer_node_096": [
+      {
+        "to": "newer_node_095",
+        "name": "Newer Node 095",
+        "location": [
+          18.0071013,
+          -76.7450583
+        ],
+        "distance_m": 29.58
+      }
+    ],
+    "newer_node_097": [
+      {
+        "to": "newer_node_098",
+        "name": "Newer Node 098",
+        "location": [
+          18.0056676,
+          -76.7449867
+        ],
+        "distance_m": 15.86
+      },
+      {
+        "to": "ab16",
+        "name": "ab16",
+        "location": [
+          18.0054847,
+          -76.7451032
+        ],
+        "distance_m": 15.88
+      },
+      {
+        "to": "newer_node_052",
+        "name": "Newer Node 052",
+        "location": [
+          18.0053654,
+          -76.7449436
+        ],
+        "distance_m": 18.08
+      },
+      {
+        "to": "newer_node_099",
+        "name": "Newer Node 099",
+        "location": [
+          18.0058079,
+          -76.7449894
+        ],
+        "distance_m": 31.36
+      }
+    ],
+    "newer_node_098": [
+      {
+        "to": "newer_node_099",
+        "name": "Newer Node 099",
+        "location": [
+          18.0058079,
+          -76.7449894
+        ],
+        "distance_m": 15.6
+      },
+      {
+        "to": "newer_node_097",
+        "name": "Newer Node 097",
+        "location": [
+          18.0055273,
+          -76.7449599
+        ],
+        "distance_m": 15.86
+      },
+      {
+        "to": "ab16",
+        "name": "ab16",
+        "location": [
+          18.0054847,
+          -76.7451032
+        ],
+        "distance_m": 23.78
+      },
+      {
+        "to": "ab14",
+        "name": "ab14",
+        "location": [
+          18.0055689,
+          -76.7452297
+        ],
+        "distance_m": 27.94
+      },
+      {
+        "to": "newer_node_052",
+        "name": "Newer Node 052",
+        "location": [
+          18.0053654,
+          -76.7449436
+        ],
+        "distance_m": 33.91
+      }
+    ],
+    "newer_node_099": [
+      {
+        "to": "newer_node_098",
+        "name": "Newer Node 098",
+        "location": [
+          18.0056676,
+          -76.7449867
+        ],
+        "distance_m": 15.6
+      },
+      {
+        "to": "newer_node_100",
+        "name": "Newer Node 100",
+        "location": [
+          18.0060728,
+          -76.7450156
+        ],
+        "distance_m": 29.59
+      },
+      {
+        "to": "newer_node_097",
+        "name": "Newer Node 097",
+        "location": [
+          18.0055273,
+          -76.7449599
+        ],
+        "distance_m": 31.36
+      }
+    ],
+    "newer_node_100": [
+      {
+        "to": "newer_node_101",
+        "name": "Newer Node 101",
+        "location": [
+          18.0063337,
+          -76.7450644
+        ],
+        "distance_m": 29.47
+      },
+      {
+        "to": "newer_node_099",
+        "name": "Newer Node 099",
+        "location": [
+          18.0058079,
+          -76.7449894
+        ],
+        "distance_m": 29.59
+      }
+    ],
+    "newer_node_101": [
+      {
+        "to": "newer_node_102",
+        "name": "Newer Node 102",
+        "location": [
+          18.0065727,
+          -76.7451446
+        ],
+        "distance_m": 27.9
+      },
+      {
+        "to": "newer_node_100",
+        "name": "Newer Node 100",
+        "location": [
+          18.0060728,
+          -76.7450156
+        ],
+        "distance_m": 29.47
+      },
+      {
+        "to": "newer_node_090",
+        "name": "Newer Node 090",
+        "location": [
+          18.0063605,
+          -76.745364
+        ],
+        "distance_m": 31.82
+      }
+    ],
+    "newer_node_102": [
+      {
+        "to": "newer_node_091",
+        "name": "Newer Node 091",
+        "location": [
+          18.0065951,
+          -76.745305
+        ],
+        "distance_m": 17.14
+      },
+      {
+        "to": "newer_node_103",
+        "name": "Newer Node 103",
+        "location": [
+          18.0067562,
+          -76.7452344
+        ],
+        "distance_m": 22.51
+      },
+      {
+        "to": "newer_node_092",
+        "name": "Newer Node 092",
+        "location": [
+          18.0067391,
+          -76.7453104
+        ],
+        "distance_m": 25.49
+      },
+      {
+        "to": "newer_node_101",
+        "name": "Newer Node 101",
+        "location": [
+          18.0063337,
+          -76.7450644
+        ],
+        "distance_m": 27.9
+      }
+    ],
+    "newer_node_103": [
+      {
+        "to": "newer_node_092",
+        "name": "Newer Node 092",
+        "location": [
+          18.0067391,
+          -76.7453104
+        ],
+        "distance_m": 8.26
+      },
+      {
+        "to": "newer_node_093",
+        "name": "Newer Node 093",
+        "location": [
+          18.0068565,
+          -76.7452997
+        ],
+        "distance_m": 13.12
+      },
+      {
+        "to": "newer_node_091",
+        "name": "Newer Node 091",
+        "location": [
+          18.0065951,
+          -76.745305
+        ],
+        "distance_m": 19.41
+      },
+      {
+        "to": "newer_node_102",
+        "name": "Newer Node 102",
+        "location": [
+          18.0065727,
+          -76.7451446
+        ],
+        "distance_m": 22.51
+      },
+      {
+        "to": "newer_node_094",
+        "name": "Newer Node 094",
+        "location": [
+          18.0069891,
+          -76.7451494
+        ],
+        "distance_m": 27.41
+      }
+    ],
+    "newer_node_104": [
+      {
+        "to": "new_point_67",
+        "name": "Point 67",
+        "location": [
+          18.0072089,
+          -76.7457534
+        ],
+        "distance_m": 14.32
+      },
+      {
+        "to": "new_point_66",
+        "name": "Point 66",
+        "location": [
+          18.0071655,
+          -76.7458232
+        ],
+        "distance_m": 21.59
+      }
+    ],
+    "newer_node_105": [],
+    "newer_node_106": [],
+    "newer_node_107": [],
+    "newer_node_108": [
+      {
+        "to": "newer_node_044",
+        "name": "Newer Node 044",
+        "location": [
+          18.0027917,
+          -76.7433251
+        ],
+        "distance_m": 13.65
+      },
+      {
+        "to": "newer_node_043",
+        "name": "Newer Node 043",
+        "location": [
+          18.0029957,
+          -76.7434378
+        ],
+        "distance_m": 26.9
+      }
+    ],
+    "newer_node_109": [],
+    "newer_node_110": [],
+    "newer_node_111": [
+      {
+        "to": "newer_node_083",
+        "name": "Newer Node 083",
+        "location": [
+          18.003164,
+          -76.7454987
+        ],
+        "distance_m": 17.7
+      },
+      {
+        "to": "newer_node_082",
+        "name": "Newer Node 082",
+        "location": [
+          18.0028945,
+          -76.7454456
+        ],
+        "distance_m": 26.87
+      }
+    ],
+    "newer_node_112": [
+      {
+        "to": "newer_node_028",
+        "name": "Newer Node 028",
+        "location": [
+          18.0006072,
+          -76.7448753
+        ],
+        "distance_m": 23.22
+      }
+    ],
+    "newer_node_113": [],
+    "newer_node_114": [
+      {
+        "to": "newer_node_018",
+        "name": "Newer Node 018",
+        "location": [
+          18.0009865,
+          -76.7439179
+        ],
+        "distance_m": 15.37
+      },
+      {
+        "to": "newer_node_037",
+        "name": "Newer Node 037",
+        "location": [
+          18.0007017,
+          -76.7437604
+        ],
+        "distance_m": 20.43
       }
     ]
   }

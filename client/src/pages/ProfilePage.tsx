@@ -111,17 +111,7 @@ export default function ProfilePage() {
   }, [cachedCourses, loading, user]);
 
   const menuSections = [
-    {
-      title: "Academic",
-      items: [
-        {
-          icon: BookOpen,
-          label: "My Courses",
-          onClick: () => navigate("/schedule"),
-        },
-        { icon: MapPin, label: "Campus Map", onClick: () => navigate("/map") },
-      ],
-    },
+    
     {
       title: "Safety",
       items: [
@@ -236,24 +226,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mx-4 mb-3 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-                Student Courses
-              </p>
-              <h3 className="text-base font-bold text-gray-900 mt-1">
-                Supabase Course Feed
-              </h3>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f0faf5] flex items-center justify-center shrink-0">
-              <BookOpen className="w-5 h-5 text-[#00c853]" />
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Showing the shared course catalog from the Supabase courses table.
-          </p>
-        </div>
+      
 
         {loadingSupabaseCourses ? (
           <div className="px-4 py-4 space-y-3">
