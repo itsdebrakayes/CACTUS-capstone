@@ -8,11 +8,13 @@ import {
 } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useNotification } from "@/contexts/NotificationContext";
 import AppLayout from "@/components/AppLayout";
 import {
   CactusMap,
   UWI_MONA_CENTER,
   type CactusMapHandle,
+  type FloorToggleMarker,
   type Hazard,
   type WalkGroupMapMarker,
 } from "@/components/CactusMap";
@@ -40,6 +42,13 @@ import {
   haversineMeters,
   mergeRouteCoordinates,
 } from "@/lib/fstRouting";
+import {
+  buildHazardAvoidanceWaypoints,
+  buildScenicWaypoints,
+  routeIntersectsHazards,
+  SCENIC_ROUTE_WAYPOINTS,
+  sortRoutesBySafety,
+} from "@/lib/routeSafety";
 import {
   createSupabaseHazard,
   loadSupabaseHazards,
@@ -102,6 +111,8 @@ interface MapHazardCategory extends HazardReportOption {
   severity: number;
   icon: LucideIcon;
 }
+
+type FloorAwarePlaceLocation = PlaceLocation & { floor?: number };
 
 const HAZARD_CATEGORIES: MapHazardCategory[] = [
   {
@@ -212,7 +223,7 @@ const CAMPUS_EVENTS = [
   },
 ];
 
-const SECOND_FLOOR_ROOM_DATA: Record<string, PlaceLocation[]> = {
+const SECOND_FLOOR_ROOM_DATA: Record<string, FloorAwarePlaceLocation[]> = {
   "computing-dept-stairs": [
     {
       id: "comp-lab-1",
@@ -872,6 +883,7 @@ export default function MapPage() {
     null
   );
   const [activeRoute, setActiveRoute] = useState<ActiveMapRoute | null>(null);
+  const { showNotification } = useNotification();
   const [selectedHazard, setSelectedHazard] = useState<HazardRecord | null>(
     null
   );
@@ -1239,6 +1251,32 @@ export default function MapPage() {
     };
   }, []);
 
+  const requestHazardAwareWalkingRoute = useCallback(
+    async (waypoints: Coord2[]) => {
+      const route = await requestWalkingRoute(waypoints);
+      if (!routeIntersectsHazards(route.coordinates, hazards)) {
+        return route;
+      }
+
+      const origin = waypoints[0];
+      const destination = waypoints[waypoints.length - 1];
+      const detourWaypoints =
+        routeType === "scenic"
+          ? mergeRouteCoordinates(
+              [origin],
+              SCENIC_ROUTE_WAYPOINTS,
+              buildHazardAvoidanceWaypoints(origin, destination, hazards).slice(1)
+            )
+          : buildHazardAvoidanceWaypoints(origin, destination, hazards);
+
+      const detourRoute = await requestWalkingRoute(detourWaypoints);
+      return routeIntersectsHazards(detourRoute.coordinates, hazards)
+        ? route
+        : detourRoute;
+    },
+    [hazards, requestWalkingRoute, routeType]
+  );
+
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) {
@@ -1370,8 +1408,15 @@ export default function MapPage() {
     snapSheetTo("collapsed");
   }, [snapSheetTo, userLat, userLng]);
 
-    const handleHazardClick = useCallback((hazard: HazardRecord) => {
-    setSelectedHazard(hazard);
+    const handleHazardClick = useCallback((hazard: Hazard) => {
+    setSelectedHazard({
+      id: String(hazard.id),
+      reportType: hazard.reportType,
+      lat: hazard.lat,
+      lng: hazard.lng,
+      severity: hazard.severity,
+      description: hazard.description,
+    });
     setSelectedEvent(null);
   }, []);
 
@@ -1440,10 +1485,11 @@ const handleStartNavigation = useCallback(async () => {
      * campus graph would create an unnecessary detour.
      */
     try {
-      const directRoute = await requestWalkingRoute([
-        origin,
-        selectedPlace.coordinates,
-      ]);
+      const directRoute = await requestHazardAwareWalkingRoute(
+        routeType === "scenic"
+          ? buildScenicWaypoints(origin, selectedPlace.coordinates)
+          : [origin, selectedPlace.coordinates]
+      );
 
       const straightLineDistanceM = haversineMeters(
         origin,
@@ -1535,7 +1581,7 @@ const handleStartNavigation = useCallback(async () => {
               distanceM: roadConnectorDistanceM,
               durationSec: roadConnectorDistanceM / 1.35,
             }
-          : await requestWalkingRoute([origin, userSnap.coordinates]);
+          : await requestHazardAwareWalkingRoute([origin, userSnap.coordinates]);
 
       campusGraphRouteOptions.push(
         ...connectedStartOptions
@@ -1595,7 +1641,7 @@ const handleStartNavigation = useCallback(async () => {
         origin,
         destination: selectedPlace,
         routeType,
-        requestWalkingRoute,
+        requestWalkingRoute: requestHazardAwareWalkingRoute,
       });
 
       if (fallbackRoute) {
@@ -1603,8 +1649,10 @@ const handleStartNavigation = useCallback(async () => {
       }
     }
 
-    const bestCampusGraphRoute = campusGraphRouteOptions.sort(
-      (left, right) => left.distanceM - right.distanceM
+    const bestCampusGraphRoute = sortRoutesBySafety(
+      campusGraphRouteOptions,
+      hazards,
+      routeType === "scenic"
     )[0];
 
     if (bestCampusGraphRoute) {
@@ -1618,11 +1666,12 @@ const handleStartNavigation = useCallback(async () => {
 
     /**
      * Final decision:
-     * Pick the shortest successful route, whether it came from Mapbox
-     * or from your custom campus graph.
+     * Pick a hazard-free route first, then apply the mode's distance preference.
      */
-    const bestRoute = routeOptions.sort(
-      (left, right) => left.distanceM - right.distanceM
+    const bestRoute = sortRoutesBySafety(
+      routeOptions,
+      hazards,
+      routeType === "scenic"
     )[0];
 
     if (!bestRoute) {
@@ -1663,7 +1712,8 @@ const handleStartNavigation = useCallback(async () => {
   }
 }, [
   campusData,
-  requestWalkingRoute,
+  hazards,
+  requestHazardAwareWalkingRoute,
   routeType,
   selectedPlace,
   snapSheetTo,
@@ -1693,6 +1743,17 @@ const handleStartNavigation = useCallback(async () => {
         ]);
         setSelectedHazard(created);
         setIsReportOpen(false);
+        if (nextType === "suspicious" || nextType === "flooding") {
+          const title =
+            nextType === "flooding"
+              ? "Flooding reported on campus"
+              : "Suspicious activity reported";
+          showNotification({
+            id: created.id,
+            title,
+            message: `${category.label} has been reported nearby. Routes will try to avoid that area.`,
+          });
+        }
         toast.success("Hazard reported on the map.");
         mapRef.current?.flyTo(created.lat, created.lng, 17.2);
       } catch (error) {
@@ -1700,7 +1761,7 @@ const handleStartNavigation = useCallback(async () => {
         toast.error("Unable to submit the hazard report.");
       }
     },
-    [userLat, userLng]
+    [showNotification, userLat, userLng]
   );
 
   const openSelectedWalkGroup = useCallback(() => {
@@ -1757,14 +1818,16 @@ const handleStartNavigation = useCallback(async () => {
 
     if (!activeToggle) {
       // Show all ground floor (or floor-less) places
-      return campusPlaces.filter(p => (p.floor ?? 0) === 0);
+      return campusPlaces.filter(
+        p => ((p as FloorAwarePlaceLocation).floor ?? 0) === 0
+      );
     }
 
     // Filter logic:
     // 1. Hide ground floor places within radius of the toggle
     // 2. Add second floor places for this specific toggle
     const basePlaces = campusPlaces.filter(p => {
-      const isGround = (p.floor ?? 0) === 0;
+      const isGround = ((p as FloorAwarePlaceLocation).floor ?? 0) === 0;
       if (!isGround) return false;
 
       const distance = haversineMeters(

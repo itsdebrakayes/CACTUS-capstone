@@ -111,11 +111,16 @@ drop policy if exists "Enrolled students can vote" on public.class_report_votes;
 create policy "Enrolled students can vote" on public.class_report_votes for insert with check (auth.uid() = user_id);
 
 alter table public.notifications enable row level security;
+grant select, update, insert on table public.notifications to authenticated;
+
 drop policy if exists "Users can view own notifications" on public.notifications;
 create policy "Users can view own notifications" on public.notifications for select using (auth.uid() = user_id);
 
 drop policy if exists "Users can update own notifications" on public.notifications;
 create policy "Users can update own notifications" on public.notifications for update using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own notifications" on public.notifications;
+create policy "Users can insert own notifications" on public.notifications for insert with check (auth.uid() = user_id);
 
 alter table public.course_session_overrides enable row level security;
 drop policy if exists "Anyone can view active overrides" on public.course_session_overrides;
@@ -224,17 +229,26 @@ begin
   select "courseCode" into v_course_code from public.courses where id = NEW.course_id;
   select full_name into v_reporter_name from public.profiles where id = NEW.reporter_id;
 
+  -- Create one row per recipient so each user's realtime subscription and
+  -- notification tab can see the new class update. Always include the
+  -- reporter, even if the course enrollment tables are empty in local data.
   insert into public.notifications (user_id, report_id, course_id, title, message)
-  select 
-    s.user_id, 
-    NEW.id, 
+  with recipients as (
+    select s.user_id
+    from public.enrollments e
+    join public.students s on s.id = e.student_id
+    where e.course_id = NEW.course_id
+      and s.user_id is not null
+    union
+    select NEW.reporter_id
+  )
+  select
+    r.user_id,
+    NEW.id,
     NEW.course_id,
-    v_course_code || ': ' || initcap(replace(NEW.report_type, '_', ' ')),
-    v_reporter_name || ' reported: ' || coalesce(NEW.message, 'A new update is available.')
-  from public.enrollments e
-  join public.students s on s.id = e.student_id
-  where e.course_id = NEW.course_id
-  and s.user_id != NEW.reporter_id;
+    coalesce(v_course_code, 'Course') || ': ' || initcap(replace(NEW.report_type, '_', ' ')),
+    coalesce(v_reporter_name, 'A student') || ' reported: ' || coalesce(NEW.message, 'A new update is available.')
+  from recipients r;
   
   return NEW;
 end;

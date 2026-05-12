@@ -91,6 +91,12 @@ const SURFACE_PENALTY = 90;
 /** Maximum slope grade (%) for accessible routes (ADA guideline) */
 export const MAX_SLOPE_GRADE = 8;
 
+/** Crowd report penalty for obstruction (seconds added) */
+const CROWD_OBSTRUCTION_PENALTY = 180;
+
+/** Crowd report penalty for suspicious activity (seconds added) */
+const CROWD_SUSPICIOUS_PENALTY = 120;
+
 /** Night hours: 19:00 – 06:00 */
 export function isNightHour(hour: number): boolean {
   return hour >= 19 || hour < 6;
@@ -146,6 +152,15 @@ export interface RouteResult {
   landmarks: string[];
 }
 
+export interface CrowdReport {
+  id: number;
+  lat: number;
+  lng: number;
+  reportType: "light_out" | "broken_path" | "flooding" | "obstruction" | "suspicious";
+  status: string;
+  geohash6: string;
+}
+
 export interface PlanRouteOptions {
   fromNodeId: number;
   toNodeId: number;
@@ -156,6 +171,8 @@ export interface PlanRouteOptions {
   isRainy?: boolean;
   nodes: Map<number, GraphNode>;
   edges: GraphEdge[];
+  /** Active crowd reports to avoid (optional) */
+  crowdReports?: CrowdReport[];
 }
 
 // ─── Cost functions ───────────────────────────────────────────────────────────
@@ -201,6 +218,42 @@ export function toGraphEdge(row: PathEdge): GraphEdge {
 }
 
 /**
+ * Check if a crowd report affects a given edge.
+ * Uses simple proximity check based on node coordinates.
+ */
+function isEdgeAffectedByCrowd(
+  edge: GraphEdge,
+  toNode: GraphNode,
+  reports: CrowdReport[] | undefined
+): { affected: boolean; penalty: number } {
+  if (!reports || reports.length === 0) return { affected: false, penalty: 0 };
+
+  let penalty = 0;
+  for (const report of reports) {
+    const reportLat = report.lat;
+    const reportLng = report.lng;
+
+    // Check if report is near destination node (within ~50m)
+    const dlat = toNode.lat - reportLat;
+    const dlng = toNode.lng - reportLng;
+    const distSq = dlat * dlat + dlng * dlng;
+    const proximityThresholdSq = 0.0004; // ~20m for lat/lng deltas
+
+    if (distSq < proximityThresholdSq) {
+      const reportPenalty =
+        report.reportType === "obstruction"
+          ? CROWD_OBSTRUCTION_PENALTY
+          : report.reportType === "suspicious"
+            ? CROWD_SUSPICIOUS_PENALTY
+            : 0;
+      penalty += reportPenalty;
+    }
+  }
+
+  return { affected: penalty > 0, penalty };
+}
+
+/**
  * Calculate the traversal cost of an edge for a given route profile.
  * Returns Infinity if the edge is blocked for this profile.
  */
@@ -209,7 +262,8 @@ export function edgeCost(
   toNode: GraphNode,
   mode: RouteMode,
   hourOfDay: number,
-  isRainy: boolean
+  isRainy: boolean,
+  crowdReports?: CrowdReport[]
 ): number {
   // Always skip inactive edges
   if (!edge.isActive) return Infinity;
@@ -219,11 +273,13 @@ export function edgeCost(
 
   const night = isNightHour(hourOfDay);
   const base = edge.walkTimeSec;
+  const crowdPenalty = isEdgeAffectedByCrowd(edge, toNode, crowdReports).penalty;
 
   switch (mode) {
     case "shortest": {
       let cost = base;
       cost += HAZARD_PENALTY * edge.confirmedHazardCount;
+      cost += crowdPenalty;
       if (night) cost += NIGHT_LIGHTING_W * (1 - edge.lighting);
       if (isRainy) cost += WEATHER_PENALTY * (1 - edge.weatherCoverage);
       return cost;
@@ -237,6 +293,7 @@ export function edgeCost(
       cost += SAFE_NIGHT_ISOLATION_W * (1 - edge.isolation);
       cost += SAFE_NIGHT_VIOLENCE_W * edge.confirmedViolenceCount;
       cost += HAZARD_PENALTY * edge.confirmedHazardCount;
+      cost += crowdPenalty * 1.5; // Extra penalty for night safety
       if (isRainy) cost += WEATHER_PENALTY * (1 - edge.weatherCoverage);
       return cost;
     }
@@ -246,6 +303,7 @@ export function edgeCost(
       cost -= SCENIC_REWARD * edge.scenicScore;
       if (toNode.isLandmark) cost -= LANDMARK_BONUS;
       cost += HAZARD_PENALTY * edge.confirmedHazardCount;
+      cost += crowdPenalty;
       // Still apply a night penalty so scenic routes aren't suicidal at night
       if (night) cost += NIGHT_LIGHTING_W * 0.5 * (1 - edge.lighting);
       return Math.max(cost, MIN_SCENIC_COST);
@@ -260,6 +318,7 @@ export function edgeCost(
       let cost = base;
       cost += SURFACE_PENALTY * (1 - edge.surfaceQuality);
       cost += HAZARD_PENALTY * edge.confirmedHazardCount;
+      cost += crowdPenalty;
       return cost;
     }
   }
@@ -363,7 +422,7 @@ export function dijkstra(opts: PlanRouteOptions): RouteResult | null {
       const toNode = nodes.get(v);
       if (!toNode) continue;
 
-      const w = edgeCost(edge, toNode, mode, hourOfDay, isRainy);
+      const w = edgeCost(edge, toNode, mode, hourOfDay, isRainy, opts.crowdReports);
       if (w === Infinity) continue;
 
       const newDist = dist.get(u)! + w;
@@ -569,13 +628,23 @@ export function planAllRoutes(
   hourOfDay: number,
   isRainy: boolean,
   nodes: Map<number, GraphNode>,
-  edges: GraphEdge[]
+  edges: GraphEdge[],
+  crowdReports?: CrowdReport[]
 ): RouteResult[] {
   const modes: RouteMode[] = ["shortest", "safe_night", "scenic", "accessible"];
   const results: RouteResult[] = [];
 
   for (const mode of modes) {
-    const result = dijkstra({ fromNodeId, toNodeId, mode, hourOfDay, isRainy, nodes, edges });
+    const result = dijkstra({
+      fromNodeId,
+      toNodeId,
+      mode,
+      hourOfDay,
+      isRainy,
+      nodes,
+      edges,
+      crowdReports,
+    });
     if (result) results.push(result);
   }
 

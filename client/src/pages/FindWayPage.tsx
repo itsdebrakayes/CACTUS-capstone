@@ -7,6 +7,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { useLocation, useSearch } from "wouter";
+import { useNotification } from "@/contexts/NotificationContext";
 import WalkGroupCreateDialog from "@/components/WalkGroupCreateDialog";
 import WalkGroupPreviewCard from "@/components/WalkGroupPreviewCard";
 import MapHazardReportSheet, {
@@ -17,6 +18,13 @@ import {
   haversineMeters,
   mergeRouteCoordinates,
 } from "@/lib/fstRouting";
+import {
+  buildHazardAvoidanceWaypoints,
+  buildScenicWaypoints,
+  routeIntersectsHazards,
+  SCENIC_ROUTE_WAYPOINTS,
+  sortRoutesBySafety,
+} from "@/lib/routeSafety";
 import {
   findNearestCampusPathSnap,
   getCampusNodeComponentId,
@@ -60,6 +68,11 @@ import {
   loadMyActiveWalkGroup,
   type WalkGroupRecord,
 } from "@/lib/supabaseWalkGroups";
+import {
+  createSupabaseHazard,
+  loadSupabaseHazards,
+  type HazardRecord,
+} from "@/lib/supabaseHazards";
 import {
   createCampusPlaceMarkerElement,
   createWalkGroupMeetingMarkerElement,
@@ -226,6 +239,7 @@ type LocationStatus = "locating" | "ready" | "denied" | "unsupported";
 type WalkMode = "quick" | "shortcut" | "longest";
 type WalkGroupDialogMode = "warning" | "form";
 const WALK_GROUP_REFRESH_MS = 15000;
+const HAZARD_REFRESH_MS = 15000;
 
 interface UserLocation {
   coordinates: Coord2;
@@ -382,6 +396,7 @@ export default function FindWayPage() {
   const [campusData, setCampusData] = useState<CampusDataset | null>(cachedCampusBundle?.campusData ?? null);
   const [activeRoute, setActiveRoute] = useState<ActiveRoute | null>(null);
   const [activeWalkGroups, setActiveWalkGroups] = useState<WalkGroupRecord[]>([]);
+  const [hazards, setHazards] = useState<HazardRecord[]>([]);
   const [myActiveWalkGroup, setMyActiveWalkGroup] = useState<WalkGroupRecord | null>(null);
   const [selectedWalkGroupId, setSelectedWalkGroupId] = useState<string | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(!cachedCampusBundle);
@@ -406,6 +421,7 @@ export default function FindWayPage() {
     requestedCourseId != null ? (cachedCourses?.find((c) => c.id === requestedCourseId) ?? null) : null
   );
   const [courseTargetError, setCourseTargetError] = useState<string | null>(null);
+  const { showNotification } = useNotification();
 
   // derived
   const normalizedDestinationQuery = useMemo(() => normalizeSearchText(destinationQuery), [destinationQuery]);
@@ -571,6 +587,28 @@ export default function FindWayPage() {
     return { coordinates: coords, distanceM: route?.distance ?? 0, durationSec: route?.duration ?? 0 };
   }, []);
 
+  const requestHazardAwareWalkingRoute = useCallback(async (waypoints: Coord2[]): Promise<DirectionsRoute> => {
+    const route = await requestWalkingRoute(waypoints);
+    if (!routeIntersectsHazards(route.coordinates, hazards)) {
+      return route;
+    }
+
+    const origin = waypoints[0];
+    const destination = waypoints[waypoints.length - 1];
+    const detourWaypoints =
+      walkMode === "longest"
+        ? mergeRouteCoordinates(
+            [origin],
+            SCENIC_ROUTE_WAYPOINTS,
+            buildHazardAvoidanceWaypoints(origin, destination, hazards).slice(1)
+          )
+        : buildHazardAvoidanceWaypoints(origin, destination, hazards);
+    const detourRoute = await requestWalkingRoute(detourWaypoints);
+    return routeIntersectsHazards(detourRoute.coordinates, hazards)
+      ? route
+      : detourRoute;
+  }, [hazards, requestWalkingRoute, walkMode]);
+
   const handleGoToDestination = useCallback(async () => {
     const destination = isCourseRouteMode
       ? selectedDestination
@@ -609,12 +647,36 @@ export default function FindWayPage() {
         totalDurationSec: number;
       }> = [];
 
+      if (walkMode === "longest") {
+        try {
+          const scenicRoadRoute = await requestHazardAwareWalkingRoute(
+            buildScenicWaypoints(userLocation.coordinates, destination.coordinates)
+          );
+          routeOptions.push({
+            combinedCoordinates: scenicRoadRoute.coordinates,
+            campusRoute: {
+              mode: "scenic",
+              coordinates: scenicRoadRoute.coordinates,
+              distanceM: scenicRoadRoute.distanceM,
+              walkTimeSec: scenicRoadRoute.durationSec,
+              safetyScore: 1,
+              landmarks: [],
+            } as NonNullable<ReturnType<typeof planCampusRouteBetweenNodes>>,
+            roadRoute: scenicRoadRoute,
+            totalDistanceM: scenicRoadRoute.distanceM,
+            totalDurationSec: scenicRoadRoute.durationSec,
+          });
+        } catch {
+          // Fall back to the campus graph scenic route below.
+        }
+      }
+
       if (userSnap && connectedStartOptions.length > 0) {
         const snapDist = haversineMeters(userLocation.coordinates, userSnap.coordinates);
         const roadRoute =
           snapDist < 3
             ? { coordinates: mergeRouteCoordinates([userLocation.coordinates], [userSnap.coordinates]), distanceM: snapDist, durationSec: snapDist / 1.35 }
-            : await requestWalkingRoute([userLocation.coordinates, userSnap.coordinates]);
+            : await requestHazardAwareWalkingRoute([userLocation.coordinates, userSnap.coordinates]);
 
         routeOptions.push(
           ...connectedStartOptions
@@ -636,11 +698,19 @@ export default function FindWayPage() {
       }
 
       if (!routeOptions.length) {
-        const fallback = await buildDestinationComponentEntryRoute({ campusData, origin: userLocation.coordinates, destination, walkMode, requestWalkingRoute });
+        const fallback = await buildDestinationComponentEntryRoute({ campusData, origin: userLocation.coordinates, destination, walkMode, requestWalkingRoute: requestHazardAwareWalkingRoute });
         if (fallback) routeOptions.push(fallback);
       }
 
-      const best = routeOptions.sort((a, b) => a.totalDistanceM - b.totalDistanceM)[0];
+      const best = sortRoutesBySafety(
+        routeOptions.map(route => ({
+          ...route,
+          coordinates: route.combinedCoordinates,
+          distanceM: route.totalDistanceM,
+        })),
+        hazards,
+        walkMode === "longest"
+      )[0];
       if (!best) {
         const msg = buildDisconnectedCampusRouteMessage(campusData, startOptions.map((o) => o.nodeId), destination.nearestNodeId, destination.name);
         throw new Error(msg ?? "No route could be built to the selected room.");
@@ -668,7 +738,7 @@ export default function FindWayPage() {
     } finally {
       setIsPlanningRoute(false);
     }
-  }, [campusData, courseTargetError, filteredLocations, fitMapToRoute, isCourseRouteMode, renderSelectedPopup, requestUserLocation, requestWalkingRoute, selectedDestination, selectedDestinationId, snapSheetTo, targetCourse, userLocation, walkMode]);
+  }, [campusData, courseTargetError, filteredLocations, fitMapToRoute, hazards, isCourseRouteMode, renderSelectedPopup, requestHazardAwareWalkingRoute, requestUserLocation, selectedDestination, selectedDestinationId, snapSheetTo, targetCourse, userLocation, walkMode]);
 
   useEffect(() => {
     if (!isCourseRouteMode || !targetCourse || !selectedDestination || !userLocation || !campusData || isPlanningRoute || courseTargetError) return;
@@ -767,10 +837,45 @@ export default function FindWayPage() {
     snapSheetTo("mid");
   }, [snapSheetTo]);
 
-  const submitQuickReport = useCallback((report: (typeof REPORT_OPTIONS)[number]) => {
-    setIsReportSheetOpen(false);
-    toast.success(`${report.label} reported`, { description: "Thanks for letting other students know." });
-  }, []);
+  const submitQuickReport = useCallback(async (report: (typeof REPORT_OPTIONS)[number]) => {
+    const coordinates = userLocation?.coordinates ?? DEFAULT_CENTER;
+    const severity =
+      report.type === "dangerous" || report.type === "flood" ? 4 : 3;
+
+    try {
+      const created = await createSupabaseHazard({
+        reportType: report.type,
+        lat: coordinates[1],
+        lng: coordinates[0],
+        severity,
+        description: report.description,
+      });
+
+      setHazards(current => [
+        created,
+        ...current.filter(item => item.id !== created.id),
+      ]);
+      setIsReportSheetOpen(false);
+
+      if (report.type === "dangerous" || report.type === "flood") {
+        showNotification({
+          id: created.id,
+          title:
+            report.type === "flood"
+              ? "Flooding reported on campus"
+              : "Suspicious activity reported",
+          message: `${report.label} has been reported nearby. Routes will try to avoid that area.`,
+        });
+      }
+
+      toast.success(`${report.label} reported`, {
+        description: "Thanks for letting other students know.",
+      });
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to submit the hazard report.");
+    }
+  }, [showNotification, userLocation?.coordinates]);
 
   // effects (all unchanged)
   useEffect(() => {
@@ -778,6 +883,28 @@ export default function FindWayPage() {
     const id = window.setInterval(() => void refreshWalkGroups(), WALK_GROUP_REFRESH_MS);
     return () => window.clearInterval(id);
   }, [refreshWalkGroups]);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function refreshHazards() {
+      try {
+        const rows = await loadSupabaseHazards();
+        if (!isCancelled) {
+          setHazards(rows);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void refreshHazards();
+    const id = window.setInterval(() => void refreshHazards(), HAZARD_REFRESH_MS);
+    return () => {
+      isCancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   useEffect(() => {
     setViewportHeight(window.innerHeight);

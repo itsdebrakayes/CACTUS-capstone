@@ -961,13 +961,22 @@ const footpathRouter = router({
         hourOfDay
       );
       if (cached) return cached.result as pf.RouteResult;
-      const [nodeRows, edgeRows] = await Promise.all([
+      const [nodeRows, edgeRows, crowdReportRows] = await Promise.all([
         db.getAllPathNodes(),
         db.getAllPathEdges(),
+        db.getActivePathReports(),
       ]);
       const nodes = new Map<number, pf.GraphNode>();
       for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
       const edges = edgeRows.map(pf.toGraphEdge);
+      const crowdReports = crowdReportRows.map(r => ({
+        id: r.id,
+        lat: parseFloat(r.lat as unknown as string),
+        lng: parseFloat(r.lng as unknown as string),
+        reportType: r.reportType as pf.CrowdReport["reportType"],
+        status: r.status,
+        geohash6: r.geohash6,
+      }));
       const result = pf.dijkstra({
         fromNodeId: input.fromNodeId,
         toNodeId: input.toNodeId,
@@ -976,6 +985,7 @@ const footpathRouter = router({
         isRainy,
         nodes,
         edges,
+        crowdReports,
       });
       if (!result)
         throw new TRPCError({
@@ -1009,20 +1019,30 @@ const footpathRouter = router({
     .mutation(async ({ input }) => {
       const hourOfDay = input.hourOfDay ?? new Date().getHours();
       const isRainy = input.isRainy ?? false;
-      const [nodeRows, edgeRows] = await Promise.all([
+      const [nodeRows, edgeRows, crowdReportRows] = await Promise.all([
         db.getAllPathNodes(),
         db.getAllPathEdges(),
+        db.getActivePathReports(),
       ]);
       const nodes = new Map<number, pf.GraphNode>();
       for (const row of nodeRows) nodes.set(row.id, pf.toGraphNode(row));
       const edges = edgeRows.map(pf.toGraphEdge);
+      const crowdReports = crowdReportRows.map(r => ({
+        id: r.id,
+        lat: parseFloat(r.lat as unknown as string),
+        lng: parseFloat(r.lng as unknown as string),
+        reportType: r.reportType as pf.CrowdReport["reportType"],
+        status: r.status,
+        geohash6: r.geohash6,
+      }));
       return pf.planAllRoutes(
         input.fromNodeId,
         input.toNodeId,
         hourOfDay,
         isRainy,
         nodes,
-        edges
+        edges,
+        crowdReports
       );
     }),
 });

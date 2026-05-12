@@ -34,3 +34,34 @@ with check (true);
 
 create index if not exists crowd_reports_status_idx on public.crowd_reports (status);
 create index if not exists crowd_reports_created_at_idx on public.crowd_reports (created_at desc);
+
+create or replace function public.notify_users_on_urgent_hazard()
+returns trigger as $$
+declare
+  v_title text;
+  v_message text;
+begin
+  if NEW.report_type not in ('suspicious', 'suspicious_person', 'dangerous', 'flooding', 'flood', 'rainy') then
+    return NEW;
+  end if;
+
+  if NEW.report_type in ('flooding', 'flood', 'rainy') then
+    v_title := 'Flooding reported on campus';
+    v_message := coalesce(NEW.description, 'Flooding has been reported. Routes may avoid the affected area.');
+  else
+    v_title := 'Suspicious activity reported';
+    v_message := coalesce(NEW.description, 'Suspicious activity has been reported on campus. Stay alert and avoid the area.');
+  end if;
+
+  insert into public.notifications (user_id, title, message, is_read)
+  select id, v_title, v_message, false
+  from public.profiles;
+
+  return NEW;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_urgent_hazard_reported on public.crowd_reports;
+create trigger on_urgent_hazard_reported
+  after insert on public.crowd_reports
+  for each row execute function public.notify_users_on_urgent_hazard();

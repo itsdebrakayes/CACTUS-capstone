@@ -237,6 +237,7 @@ const LOCATION_ACTIVITY_WEIGHT: Record<string, number> = {
 const WALKING_SPEED_MPS: Record<RouteMode, number> = {
   shortest: 1.42,
   scenic: 1.22,
+  shortcut: 1.5,
   accessible: 1.18,
   safe_night: 1.2,
 };
@@ -732,7 +733,7 @@ function dijkstra(
     // --- NODE HOPPING FOR SHORTCUT MODE ---
     if (mode === "shortcut") {
       const HOP_THRESHOLD_M = 60; // Increased distance for hopping
-      for (const [targetId, targetNode] of dataset.graph.entries()) {
+      for (const [targetId, targetNode] of Array.from(dataset.graph.entries())) {
         if (!queue.has(targetId) || targetId === currentNodeId) continue;
         
         const dist = haversineMeters(

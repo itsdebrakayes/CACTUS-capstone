@@ -57,24 +57,34 @@ export default function NotificationsPage() {
     void fetchNotifications();
 
     // Set up real-time subscription
-    const channel = supabase
-      .channel('notifications-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        () => {
-          void fetchNotifications();
-        }
-      )
-      .subscribe();
+    const setupSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userUuid = session?.user.id;
+      if (!userUuid) return null;
+
+      return supabase
+        .channel('notifications-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userUuid}`,
+          },
+          () => {
+            void fetchNotifications();
+          }
+        )
+        .subscribe();
+    };
+
+    const subPromise = setupSubscription();
 
     return () => {
-      void supabase.removeChannel(channel);
+      subPromise.then(channel => {
+        if (channel) void supabase.removeChannel(channel);
+      });
     };
   }, [loading, user]);
 
@@ -106,7 +116,7 @@ export default function NotificationsPage() {
     if (notification.report_id) params.set("reportId", notification.report_id);
     
     const queryString = params.toString();
-    navigate(`/class-chat${queryString ? `?${queryString}` : ""}`);
+    navigate(queryString ? `/class-chat?${queryString}` : "/map");
   };
 
   if (loading) return null;

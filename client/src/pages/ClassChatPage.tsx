@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useNotification } from "@/contexts/NotificationContext";
 import { supabase } from "@/lib/supabase";
 import {
   getCachedSupabaseCourses,
@@ -337,6 +338,7 @@ export default function ClassChatPage() {
   const [reports, setReports] = useState<ClassReport[]>([]);
   const [showNewForm, setShowNewForm] = useState(false);
   const [fetchingReports, setFetchingReports] = useState(false);
+  const { showNotification } = useNotification();
 
   // Scroll to report if ID provided in URL
   useEffect(() => {
@@ -532,20 +534,21 @@ export default function ClassChatPage() {
 
       if (error) throw error;
 
-      // Create a notification for the user to confirm it's working
-      // In a production scenario, this would be sent to all enrolled students
-      await supabase.from("notifications").insert({
-        user_id: reporterUuid,
-        title: `Report Posted: ${selectedCourseData?.courseCode || 'Course Update'}`,
-        message: data.message || `You reported a ${REPORT_TYPE_LABELS[reportType]} for ${selectedCourseData?.courseName || 'this course'}.`,
-        report_id: newReport?.id,
+      showNotification({
+        id: newReport.id,
+        title: `${selectedCourseData?.courseCode || "Course"}: ${REPORT_TYPE_LABELS[reportType]}`,
+        message:
+          data.message ||
+          `A ${REPORT_TYPE_LABELS[reportType]} update was posted for ${
+            selectedCourseData?.courseName || "this course"
+          }.`,
         course_id: courseId,
-        is_read: false
+        report_id: newReport.id,
       });
 
       toast.success("Update posted to the class!");
       setShowNewForm(false);
-      void fetchReports();
+      await fetchReports();
     } catch (err) {
       console.error("Error submitting report:", err);
       toast.error("Failed to post update");
