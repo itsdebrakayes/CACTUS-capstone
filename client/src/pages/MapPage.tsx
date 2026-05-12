@@ -311,13 +311,21 @@ async function buildDestinationComponentEntryRoute(params: {
   origin: Coord2;
   destination: PlaceLocation;
   routeType: MapRouteType;
+  hazardAvoidCoordinates?: Coord2[];
   requestWalkingRoute: (waypoints: Coord2[]) => Promise<{
     coordinates: Coord2[];
     distanceM: number;
     durationSec: number;
   }>;
 }) {
-  const { campusData, origin, destination, routeType, requestWalkingRoute } =
+  const {
+    campusData,
+    origin,
+    destination,
+    routeType,
+    hazardAvoidCoordinates = [],
+    requestWalkingRoute,
+  } =
     params;
   const destinationComponentId = getCampusNodeComponentId(
     campusData,
@@ -370,7 +378,8 @@ async function buildDestinationComponentEntryRoute(params: {
         campusData,
         candidateNode.nodeId,
         destination.nearestNodeId,
-        getCampusRouteMode(routeType)
+        getCampusRouteMode(routeType),
+        { avoidCoordinates: hazardAvoidCoordinates }
       );
       if (!campusRoute) {
         continue;
@@ -1468,6 +1477,9 @@ const handleStartNavigation = useCallback(async () => {
 
   try {
     const origin: Coord2 = [userLng, userLat];
+    const hazardAvoidCoordinates = hazards.map(
+      hazard => [hazard.lng, hazard.lat] as Coord2
+    );
 
     const routeOptions: Array<{
       source: "mapbox_direct" | "campus_graph";
@@ -1590,7 +1602,8 @@ const handleStartNavigation = useCallback(async () => {
               campusData,
               option.nodeId,
               selectedPlace.nearestNodeId,
-              getCampusRouteMode(routeType)
+              getCampusRouteMode(routeType),
+              { avoidCoordinates: hazardAvoidCoordinates }
             );
 
             if (!campusRoute) {
@@ -1641,6 +1654,7 @@ const handleStartNavigation = useCallback(async () => {
         origin,
         destination: selectedPlace,
         routeType,
+        hazardAvoidCoordinates,
         requestWalkingRoute: requestHazardAwareWalkingRoute,
       });
 

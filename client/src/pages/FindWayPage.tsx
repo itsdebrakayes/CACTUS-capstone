@@ -170,9 +170,17 @@ async function buildDestinationComponentEntryRoute(params: {
   origin: Coord2;
   destination: PlaceLocation;
   walkMode: WalkMode;
+  hazardAvoidCoordinates?: Coord2[];
   requestWalkingRoute: (waypoints: Coord2[]) => Promise<DirectionsRoute>;
 }) {
-  const { campusData, origin, destination, walkMode, requestWalkingRoute } = params;
+  const {
+    campusData,
+    origin,
+    destination,
+    walkMode,
+    hazardAvoidCoordinates = [],
+    requestWalkingRoute,
+  } = params;
   const destComp = getCampusNodeComponentId(campusData, destination.nearestNodeId);
   if (destComp === null) return null;
 
@@ -205,7 +213,8 @@ async function buildDestinationComponentEntryRoute(params: {
         campusData,
         candidate.nodeId,
         destination.nearestNodeId,
-        getCampusRouteMode(walkMode)
+        getCampusRouteMode(walkMode),
+        { avoidCoordinates: hazardAvoidCoordinates }
       );
       if (!campusRoute) continue;
 
@@ -628,6 +637,9 @@ export default function FindWayPage() {
     setIsReportSheetOpen(false);
     setIsPlanningRoute(true);
     try {
+      const hazardAvoidCoordinates = hazards.map(
+        hazard => [hazard.lng, hazard.lat] as Coord2
+      );
       const userSnap = findNearestCampusPathSnap(campusData, userLocation.coordinates);
       const destCompId = getCampusNodeComponentId(campusData, destination.nearestNodeId);
       const startOptions = userSnap
@@ -681,7 +693,13 @@ export default function FindWayPage() {
         routeOptions.push(
           ...connectedStartOptions
             .map((opt) => {
-              const campusRoute = planCampusRouteBetweenNodes(campusData, opt.nodeId, destination.nearestNodeId, getCampusRouteMode(walkMode));
+              const campusRoute = planCampusRouteBetweenNodes(
+                campusData,
+                opt.nodeId,
+                destination.nearestNodeId,
+                getCampusRouteMode(walkMode),
+                { avoidCoordinates: hazardAvoidCoordinates }
+              );
               if (!campusRoute) return null;
               const last = campusRoute.coordinates[campusRoute.coordinates.length - 1];
               const finalDist = last ? haversineMeters(last, destination.coordinates) : 0;
@@ -698,7 +716,14 @@ export default function FindWayPage() {
       }
 
       if (!routeOptions.length) {
-        const fallback = await buildDestinationComponentEntryRoute({ campusData, origin: userLocation.coordinates, destination, walkMode, requestWalkingRoute: requestHazardAwareWalkingRoute });
+        const fallback = await buildDestinationComponentEntryRoute({
+          campusData,
+          origin: userLocation.coordinates,
+          destination,
+          walkMode,
+          hazardAvoidCoordinates,
+          requestWalkingRoute: requestHazardAwareWalkingRoute,
+        });
         if (fallback) routeOptions.push(fallback);
       }
 

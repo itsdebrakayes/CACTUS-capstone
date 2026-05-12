@@ -3,6 +3,12 @@ export type RouteMode = "shortest" | "scenic" | "accessible" | "safe_night" | "s
 type Coord2 = [number, number];
 type Coord3 = [number, number, number?];
 
+interface RoutePlanningOptions {
+  isRainy?: boolean;
+  avoidCoordinates?: Coord2[];
+  avoidRadiusM?: number;
+}
+
 interface LocationProperties {
   id: string;
   name: string;
@@ -609,16 +615,14 @@ export function planCampusRouteBetweenNodes(
   fromNodeId: string,
   toNodeId: string,
   mode: RouteMode,
-  options?: {
-    isRainy?: boolean;
-  }
+  options?: RoutePlanningOptions
 ): PlannedRoute | null {
   const { nodeIds, edges } = dijkstra(
     dataset,
     fromNodeId,
     toNodeId,
     mode,
-    options?.isRainy ?? false
+    options ?? {}
   );
 
   if (nodeIds.length === 0) {
@@ -649,9 +653,7 @@ function planCampusRoute(
   fromLocationId: string,
   toLocationId: string,
   mode: RouteMode,
-  options?: {
-    isRainy?: boolean;
-  }
+  options?: RoutePlanningOptions
 ): PlannedRoute | null {
   const from = getLocationById(dataset, fromLocationId);
   const to = getLocationById(dataset, toLocationId);
@@ -674,7 +676,7 @@ function dijkstra(
   fromNodeId: string,
   toNodeId: string,
   mode: RouteMode,
-  isRainy: boolean
+  options: RoutePlanningOptions
 ): {
   nodeIds: string[];
   edges: GraphEdge[];
@@ -723,7 +725,20 @@ function dijkstra(
         continue;
       }
 
-      const candidate = currentDistance + getEdgeCost(edge, mode, isRainy);
+      const targetNode = dataset.graph.get(edge.to);
+      if (!targetNode) {
+        continue;
+      }
+
+      const candidate =
+        currentDistance +
+        getEdgeCost(edge, mode, options.isRainy ?? false) +
+        getHazardAvoidancePenalty(
+          [currentNode.coordinates[0], currentNode.coordinates[1]],
+          [targetNode.coordinates[0], targetNode.coordinates[1]],
+          options.avoidCoordinates ?? [],
+          options.avoidRadiusM
+        );
       if (candidate < (distances.get(edge.to) ?? Number.POSITIVE_INFINITY)) {
         distances.set(edge.to, candidate);
         previous.set(edge.to, { nodeId: currentNodeId, edge });
@@ -752,7 +767,15 @@ function dijkstra(
             activityScore: 0
           };
 
-          const candidate = currentDistance + (dist * 0.9); // Slight discount for hopping
+          const candidate =
+            currentDistance +
+            dist * 0.9 +
+            getHazardAvoidancePenalty(
+              [currentNode.coordinates[0], currentNode.coordinates[1]],
+              [targetNode.coordinates[0], targetNode.coordinates[1]],
+              options.avoidCoordinates ?? [],
+              options.avoidRadiusM
+            );
           if (candidate < (distances.get(targetId) ?? Number.POSITIVE_INFINITY)) {
             distances.set(targetId, candidate);
             previous.set(targetId, { nodeId: currentNodeId, edge: virtualEdge });
@@ -987,6 +1010,31 @@ function getEdgeCost(
     default:
       return edge.distanceM;
   }
+}
+
+const DEFAULT_HAZARD_AVOID_RADIUS_M = 55;
+const HAZARD_EDGE_BLOCK_PENALTY = 1_000_000;
+
+function getHazardAvoidancePenalty(
+  start: Coord2,
+  end: Coord2,
+  avoidCoordinates: Coord2[],
+  radiusM = DEFAULT_HAZARD_AVOID_RADIUS_M
+) {
+  if (avoidCoordinates.length === 0) {
+    return 0;
+  }
+
+  let penalty = 0;
+  for (const coordinate of avoidCoordinates) {
+    const distanceM = projectPointToSegment(coordinate, start, end).distanceM;
+    if (distanceM <= radiusM) {
+      penalty += HAZARD_EDGE_BLOCK_PENALTY;
+    } else if (distanceM <= radiusM * 2) {
+      penalty += HAZARD_EDGE_BLOCK_PENALTY * 0.08;
+    }
+  }
+  return penalty;
 }
 
 function computeSafetyScore(

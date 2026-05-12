@@ -15,6 +15,10 @@ import {
   mergeRouteCoordinates,
 } from "@/lib/fstRouting";
 import {
+  buildHazardAvoidanceWaypoints,
+  routeIntersectsHazards,
+} from "@/lib/routeSafety";
+import {
   getCachedCampusPlaceData,
   loadCampusPlaceData,
 } from "@/lib/campusPlaces";
@@ -786,6 +790,26 @@ export default function WalkGroupPage() {
     } satisfies DirectionsRoute;
   }, []);
 
+  const requestHazardAwareWalkingRoute = useCallback(
+    async (waypoints: Coord2[]) => {
+      const route = await requestWalkingRoute(waypoints);
+      if (!routeIntersectsHazards(route.coordinates, hazards)) {
+        return route;
+      }
+
+      const origin = waypoints[0];
+      const destination = waypoints[waypoints.length - 1];
+      const reroute = await requestWalkingRoute(
+        buildHazardAvoidanceWaypoints(origin, destination, hazards)
+      );
+
+      return routeIntersectsHazards(reroute.coordinates, hazards)
+        ? route
+        : reroute;
+    },
+    [hazards, requestWalkingRoute]
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -840,7 +864,7 @@ export default function WalkGroupPage() {
 
       if (userLocation) {
         try {
-          const route = await requestWalkingRoute([
+          const route = await requestHazardAwareWalkingRoute([
             userLocation.coordinates,
             userTarget,
           ]);
@@ -874,7 +898,7 @@ export default function WalkGroupPage() {
     return () => {
       cancelled = true;
     };
-  }, [campusData, group, requestWalkingRoute, userLocation]);
+  }, [campusData, group, requestHazardAwareWalkingRoute, userLocation]);
 
   useEffect(() => {
     const map = mapRef.current?.getMap();
@@ -1016,13 +1040,7 @@ export default function WalkGroupPage() {
     userRouteSource?.setData(
       createRouteFeatureCollection(routeSummary?.userCoordinates ?? [])
     );
-    groupRouteSource?.setData(
-      createRouteFeatureCollection(
-        group?.status === "started"
-          ? (routeSummary?.groupCoordinates ?? [])
-          : []
-      )
-    );
+    groupRouteSource?.setData(EMPTY_ROUTE_COLLECTION);
   }, [group?.status, isMapReady, routeSummary]);
 
   const focusGroupOnMap = useCallback(() => {
@@ -1033,9 +1051,6 @@ export default function WalkGroupPage() {
 
     const fitCoordinates = [
       ...(routeSummary?.userCoordinates ?? []),
-      ...(group.status === "started"
-        ? (routeSummary?.groupCoordinates ?? [])
-        : []),
       [group.meetingLng, group.meetingLat] as Coord2,
       [group.destinationLng, group.destinationLat] as Coord2,
       ...(userLocation ? [userLocation.coordinates] : []),
@@ -1676,7 +1691,7 @@ export default function WalkGroupPage() {
                       </div>
                     ) : (
                       comments.map(comment => {
-                        const isOwn = comment.userId === user?.id;
+                        const isOwn = String(comment.userId) === String(user?.id);
                         return (
                           <div 
                             key={comment.id}
