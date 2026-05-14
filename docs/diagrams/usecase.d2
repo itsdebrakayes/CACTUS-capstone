@@ -1,0 +1,84 @@
+direction: right
+
+# Actors (left side)
+Student: Student {
+  shape: person
+  style.fill: "#e8f5e9"
+  style.stroke: "#388e3c"
+}
+
+ClassRep: Class Rep {
+  shape: person
+  style.fill: "#e3f2fd"
+  style.stroke: "#1976d2"
+}
+
+Lecturer: Lecturer {
+  shape: person
+  style.fill: "#fff3e0"
+  style.stroke: "#f57c00"
+}
+
+Admin: Admin {
+  shape: person
+  style.fill: "#fce4ec"
+  style.stroke: "#c62828"
+}
+
+# System boundary
+System: CACTUS System {
+  style.fill: "#f5f0ff"
+  style.stroke: "#6f42c1"
+  style.stroke-width: 2
+
+  UC1: Plan Route {
+    shape: oval
+    style.fill: "#d4edda"
+    style.stroke: "#28a745"
+  }
+
+  UC2: Report Hazard {
+    shape: oval
+    style.fill: "#fff3cd"
+    style.stroke: "#ffc107"
+  }
+
+  UC3: Create / Join\nWalk Group {
+    shape: oval
+    style.fill: "#d1ecf1"
+    style.stroke: "#17a2b8"
+  }
+
+  UC4: Submit Class Change {
+    shape: oval
+    style.fill: "#f8d7da"
+    style.stroke: "#dc3545"
+  }
+
+  UC5: Verify Report {
+    shape: oval
+    style.fill: "#e2d9f3"
+    style.stroke: "#6f42c1"
+  }
+
+  UC6: Manage Users {
+    shape: oval
+    style.fill: "#fde2e4"
+    style.stroke: "#e63946"
+  }
+}
+
+# Relationships
+Student -> System.UC1
+Student -> System.UC2
+Student -> System.UC3
+Student -> System.UC4
+Student -> System.UC5
+
+ClassRep -> System.UC4
+ClassRep -> System.UC5
+
+Lecturer -> System.UC4
+
+Admin -> System.UC6
+Admin -> System.UC2

@@ -1,0 +1,66 @@
+direction: down
+
+ClientDevice: Client Device {
+  style.fill: "#f0f8ff"
+  style.stroke: "#333"
+  style.stroke-width: 2
+
+  Browser: Browser / Mobile Browser {
+    style.fill: "#ffffff"
+    style.stroke: "#555"
+
+    ClientApp: CACTUS_capstone/client {
+      style.fill: "#e8f4fd"
+      style.stroke: "#2196F3"
+
+      login: login.html { shape: page }
+      schedule: courseSchedule.html { shape: page }
+      updates: classUpdates.html { shape: page }
+      dashboard: dashboard.html { shape: page }
+      map: campusMap.html { shape: page }
+      walking: walkingPartner.html { shape: page }
+    }
+  }
+}
+
+WebServer: Web Server {
+  style.fill: "#fff8e1"
+  style.stroke: "#333"
+  style.stroke-width: 2
+
+  ServerApp: CACTUS_capstone/server {
+    style.fill: "#fffde7"
+    style.stroke: "#FFC107"
+
+    authService: authService { shape: page }
+    routeFinderAPI: routeFinderAPI { shape: page }
+    notificationAPI: notificationAPI { shape: page }
+    courseAPI: courseAPI { shape: page }
+    reportAPI: reportAPI { shape: page }
+    walkingPartnerAPI: walkingPartnerAPI { shape: page }
+  }
+}
+
+ExternalServer: Server {
+  style.fill: "#f3e5f5"
+  style.stroke: "#333"
+  style.stroke-width: 2
+
+  MapBoxServer: Web Server {
+    style.fill: "#ede7f6"
+    style.stroke: "#7E57C2"
+
+    MapBoxService: MapBox Service { shape: rectangle }
+  }
+
+  DBServer: Database Server {
+    style.fill: "#ede7f6"
+    style.stroke: "#7E57C2"
+
+    DB: Database_Schema { shape: page }
+  }
+}
+
+ClientDevice.Browser -> WebServer: +https
+WebServer -> ExternalServer.MapBoxServer: +https
+WebServer -> ExternalServer.DBServer: +https

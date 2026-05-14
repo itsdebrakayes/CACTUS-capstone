@@ -188,154 +188,24 @@ CACTUS employs a modern **Client-Server Layered Architecture**, chosen for its s
 ### 5.3 System Diagrams
 
 #### 5.3.1 Use Case Diagram
-The Use Case diagram illustrates the interactions between the primary actors (Student, Class Rep, Lecturer, Admin) and the system's core functionalities.
+The Use Case diagram illustrates the interactions between the primary actors (Student, Class Rep, Lecturer, Admin) and the system's core functionalities. Actors on the left connect to colour-coded use case ovals within the CACTUS System boundary. The Student has the broadest access, interacting with all five primary use cases. Class Representatives share the Submit Class Change and Verify Report use cases with students, while Lecturers may submit class changes with elevated authority. Administrators have exclusive access to Manage Users and can also report hazards.
 
-```mermaid
-graph LR
-    %% Actors
-    S([👤 Student])
-    CR([👤 Class Rep])
-    L([👤 Lecturer])
-    A([👤 Admin])
-
-    %% Use Cases
-    UC1(Plan Route)
-    UC2(Report Hazard)
-    UC3(Create / Join Walk Group)
-    UC4(Submit Class Change)
-    UC5(Verify Report)
-    UC6(Manage Users)
-
-    %% Relationships
-    S --> UC1
-    S --> UC2
-    S --> UC3
-    S --> UC4
-    S --> UC5
-
-    CR --> UC4
-    CR --> UC5
-
-    L --> UC4
-
-    A --> UC6
-    A --> UC2
-
-    %% Styling
-    style UC1 fill:#d4edda,stroke:#28a745
-    style UC2 fill:#fff3cd,stroke:#ffc107
-    style UC3 fill:#d1ecf1,stroke:#17a2b8
-    style UC4 fill:#f8d7da,stroke:#dc3545
-    style UC5 fill:#e2d9f3,stroke:#6f42c1
-    style UC6 fill:#fde2e4,stroke:#e63946
-```
+![Use Case Diagram](diagrams/img/usecase.png)
 
 #### 5.3.2 Component Diagram
-This diagram models the interaction between the user interface and the backend components.
+This diagram models the interaction between the external interfaces and the internal components of the CACTUS system. Three external actors interact with the system: **AuthService/SupabaseDatabase** communicates with the Authenticator for user authentication, course data retrieval, and report storage; **MapServiceAPI** provides map tile data and location services to the MapInterfaceController; and **StudentDashboardUI** drives schedule viewing, route requests, and report submissions through the RouteFinder. The seven internal components within the CACTUS Smart Campus Assistant Web Application boundary handle all business logic in a modular, separated manner.
 
-```mermaid
-graph TD
-    subgraph Client [Presentation Layer]
-        UI[React UI Components]
-        Map[Mapbox GL JS]
-        Client_tRPC[tRPC Client]
-    end
-
-    subgraph Server [Business Logic Layer]
-        Server_tRPC[tRPC Router]
-        Pathfinder[algorithms.ts / Dijkstra]
-        TrustEngine[Bayesian Trust System]
-        SSE[realtime.ts / SSE]
-    end
-
-    subgraph Database [Data Access Layer]
-        ORM[db.ts / Drizzle]
-        Supa[Supabase PostgreSQL]
-    end
-
-    UI --> Client_tRPC
-    Map --> UI
-    Client_tRPC <-->|HTTP/HTTPS| Server_tRPC
-    UI <-->|Server-Sent Events| SSE
-    
-    Server_tRPC --> Pathfinder
-    Server_tRPC --> TrustEngine
-    Server_tRPC --> ORM
-    SSE --> ORM
-    
-    ORM <-->|SQL| Supa
-```
+![Component Diagram](diagrams/img/component.png)
 
 #### 5.3.3 Deployment Diagram
-The deployment diagram illustrates how the system is physically distributed across cloud environments.
+The deployment diagram illustrates how the system is physically distributed across three environments. The **Client Device** hosts the browser or mobile browser, which contains the CACTUS client-side pages (login, schedule, map, walking partner). The client communicates via HTTPS to the **Web Server**, which hosts the Node.js server containing the six API services (authService, routeFinderAPI, notificationAPI, courseAPI, reportAPI, walkingPartnerAPI). The Web Server in turn communicates via HTTPS to the **Server** environment, which contains both the MapBox web service and the Supabase Database Server.
 
-```mermaid
-graph TD
-    subgraph User Device
-        Browser[Mobile/Desktop Browser]
-    end
-
-    subgraph Vercel Edge Network
-        Frontend[React Static Assets]
-    end
-
-    subgraph Render Cloud
-        NodeServer[Node.js Express Server]
-    end
-
-    subgraph Supabase Cloud
-        DB[(PostgreSQL Database)]
-    end
-
-    Browser <-->|HTTPS| Frontend
-    Browser <-->|HTTPS / tRPC| NodeServer
-    NodeServer <-->|TCP / Connection Pool| DB
-```
+![Deployment Diagram](diagrams/img/deployment.png)
 
 #### 5.3.4 Class Diagram (Core Entities)
-This diagram highlights the structural design of the core database entities and their relationships.
+This diagram highlights the structural design of the five core database entities and their relationships. The **User** entity is the central actor, connected to ClassReport (1..* submits), Hazard (1..* reports), and WalkGroup (1..* creates/joins). The **Course** entity has a 1..* relationship with ClassReport, representing the many reports that can be filed against a single course. Each entity is colour-coded by domain: blue for User, green for Course, orange for ClassReport, red for Hazard, and purple for WalkGroup.
 
-```mermaid
-classDiagram
-    class User {
-        +UUID id
-        +String email
-        +String role
-        +Int trustScore
-        +login()
-        +updateTrustScore()
-    }
-
-    class Course {
-        +Int id
-        +String courseCode
-        +String title
-        +Int classSize
-    }
-
-    class ClassReport {
-        +Int id
-        +Int courseId
-        +UUID reporterId
-        +String reportType
-        +String status
-        +Int confirmsCount
-        +Int disputesCount
-        +verify()
-    }
-
-    class Hazard {
-        +Int id
-        +Float lat
-        +Float lng
-        +String severity
-        +DateTime expiresAt
-    }
-
-    User "1" -- "*" ClassReport : submits
-    Course "1" -- "*" ClassReport : has
-    User "1" -- "*" Hazard : reports
-```
+![Class Diagram](diagrams/img/classdiagram.png)
 
 ---
 

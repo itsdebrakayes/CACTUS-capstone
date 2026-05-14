@@ -1,0 +1,54 @@
+direction: right
+
+# External components
+AuthService: AuthService / SupabaseDatabase {
+  shape: rectangle
+}
+
+MapServiceAPI: MapServiceAPI {
+  shape: rectangle
+}
+
+StudentDashboardUI: StudentDashboardUI {
+  shape: rectangle
+}
+
+# Main system boundary
+CACTUS: CACTUS Smart Campus\nAssistant Web Application {
+  style.fill: "#f5f0ff"
+  style.stroke: "#6f42c1"
+  style.stroke-width: 2
+
+  Authenticator: Authenticator {
+    shape: rectangle
+  }
+
+  RouteFinder: RouteFinder {
+    shape: rectangle
+  }
+
+  ClassReportingManager: ClassReportingManager {
+    shape: rectangle
+  }
+
+  TrustManager: TrustManager {
+    shape: rectangle
+  }
+
+  WalkingPartnerMatcher: WalkingPartnerMatcher {
+    shape: rectangle
+  }
+
+  MapInterfaceController: MapInterfaceController {
+    shape: rectangle
+  }
+
+  NotificationManager: NotificationManager {
+    shape: rectangle
+  }
+}
+
+# Connections with labels
+AuthService -> CACTUS.Authenticator: AuthenticateUser,\nFetchCourseData,\nStoreClassReport
+MapServiceAPI -> CACTUS.MapInterfaceController: LoadCampusMap,\nRenderRoute,\nGetLocationData
+StudentDashboardUI -> CACTUS.RouteFinder: ViewSchedule,\nRequestRoute,\nSubmitReport

@@ -1,0 +1,72 @@
+direction: down
+
+User: User {
+  shape: class
+  style.fill: "#e3f2fd"
+  style.stroke: "#1976d2"
+
+  id: UUID id
+  email: String email
+  role: String role
+  trustScore: Int trustScore
+  "": ""
+  login(): login()
+  updateTrustScore(): updateTrustScore()
+}
+
+Course: Course {
+  shape: class
+  style.fill: "#e8f5e9"
+  style.stroke: "#388e3c"
+
+  id: Int id
+  courseCode: String courseCode
+  title: String title
+  classSize: Int classSize
+}
+
+ClassReport: ClassReport {
+  shape: class
+  style.fill: "#fff3e0"
+  style.stroke: "#f57c00"
+
+  id: Int id
+  courseId: Int courseId
+  reporterId: UUID reporterId
+  reportType: String reportType
+  status: String status
+  confirmsCount: Int confirmsCount
+  disputesCount: Int disputesCount
+  "": ""
+  verify(): verify()
+}
+
+Hazard: Hazard {
+  shape: class
+  style.fill: "#fce4ec"
+  style.stroke: "#c62828"
+
+  id: Int id
+  lat: Float lat
+  lng: Float lng
+  severity: String severity
+  expiresAt: DateTime expiresAt
+}
+
+WalkGroup: WalkGroup {
+  shape: class
+  style.fill: "#f3e5f5"
+  style.stroke: "#7b1fa2"
+
+  id: UUID id
+  creatorId: Int creatorId
+  destination: String destination
+  status: String status
+  memberCount: Int memberCount
+}
+
+# Relationships
+User -> ClassReport: "1..* submits"
+Course -> ClassReport: "1..* has"
+User -> Hazard: "1..* reports"
+User -> WalkGroup: "1..* creates/joins"
