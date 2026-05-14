@@ -191,34 +191,44 @@ CACTUS employs a modern **Client-Server Layered Architecture**, chosen for its s
 The Use Case diagram illustrates the interactions between the primary actors (Student, Class Rep, Lecturer, Admin) and the system's core functionalities.
 
 ```mermaid
-usecaseDiagram
-    actor Student
-    actor "Class Rep" as ClassRep
-    actor Lecturer
-    actor Admin
+graph LR
+    %% Actors
+    S([👤 Student])
+    CR([👤 Class Rep])
+    L([👤 Lecturer])
+    A([👤 Admin])
 
-    usecase "Plan Route" as UC1
-    usecase "Report Hazard" as UC2
-    usecase "Create Walk Group" as UC3
-    usecase "Submit Class Change" as UC4
-    usecase "Verify Report" as UC5
-    usecase "Manage Users" as UC6
+    %% Use Cases
+    UC1(Plan Route)
+    UC2(Report Hazard)
+    UC3(Create / Join Walk Group)
+    UC4(Submit Class Change)
+    UC5(Verify Report)
+    UC6(Manage Users)
 
-    Student --> UC1
-    Student --> UC2
-    Student --> UC3
-    Student --> UC4
-    Student --> UC5
+    %% Relationships
+    S --> UC1
+    S --> UC2
+    S --> UC3
+    S --> UC4
+    S --> UC5
 
-    ClassRep --> UC4
-    ClassRep --> UC5
+    CR --> UC4
+    CR --> UC5
 
-    Lecturer --> UC4
-    
-    Admin --> UC6
-    Admin --> UC2
+    L --> UC4
+
+    A --> UC6
+    A --> UC2
+
+    %% Styling
+    style UC1 fill:#d4edda,stroke:#28a745
+    style UC2 fill:#fff3cd,stroke:#ffc107
+    style UC3 fill:#d1ecf1,stroke:#17a2b8
+    style UC4 fill:#f8d7da,stroke:#dc3545
+    style UC5 fill:#e2d9f3,stroke:#6f42c1
+    style UC6 fill:#fde2e4,stroke:#e63946
 ```
-*(Note: Mermaid does not natively support standard UML Use Case diagrams well, but the relationships are defined above. In a formal document, this would be rendered as a standard UML Use Case diagram showing actors connected to oval use cases.)*
 
 #### 5.3.2 Component Diagram
 This diagram models the interaction between the user interface and the backend components.
