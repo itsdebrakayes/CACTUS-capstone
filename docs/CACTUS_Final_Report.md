@@ -15,12 +15,7 @@ The rationale for developing the Campus Companion Hub (CACTUS) is to formalize a
 ## 2. Software Requirements Specification (SRS)
 
 ### 2.1 Product Context and Functionality
-CACTUS is a mobile-responsive web application designed to serve as the central hub for student life at UWI Mona. The core functionalities include:
-*   **Interactive Campus Navigation:** Real-time routing using Dijkstra's algorithm, featuring specific profiles like Shortest, Safe Night, Scenic, and Accessible.
-*   **Walking Partner System (Walk Groups):** A peer-to-peer system allowing students to create or join groups for safe campus traversal.
-*   **Crowdsourced Hazard Reporting:** A map-based reporting tool where users can flag hazards (e.g., broken lights, flooding) that dynamically alter route calculations.
-*   **Course Coordination & Reporting:** A verification-based reporting system for class changes, allowing students to upvote/downvote reports to confirm academic schedule adjustments.
-*   **Trust Score System:** A Bayesian scoring mechanism that evaluates user reliability based on the accuracy of their reports and their behavior in Walk Groups.
+CACTUS is a mobile-responsive web application designed to serve as the central hub for student life at UWI Mona. The system provides a platform delivering core functional areas for university campus users including: Class Schedule Management & Notifications, Campus Navigation, Safety Incident Reporting, Walking Partner System (Walking Groups), and a Trust Score System.
 
 ### 2.2 Stakeholders and User Characteristics
 *   **Students (Primary Users):** Require immediate access to routing, safety tools, and class updates. They interact with the system primarily via mobile devices.
@@ -28,17 +23,106 @@ CACTUS is a mobile-responsive web application designed to serve as the central h
 *   **Lecturers/Faculty:** Can issue official announcements that bypass the crowdsourced verification threshold.
 *   **Campus Administration:** Secondary beneficiaries who can utilize aggregated hazard data for maintenance and security planning.
 
-### 2.3 Specific Functional Requirements
-*   **Req 1 - Route Planning:** The system shall calculate optimal paths between campus nodes within 500ms, factoring in active hazard reports to adjust route costs dynamically.
-*   **Req 2 - Hazard Reporting:** Users shall be able to submit geo-tagged hazard reports. These reports must propagate to all active clients in real-time via Server-Sent Events (SSE).
-*   **Req 3 - Walk Groups:** The system shall facilitate the creation of Walk Groups, tracking member counts and group status (active, started, ended).
-*   **Req 4 - Course Reporting:** Enrolled students shall be able to submit class status reports (e.g., "Lecturer Late"). The system must transition these reports to a "verified" state once a dynamically calculated confirmation threshold (based on class size) is met.
-*   **Req 5 - Trust Evaluation:** The system shall maintain a Trust Score for each user. Scores must increase upon successful report verification and decrease upon report denial or negative Walk Group feedback.
+### 2.3 Operating Environment
+The CACTUS system operates in a modern, mobile-first web environment.
+*   **Client Devices:** Users access the system via smartphones running iOS 14+ or Android 10+, as well as modern desktop web browsers (Chrome, Safari, Firefox, Edge).
+*   **Server Environment:** The backend is hosted on Render, running Node.js with Express and tRPC.
+*   **Database:** Data is persisted using PostgreSQL hosted on Supabase.
+*   **Network:** The system assumes standard 4G/LTE mobile internet connectivity across the majority of the campus.
 
-### 2.4 Non-Functional Requirements
-*   **Performance:** The initial map interface must render within 3 seconds on a standard 4G connection.
-*   **Security:** All API endpoints must be secured using JWT-based authentication. User passwords must be hashed using `bcryptjs`.
-*   **Reliability:** The system must implement a Time-To-Live (TTL) mechanism for hazard reports to ensure the map reflects only current conditions.
+### 2.4 Assumptions and Constraints
+**Assumptions:**
+*   All users are enrolled students, registered lecturers, or verified administrators.
+*   Users have access to smartphones with active GPS and location services.
+*   Reliable mobile internet connectivity exists across the majority of the campus.
+*   Campus map data is available in a structured digital format (e.g., GeoJSON).
+
+**Constraints:**
+*   The system must comply with applicable data protection legislation.
+*   No biometric data may be collected or stored.
+*   Location tracking must be opt-in and may not persist beyond an active session unless explicitly consented to.
+*   The system must remain functional in low-bandwidth conditions for core safety features.
+
+### 2.5 Data Protection and Ethical Constraints
+CACTUS handles sensitive personal data including location, identity, and movement patterns. The following ethical and legal constraints govern system design:
+*   **Location Privacy:** Location data is only shared with active walk group members and is never stored permanently.
+*   **Anonymity:** Walking companion matching does not reveal either party's identity prior to mutual acceptance.
+*   **Data Minimization:** The system does not collect or store any personal data beyond what is required for the requested feature.
+
+### 2.6 External Interface Requirements
+
+#### 2.6.1 Hardware Interfaces
+The system does not require specialized hardware. It relies on:
+*   **Mobile Devices:** Touchscreen interfaces for input and GPS sensors for location tracking.
+*   **Desktop Computers:** Standard keyboard and mouse inputs.
+
+#### 2.6.2 Software Interfaces
+*   **Frontend Framework:** React 19, Tailwind CSS, Mapbox GL JS.
+*   **Backend Framework:** Node.js, Express, tRPC.
+*   **Database:** PostgreSQL (Supabase) accessed via Drizzle ORM.
+
+#### 2.6.3 Communications Interfaces
+*   **Protocols:** HTTP/HTTPS for standard API requests.
+*   **Real-time:** Server-Sent Events (SSE) for pushing real-time hazard and walk group updates.
+*   **Email:** SMTP (via Nodemailer) for delivering verification codes.
+
+### 2.7 Functional Requirements
+
+#### 2.7.1 Class Schedules & Updates
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| FR-CS-01 | Schedule Viewing | Students shall be able to view their registered class schedules. | High |
+| FR-CS-02 | Change Reporting | Students shall be able to submit reports regarding class status (e.g., cancelled, room change). | High |
+| FR-CS-03 | Verification Threshold | The system shall transition reports to a "verified" state once a dynamically calculated confirmation threshold is met. | High |
+| FR-CS-04 | Official Announcements | Lecturers shall be able to post official announcements that bypass the crowdsourced verification threshold. | Medium |
+
+#### 2.7.2 Navigation & Routing
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| FR-NAV-01 | Route Generation | The system shall generate walking routes between two campus locations using Dijkstra's algorithm. | High |
+| FR-NAV-02 | Route Profiles | The system shall provide multiple route profiles: Shortest, Safe Night, Scenic, and Accessible. | Medium |
+| FR-NAV-03 | Dynamic Weighting | The system shall dynamically adjust route costs based on active hazard reports. | High |
+
+#### 2.7.3 Safety Companion Features (Walk Groups)
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| FR-SC-01 | Group Creation | A user shall be able to create a Walk Group specifying a meeting point, destination, and departure time. | High |
+| FR-SC-02 | Group Joining | A user shall be able to view active Walk Groups on the map and join them. | High |
+| FR-SC-03 | Status Tracking | The system shall track the status of the Walk Group (active, started, ended). | Medium |
+
+#### 2.7.4 Incident Reporting
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| FR-IR-01 | Hazard Submission | Any user shall be able to report a campus safety hazard or infrastructure issue on the map. | High |
+| FR-IR-02 | Hazard Categorization | The system shall categorize hazards by type and severity. | Medium |
+| FR-IR-03 | Time-To-Live | The system shall implement a TTL mechanism for hazards, expiring them if not re-confirmed. | High |
+
+#### 2.7.5 Trust System
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| FR-TS-01 | Trust Score Assignment | The system shall assign a Trust Score to every user, starting at a default value. | High |
+| FR-TS-02 | Score Adjustment | The system shall increase the score for verified accurate reports and decrease it for denied reports. | High |
+
+### 2.8 Non-Functional Requirements
+
+#### 2.8.1 Privacy
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| NFR-PV-01 | Location Opt-In | Location access shall only be activated upon explicit user consent. | High |
+| NFR-PV-02 | Anonymous Matching | Walking companion matching shall not reveal identity prior to acceptance. | High |
+
+#### 2.8.2 Security
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| NFR-SE-01 | Authentication | All users must authenticate via JWT-based sessions. | High |
+| NFR-SE-02 | Password Hashing | User passwords must be securely hashed using bcryptjs. | High |
+
+#### 2.8.3 Performance
+| ID | Requirement | Description | Priority |
+|---|---|---|---|
+| NFR-PE-01 | Route Load Time | Route generation shall complete within 500ms. | High |
+| NFR-PE-02 | Initial Render | The initial map interface must render within 3 seconds on a standard 4G connection. | Medium |
+| NFR-PE-03 | Real-time Latency | Real-time events (hazards, walk groups) must propagate to connected clients within 1 second. | High |
 
 ---
 
